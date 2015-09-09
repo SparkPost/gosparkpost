@@ -1,0 +1,18 @@
+{
+  "edifice": {
+    "Type": "Momentum",
+    "ApiBase": "https://edificegroup.com/api/v1",
+    "LinkDomain": "http://link.edificegroup.com",
+    "ApiKey": "foobar",
+    "Bindings": {
+      "bg0":  {
+        "Domains": [ "egiserver.com", "egiserver100.com" ],
+        "IPs": [ "127.0.0.1", "127.0.0.2" ]
+      },
+      "bg1":  {
+        "Domains": [ "egiserver200.com", "egiserver300.com" ],
+        "IPs": [ "127.0.0.3", "127.0.0.4" ]
+      }
+    }
+  }
+}
