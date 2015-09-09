@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -66,12 +66,20 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func Summarize(cfg Config) string {
-	if cfg.Type == SparkPost {
-		return fmt.Sprintf("Testing %s instance %s (%s)", cfg.Type, cfg.Name, cfg.Protocols)
+func (c Config) Summarize() string {
+	if c.Type == SparkPost {
+		return fmt.Sprintf("Testing %s instance %s %s", c.Type, c.Name, c.Protocols)
 	} else {
-		return fmt.Sprintf("Testing %s instance %s (%s) > binding (%s) > domain (%s)",
-			cfg.Type, cfg.Name, cfg.TestBinding, cfg.TestDomain)
+		testBinding := c.TestBinding
+		if testBinding == "" {
+			testBinding = "all"
+		}
+		testDomain := c.TestDomain
+		if testDomain == "" {
+			testDomain = "all"
+		}
+		return fmt.Sprintf("Testing %s instance %s %s > binding (%s) > domain (%s)",
+			c.Type, c.Name, c.Protocols, testBinding, testDomain)
 	}
 }
 
@@ -187,10 +195,10 @@ func Load(filename string) (*Config, error) {
 	// protocol to test comes from environment variable
 	protocol := os.Getenv("MSYS_SMOKE_PROTOCOL")
 	if protocol != "" {
+		var p InjectionProtocol
 		var found bool
-		for _, p := range test.Protocols {
-			// leverage auto-generated code to validate this configured value
-			if protocol == _InjectionProtocolValueToName[p] {
+		for _, p = range test.Protocols {
+			if protocol == p.String() {
 				found = true
 				break
 			}
@@ -200,7 +208,7 @@ func Load(filename string) (*Config, error) {
 			return nil, fmt.Errorf("Injection protocol [%s] unavailable for instance [%s]", protocol, test.Name)
 		}
 		test.Protocols = make([]InjectionProtocol, 1)
-		test.Protocols[0] = _InjectionProtocolNameToValue[protocol]
+		test.Protocols[0] = p
 	}
 
 	return &test, nil
