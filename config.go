@@ -20,8 +20,8 @@ const (
 )
 
 const (
-	EliteBase     string = "https://%s.msyscloud.com/api/%s/%s"
-	SparkPostBase string = "https://api.sparkpost.com/api/%s/%s"
+	EliteBase     string = "https://%s.msyscloud.com"
+	SparkPostBase string = "https://api.sparkpost.com"
 )
 
 //go:generate jsonenums -type=InjectionProtocol
@@ -46,6 +46,7 @@ type Config struct {
 	Type         InstanceType
 	ApiKey       string
 	ApiBase      string
+	ApiVersion   int
 	LinkDomain   string
 	BaseDomain   string
 	Protocols    []InjectionProtocol
@@ -115,6 +116,25 @@ func Load(filename string) (*Config, error) {
 		test.Protocols[0] = REST
 	}
 
+	// set the API version if not specified
+	// (v1 is the only version as of 2015-09-09)
+	if test.ApiVersion == 0 {
+		test.ApiVersion = 1
+	}
+
+	// set up the base url to be used for api calls
+	// NB: ApiBase must not include "/api/v1", that will be added
+	if test.ApiBase == "" {
+		if test.Type == Elite {
+			test.ApiBase = fmt.Sprintf(EliteBase, test.Name)
+		} else if test.Type == SparkPost {
+			test.ApiBase = SparkPostBase
+		} else if test.Type == Momentum {
+			// ApiBase must be manually configured for Momentum AKA onprem
+			return nil, fmt.Errorf("Missing ApiBase for Momentum instance [%s]", test.Name)
+		}
+	}
+
 	// TODO: set default values based on instance type
 
 	// binding to test comes from an environment variable
@@ -167,16 +187,28 @@ func Load(filename string) (*Config, error) {
 	// protocol to test comes from environment variable
 	protocol := os.Getenv("MSYS_SMOKE_PROTOCOL")
 	if protocol != "" {
-		var p InjectionProtocol
-		var ok bool
-		if p, ok = _InjectionProtocolNameToValue[protocol]; !ok {
-			return nil, fmt.Errorf("Unrecognized injection protocol [%s]", protocol)
+		var found bool
+		for _, p := range test.Protocols {
+			// leverage auto-generated code to validate this configured value
+			if protocol == _InjectionProtocolValueToName[p] {
+				found = true
+				break
+			}
+		}
+		// may only choose from configured protocols
+		if !found {
+			return nil, fmt.Errorf("Injection protocol [%s] unavailable for instance [%s]", protocol, test.Name)
 		}
 		test.Protocols = make([]InjectionProtocol, 1)
-		test.Protocols[0] = p
+		test.Protocols[0] = _InjectionProtocolNameToValue[protocol]
 	}
 
 	return &test, nil
+}
+
+// API URL builder
+func (c Config) ApiUrl(suffix string) string {
+	return fmt.Sprintf("%s/api/v%d%s", c.ApiBase, c.ApiVersion, suffix)
 }
 
 // Name of the current config object
