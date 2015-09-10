@@ -18,7 +18,12 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
-func New(cfg *config.Config) (api API, err error) {
+func (api *API) Init(cfg *config.Config) (err error) {
+	if api == nil {
+		// handle the case where we call Init on something
+		// that api.API is embedded in
+		api = &API{}
+	}
 	api.Config = cfg
 	api.Client, err = rest.New(api.Config.ApiBase)
 	if err != nil {
@@ -30,9 +35,8 @@ func New(cfg *config.Config) (api API, err error) {
 
 /*
 How do we want to be able to use this API?
-- import the api library
-- call api.New()
-- api library loads config from (file, ...)
-- api object is returned
-- api.Templates.Create(...) Just Works
+- import library for API we want to use (Templates, ...)
+- declare Templates object, call Init on it
+	- loads config from (file, ...)
+- Templates.Create(...) uses config loaded by Init
 */

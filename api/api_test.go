@@ -13,7 +13,8 @@ func TestAPI(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = New(cfg)
+	var api API
+	err = api.Init(cfg)
 	if err != nil {
 		t.Error(err)
 	}
