@@ -1,13 +1,25 @@
 package api
 
 import (
+	"bytes"
+	"crypto/tls"
+	"fmt"
+	"net/http"
+	"strings"
+
 	"bitbucket.org/yargevad/go-sparkpost/config"
-	"github.com/yargevad/rest"
+	certifi "github.com/certifi/gocertifi"
 )
 
 type API struct {
 	Config *config.Config
-	Client *rest.Client
+	Client *http.Client
+}
+
+type Response struct {
+	HTTP    *http.Response
+	Results map[string]string `json:"results,omitempty"`
+	Errors  []Error           `json:"errors,omitempty"`
 }
 
 type Error struct {
@@ -19,24 +31,45 @@ type Error struct {
 }
 
 func (api *API) Init(cfg *config.Config) (err error) {
-	if api == nil {
-		// handle the case where we call Init on something
-		// that api.API is embedded in
-		api = &API{}
-	}
 	api.Config = cfg
-	api.Client, err = rest.New(api.Config.ApiBase)
+
+	// load Mozilla cert pool
+	pool, err := certifi.CACerts()
 	if err != nil {
 		return
 	}
 
+	// configure transport using Mozilla cert pool
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{RootCAs: pool},
+	}
+
+	// configure http client using transport
+	api.Client = &http.Client{Transport: transport}
+
 	return
 }
 
-/*
-How do we want to be able to use this API?
-- import library for API we want to use (Templates, ...)
-- declare Templates object, call Init on it
-	- loads config from (file, ...)
-- Templates.Create(...) uses config loaded by Init
-*/
+// Post the provided JSON payload to the specified url.
+// Authenticate using the configured API key.
+func (api *API) Post(url string, data []byte) (*http.Response, error) {
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", api.Config.ApiKey)
+	return api.Client.Do(req)
+}
+
+// Return an error if the provided HTTP response isn't JSON.
+func AssertJson(res *http.Response) error {
+	if res == nil {
+		return fmt.Errorf("AssertJson got nil http.Response")
+	}
+	contentType := res.Header.Get("Content-Type")
+	if !strings.EqualFold(contentType, "application/json") {
+		return fmt.Errorf("Expected json, got [%s] with code %d", contentType, res.StatusCode)
+	}
+	return nil
+}
