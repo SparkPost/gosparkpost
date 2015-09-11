@@ -3,7 +3,6 @@ package templates
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"strings"
 
@@ -175,7 +174,7 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 	}
 
 	url := fmt.Sprintf("%s%s", t.API.Config.BaseUrl, t.Path)
-	res, err := t.Post(url, jsonBytes)
+	res, err := t.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -184,29 +183,30 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 		return
 	}
 
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	t.Response, err = api.ParseApiResponse(res)
 	if err != nil {
 		return
 	}
 
-	apiResponse := &api.Response{}
-	apiResponse.HTTP = res
-	// pull out either "results" or "errors"
-	err = json.Unmarshal(body, apiResponse)
-	if err != nil {
-		return
-	}
-	// keep this around so callers can see failure details
-	t.Response = apiResponse
-
-	if len(apiResponse.Errors) > 0 {
-		err = fmt.Errorf("Error creating Template:\n%s", string(body))
-	} else if len(apiResponse.Results) > 0 {
+	if res.StatusCode == 200 {
 		var ok bool
-		id, ok = apiResponse.Results["id"]
+		id, ok = t.Response.Results["id"]
 		if !ok {
-			err = fmt.Errorf("Unexpected response to Template creation:\n%s", string(body))
+			err = fmt.Errorf("Unexpected response to Template creation")
+		}
+	} else if len(t.Response.Errors) > 0 {
+		if res.StatusCode == 403 {
+			err = fmt.Errorf("Template creation failed: permission denied")
+		} else if res.StatusCode == 422 {
+			// template syntax error
+			err = fmt.Errorf(t.Response.Errors[0].Description)
+		} else {
+			jstr, errr := json.Marshal(t.Response.Errors)
+			if errr != nil {
+				err = errr
+				return
+			}
+			err = fmt.Errorf(string(jstr))
 		}
 	}
 
@@ -221,5 +221,56 @@ func (t Templates) CreateWithJSON(j string) (id string, err error) {
 	}
 
 	id, err = t.CreateWithTemplate(template)
+	return
+}
+
+func (t Templates) List() ([]Template, error) {
+	return nil, nil
+}
+
+func (t Templates) Delete(id string) (err error) {
+	if id == "" {
+		err = fmt.Errorf("Delete called with blank id")
+		return
+	}
+
+	url := fmt.Sprintf("%s%s/%s", t.API.Config.BaseUrl, t.Path, id)
+	res, err := t.HttpDelete(url)
+
+	if err != nil {
+		return
+	}
+
+	if err = api.AssertJson(res); err != nil {
+		return
+	}
+
+	t.Response, err = api.ParseApiResponse(res)
+	if err != nil {
+		return
+	}
+
+	if res.StatusCode == 200 {
+		return nil
+	} else if len(t.Response.Errors) > 0 {
+		// TODO: split this out into its own function, assuming return codes are consistent
+		if res.StatusCode == 404 {
+			err = fmt.Errorf("Template with id [%s] does not exist", id)
+		} else if res.StatusCode == 409 {
+			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
+		} else if res.StatusCode == 401 {
+			err = fmt.Errorf("Template delete failed, permission denied (check your api key)")
+		} else if res.StatusCode == 403 {
+			err = fmt.Errorf("Template delete failed, are you using the right api path?")
+		} else {
+			jstr, errr := json.Marshal(t.Response.Errors)
+			if errr != nil {
+				err = errr
+				return
+			}
+			err = fmt.Errorf("%d: %s", res.StatusCode, string(jstr))
+		}
+	}
+
 	return
 }
