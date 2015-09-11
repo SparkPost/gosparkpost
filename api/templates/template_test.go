@@ -26,7 +26,8 @@ func TestTemplates(t *testing.T) {
 
 	content := Content{
 		Subject: "this is a test template",
-		//Text:    "text part of the test template {{a}",
+		// NB: deliberate syntax error
+		//Text: "text part of the test template {{a}",
 		Text: "text part of the test template",
 		From: map[string]string{
 			"name":  "test name",
@@ -40,4 +41,11 @@ func TestTemplates(t *testing.T) {
 		return
 	}
 	fmt.Printf("Created Template with id=%s\n", id)
+
+	err = Template.Delete(id)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Printf("Deleted Template with id=%s\n", id)
 }
