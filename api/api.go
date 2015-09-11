@@ -3,7 +3,9 @@ package api
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -56,7 +58,7 @@ func (api *API) Init(cfg *Config) (err error) {
 
 // Post the provided JSON payload to the specified url.
 // Authenticate using the configured API key.
-func (api *API) Post(url string, data []byte) (*http.Response, error) {
+func (api *API) HttpPost(url string, data []byte) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -64,6 +66,34 @@ func (api *API) Post(url string, data []byte) (*http.Response, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", api.Config.ApiKey)
 	return api.Client.Do(req)
+}
+
+// Delete Template with the provided id.
+// Authenticate using the configured API key.
+func (api *API) HttpDelete(url string) (*http.Response, error) {
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", api.Config.ApiKey)
+	return api.Client.Do(req)
+}
+
+func ParseApiResponse(res *http.Response) (*Response, error) {
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	apiRes := &Response{}
+	apiRes.HTTP = res
+	err = json.Unmarshal(body, apiRes)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiRes, nil
 }
 
 // Return an error if the provided HTTP response isn't JSON.
