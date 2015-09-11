@@ -7,12 +7,16 @@ import (
 	"net/http"
 	"strings"
 
-	"bitbucket.org/yargevad/go-sparkpost/config"
 	certifi "github.com/certifi/gocertifi"
 )
 
+type Config struct {
+	BaseUrl string
+	ApiKey  string
+}
+
 type API struct {
-	Config *config.Config
+	Config *Config
 	Client *http.Client
 }
 
@@ -30,7 +34,7 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
-func (api *API) Init(cfg *config.Config) (err error) {
+func (api *API) Init(cfg *Config) (err error) {
 	api.Config = cfg
 
 	// load Mozilla cert pool

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"bitbucket.org/yargevad/go-sparkpost/api"
-	"bitbucket.org/yargevad/go-sparkpost/config"
 )
 
 type Templates struct {
@@ -18,13 +17,13 @@ type Templates struct {
 	Response *api.Response
 }
 
-func New(cfg *config.Config) (*Templates, error) {
+func New(cfg *api.Config) (*Templates, error) {
 	t := &Templates{}
 	err := t.Init(cfg)
 	if err != nil {
 		return nil, err
 	}
-	return t
+	return t, nil
 }
 
 type Template struct {
@@ -57,8 +56,9 @@ type Options struct {
 	Transactional bool `json:"transactional,omitempty"`
 }
 
-func (t *Templates) Init(cfg *config.Config) (err error) {
-	t.Path = fmt.Sprintf("/api/v%d/templates", cfg.ApiVersion)
+func (t *Templates) Init(cfg *api.Config) (err error) {
+	// FIXME: allow specifying api version
+	t.Path = "/api/v1/templates"
 	return t.API.Init(cfg)
 }
 
@@ -174,7 +174,7 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 		return
 	}
 
-	url := fmt.Sprintf("%s%s", t.API.Config.ApiBase, t.Path)
+	url := fmt.Sprintf("%s%s", t.API.Config.BaseUrl, t.Path)
 	res, err := t.Post(url, jsonBytes)
 	if err != nil {
 		return

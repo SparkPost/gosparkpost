@@ -3,18 +3,21 @@ package api
 import (
 	"testing"
 
-	"bitbucket.org/yargevad/go-sparkpost/config"
+	"bitbucket.org/yargevad/go-sparkpost/test"
 )
 
 func TestAPI(t *testing.T) {
-	// FIXME: hardcoded config
-	cfg, err := config.Load("../config.json")
+	cfgMap, err := test.LoadConfig()
 	if err != nil {
 		t.Error(err)
 	}
+	cfg := &Config{
+		BaseUrl: cfgMap["baseurl"],
+		ApiKey:  cfgMap["apikey"],
+	}
 
-	var api API
-	err = api.Init(cfg)
+	var a API
+	err = a.Init(cfg)
 	if err != nil {
 		t.Error(err)
 	}

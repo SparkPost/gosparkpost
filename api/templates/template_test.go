@@ -4,18 +4,21 @@ import (
 	"fmt"
 	"testing"
 
-	"bitbucket.org/yargevad/go-sparkpost/config"
+	"bitbucket.org/yargevad/go-sparkpost/api"
+	"bitbucket.org/yargevad/go-sparkpost/test"
 )
 
 func TestTemplates(t *testing.T) {
-	// FIXME: hardcoded config
-	cfg, err := config.Load("../../config.json")
+	cfgMap, err := test.LoadConfig()
 	if err != nil {
 		t.Error(err)
-		return
+	}
+	cfg := &api.Config{
+		BaseUrl: cfgMap["baseurl"],
+		ApiKey:  cfgMap["apikey"],
 	}
 
-	T, err = New(cfg)
+	Template, err := New(cfg)
 	if err != nil {
 		t.Error(err)
 		return
@@ -31,7 +34,7 @@ func TestTemplates(t *testing.T) {
 		},
 	}
 
-	id, err := T.Create("test template", content)
+	id, err := Template.Create("test template", content)
 	if err != nil {
 		t.Error(err)
 		return
