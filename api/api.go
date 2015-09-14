@@ -24,6 +24,7 @@ type API struct {
 
 type Response struct {
 	HTTP    *http.Response
+	Body    string
 	Results map[string]string `json:"results,omitempty"`
 	Errors  []Error           `json:"errors,omitempty"`
 }
@@ -56,7 +57,7 @@ func (api *API) Init(cfg *Config) (err error) {
 	return
 }
 
-// Post the provided JSON payload to the specified url.
+// Send a Post request with the provided JSON payload to the specified url.
 // Authenticate using the configured API key.
 func (api *API) HttpPost(url string, data []byte) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
@@ -68,7 +69,19 @@ func (api *API) HttpPost(url string, data []byte) (*http.Response, error) {
 	return api.Client.Do(req)
 }
 
-// Delete Template with the provided id.
+// Send a Get request to the specified url.
+// Query params are supported via net/url - pass in url.String()
+// Authenticate using the configured API key.
+func (api *API) HttpGet(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", api.Config.ApiKey)
+	return api.Client.Do(req)
+}
+
+// Send a Delete request to the provided url.
 // Authenticate using the configured API key.
 func (api *API) HttpDelete(url string) (*http.Response, error) {
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -79,19 +92,24 @@ func (api *API) HttpDelete(url string) (*http.Response, error) {
 	return api.Client.Do(req)
 }
 
-func ParseApiResponse(res *http.Response) (*Response, error) {
+func ReadBody(res *http.Response) ([]byte, error) {
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	return ioutil.ReadAll(res.Body)
+}
+
+func ParseApiResponse(res *http.Response) (*Response, error) {
+	body, err := ReadBody(res)
 	if err != nil {
 		return nil, err
 	}
 
 	apiRes := &Response{}
-	apiRes.HTTP = res
 	err = json.Unmarshal(body, apiRes)
 	if err != nil {
 		return nil, err
 	}
+	apiRes.Body = string(body)
+	apiRes.HTTP = res
 
 	return apiRes, nil
 }
@@ -104,6 +122,17 @@ func AssertJson(res *http.Response) error {
 	contentType := res.Header.Get("Content-Type")
 	if !strings.EqualFold(contentType, "application/json") {
 		return fmt.Errorf("Expected json, got [%s] with code %d", contentType, res.StatusCode)
+	}
+	return nil
+}
+
+func PrettyError(noun, verb string, res *http.Response) error {
+	if res.StatusCode == 404 {
+		return fmt.Errorf("%s does not exist, %s failed.", noun, verb)
+	} else if res.StatusCode == 401 {
+		return fmt.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
+	} else if res.StatusCode == 403 {
+		return fmt.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
 	}
 	return nil
 }

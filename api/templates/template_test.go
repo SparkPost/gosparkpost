@@ -24,6 +24,14 @@ func TestTemplates(t *testing.T) {
 		return
 	}
 
+	tlist, err := Template.List()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Error(fmt.Errorf("%s", tlist))
+	return
+
 	content := Content{
 		Subject: "this is a test template",
 		// NB: deliberate syntax error

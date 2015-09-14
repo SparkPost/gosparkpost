@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"bitbucket.org/yargevad/go-sparkpost/api"
 )
@@ -26,12 +27,14 @@ func New(cfg *api.Config) (*Templates, error) {
 }
 
 type Template struct {
-	ID          string   `json:"id,omitempty"`
-	Content     Content  `json:"content,omitempty"`
-	Published   bool     `json:"published,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Options     *Options `json:"options,omitempty"`
+	ID          string    `json:"id,omitempty"`
+	Content     Content   `json:"content,omitempty"`
+	Published   bool      `json:"published,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	Description string    `json:"description,omitempty"`
+	LastUse     time.Time `json:"last_use,omitempty"`
+	LastUpdate  time.Time `json:"last_update_time,omitempty"`
+	Options     *Options  `json:"options,omitempty"`
 }
 
 type Content struct {
@@ -194,25 +197,27 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}
+
 	} else if len(t.Response.Errors) > 0 {
-		if res.StatusCode == 403 {
-			err = fmt.Errorf("Template creation failed: permission denied")
-		} else if res.StatusCode == 422 {
-			// template syntax error
+		// handle common errors
+		err = api.PrettyError("Template", "create", res)
+		if err != nil {
+			return
+		}
+
+		if res.StatusCode == 422 { // template syntax error
 			err = fmt.Errorf(t.Response.Errors[0].Description)
-		} else {
-			jstr, errr := json.Marshal(t.Response.Errors)
-			if errr != nil {
-				err = errr
-				return
-			}
-			err = fmt.Errorf(string(jstr))
+		} else { // everything else
+			err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
 		}
 	}
 
 	return
 }
 
+// Support for all Template API options.
+// Accepts a JSON string as input.
+// Validates input before making request.
 func (t Templates) CreateWithJSON(j string) (id string, err error) {
 	template := &Template{}
 	err = json.Unmarshal([]byte(j), template)
@@ -225,7 +230,38 @@ func (t Templates) CreateWithJSON(j string) (id string, err error) {
 }
 
 func (t Templates) List() ([]Template, error) {
-	return nil, nil
+	url := fmt.Sprintf("%s%s", t.API.Config.BaseUrl, t.Path)
+	res, err := t.HttpGet(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = api.AssertJson(res); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 {
+		var body []byte
+		body, err = api.ReadBody(res)
+		if err != nil {
+			return nil, err
+		}
+		tlist := map[string][]Template{}
+		if err = json.Unmarshal(body, &tlist); err != nil {
+			return nil, err
+		} else if list, ok := tlist["results"]; ok {
+			return list, nil
+		}
+		return nil, fmt.Errorf("Unexpected response to Template list")
+
+	} else {
+		t.Response, err = api.ParseApiResponse(res)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, err
 }
 
 func (t Templates) Delete(id string) (err error) {
@@ -236,7 +272,6 @@ func (t Templates) Delete(id string) (err error) {
 
 	url := fmt.Sprintf("%s%s/%s", t.API.Config.BaseUrl, t.Path, id)
 	res, err := t.HttpDelete(url)
-
 	if err != nil {
 		return
 	}
@@ -252,23 +287,19 @@ func (t Templates) Delete(id string) (err error) {
 
 	if res.StatusCode == 200 {
 		return nil
+
 	} else if len(t.Response.Errors) > 0 {
-		// TODO: split this out into its own function, assuming return codes are consistent
-		if res.StatusCode == 404 {
-			err = fmt.Errorf("Template with id [%s] does not exist", id)
-		} else if res.StatusCode == 409 {
+		// handle common errors
+		err = api.PrettyError("Template", "delete", res)
+		if err != nil {
+			return
+		}
+
+		// handle template-specific ones
+		if res.StatusCode == 409 {
 			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
-		} else if res.StatusCode == 401 {
-			err = fmt.Errorf("Template delete failed, permission denied (check your api key)")
-		} else if res.StatusCode == 403 {
-			err = fmt.Errorf("Template delete failed, are you using the right api path?")
-		} else {
-			jstr, errr := json.Marshal(t.Response.Errors)
-			if errr != nil {
-				err = errr
-				return
-			}
-			err = fmt.Errorf("%d: %s", res.StatusCode, string(jstr))
+		} else { // everything else
+			err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
 		}
 	}
 
