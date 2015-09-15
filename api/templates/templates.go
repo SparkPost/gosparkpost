@@ -15,10 +15,7 @@ import (
 // Templates is your handle for the Templates API.
 type Templates struct {
 	api.API
-
-	Path     string
-	Response *api.Response
-	// TODO? move Response into api.API
+	Path string
 }
 
 // New gets a Templates object ready to use with the specified config.
@@ -209,7 +206,7 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 		return
 	}
 
-	t.Response, err = api.ParseApiResponse(res)
+	err = t.ParseResponse(res)
 	if err != nil {
 		return
 	}
@@ -265,7 +262,7 @@ func (t Templates) List() ([]Template, error) {
 		return nil, fmt.Errorf("Unexpected response to Template list")
 
 	} else {
-		t.Response, err = api.ParseApiResponse(res)
+		err = t.ParseResponse(res)
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +288,7 @@ func (t Templates) Delete(id string) (err error) {
 		return
 	}
 
-	t.Response, err = api.ParseApiResponse(res)
+	err = t.ParseResponse(res)
 	if err != nil {
 		return
 	}

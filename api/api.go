@@ -19,12 +19,6 @@ type Config struct {
 	ApiKey  string
 }
 
-// API exists to be embedded in other API objects.
-type API struct {
-	Config *Config
-	Client *http.Client
-}
-
 // Response contains information about the last HTTP response.
 // Helpful when an error message doesn't necessarily give the complete picture.
 type Response struct {
@@ -32,6 +26,13 @@ type Response struct {
 	Body    string
 	Results map[string]string `json:"results,omitempty"`
 	Errors  []Error           `json:"errors,omitempty"`
+}
+
+// API exists to be embedded in other API objects.
+type API struct {
+	Config   *Config
+	Client   *http.Client
+	Response *Response
 }
 
 // The error structure returned by SparkPost APIs.
@@ -109,21 +110,20 @@ func ReadBody(res *http.Response) ([]byte, error) {
 
 // ParseApiResponse pulls info from JSON http responses into api.Response object.
 // It's helpful to call api.AssertJson before calling this function.
-func ParseApiResponse(res *http.Response) (*Response, error) {
+func (api *API) ParseResponse(res *http.Response) error {
 	body, err := ReadBody(res)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	apiRes := &Response{}
-	err = json.Unmarshal(body, apiRes)
+	err = json.Unmarshal(body, api.Response)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	apiRes.Body = string(body)
-	apiRes.HTTP = res
+	api.Response.Body = string(body)
+	api.Response.HTTP = res
 
-	return apiRes, nil
+	return nil
 }
 
 // AssertJson returns an error if the provided HTTP response isn't JSON.
