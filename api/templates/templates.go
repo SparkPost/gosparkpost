@@ -173,9 +173,9 @@ func (t Templates) Create(name string, content Content) (string, error) {
 // CreateWithJSON accepts JSON and calls CreateWithTemplate if parsing succeeds.
 func (t Templates) CreateWithJSON(j string) (string, error) {
 	template := &Template{}
-	err = json.Unmarshal([]byte(j), template)
+	err := json.Unmarshal([]byte(j), template)
 	if err != nil {
-		return string(nil), err
+		return "", err
 	}
 	return t.CreateWithTemplate(template)
 }
