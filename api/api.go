@@ -29,8 +29,9 @@ type Response struct {
 	Errors  []Error           `json:"errors,omitempty"`
 }
 
-// API exists to be embedded in other API objects.
+// API exists to be reused in other API objects.
 type API struct {
+	Path     string
 	Config   *Config
 	Client   *http.Client
 	Response *Response
@@ -45,25 +46,30 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
-// Init pulls together everything necessary to make an API request.
-func (api *API) Init(cfg *Config) (err error) {
+// Init sets each API's path and pulls together everything necessary to make an API request.
+// Caller may provide their own http.Client by setting it in the provided Config object.
+func (api *API) Init(cfg *Config) error {
 	api.Config = cfg
 
-	// load Mozilla cert pool
-	pool, err := certifi.CACerts()
-	if err != nil {
-		return
+	if api.Client == nil {
+		// Ran into an issue where USERTrust was not recognized on OSX.
+		// The rest of this block was the fix.
+		// load Mozilla cert pool
+		pool, err := certifi.CACerts()
+		if err != nil {
+			return err
+		}
+
+		// configure transport using Mozilla cert pool
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: pool},
+		}
+
+		// configure http client using transport
+		api.Client = &http.Client{Transport: transport}
 	}
 
-	// configure transport using Mozilla cert pool
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool},
-	}
-
-	// configure http client using transport
-	api.Client = &http.Client{Transport: transport}
-
-	return
+	return nil
 }
 
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
