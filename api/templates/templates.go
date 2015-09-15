@@ -28,7 +28,7 @@ func New(cfg *api.Config) (*Templates, error) {
 	return t, nil
 }
 
-// Template is the JSON structure understood by the SparkPost API.
+// Template is the JSON structure accepted by and returned from the SparkPost Templates API.
 // It's mostly metadata at this level - see Content and Options for more detail.
 type Template struct {
 	ID          string    `json:"id,omitempty"`
@@ -61,7 +61,7 @@ type From struct {
 	Name  string
 }
 
-// Options specifies settings to apply to this template.
+// Options specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
 type Options struct {
 	OpenTracking  bool `json:"open_tracking,omitempty"`
@@ -70,15 +70,15 @@ type Options struct {
 }
 
 // Init sets the path part of the API URL and initializes the embedded API object.
-func (t *Templates) Init(cfg *api.Config) (err error) {
-	// FIXME: allow specifying api version
+func (t *Templates) Init(cfg *api.Config) error {
+	// FIXME: allow caller to set api version
 	t.Path = "/api/v1/templates"
 	return t.API.Init(cfg)
 }
 
 // ParseFrom parses the various allowable Content.From values.
 func ParseFrom(from interface{}) (f From, err error) {
-	// handle both of the allowed types
+	// handle the allowed types
 	switch fromVal := from.(type) {
 	case string: // simple string value
 		if fromVal == "" {
