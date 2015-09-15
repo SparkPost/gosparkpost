@@ -159,10 +159,10 @@ func (t Template) Validate() error {
 // Create is a convenience function implementing the "at a minimum" case mentioned in the
 // SparkPost API docs.
 // https://www.sparkpost.com/api#/reference/templates/create-and-list/create-a-template
-func (t Templates) Create(name string, content Content) (string, error) {
+func (t Templates) Create(name string, content *Content) (string, error) {
 	template := &Template{
 		Name:    name,
-		Content: content,
+		Content: *content,
 	}
 	return t.CreateWithTemplate(template)
 }
