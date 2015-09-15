@@ -32,7 +32,7 @@ func TestTemplates(t *testing.T) {
 	t.Error(fmt.Errorf("%s", tlist))
 	return
 
-	content := Content{
+	content := &Content{
 		Subject: "this is a test template",
 		// NB: deliberate syntax error
 		//Text: "text part of the test template {{a}",
