@@ -29,7 +29,7 @@ type Response struct {
 	Errors  []Error           `json:"errors,omitempty"`
 }
 
-// API exists to be reused in other API objects.
+// API exists to be embedded in other API objects.
 type API struct {
 	Path     string
 	Config   *Config
@@ -48,8 +48,9 @@ type Error struct {
 
 // Init sets each API's path and pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided Config object.
-func (api *API) Init(cfg *Config) error {
+func (api *API) Init(cfg *Config, path string) error {
 	api.Config = cfg
+	api.Path = path
 
 	if api.Client == nil {
 		// Ran into an issue where USERTrust was not recognized on OSX.
