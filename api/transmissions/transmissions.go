@@ -11,17 +11,15 @@ import (
 )
 
 // Transmissions is your handle for the Transmissions API.
-type Transmissions struct {
-	api.API
-	Path string
-}
+type Transmissions struct{ api.API }
 
 func New(cfg *api.Config) (*Transmissions, error) {
+	// FIXME: allow caller to set api version
 	t := &Transmissions{}
-	//err := t.Init(cfg)
-	//if err != nil {
-	//	return nil, err
-	//}
+	err := t.Init(cfg, "/api/v1/transmissions")
+	if err != nil {
+		return nil, err
+	}
 	return t, nil
 }
 

@@ -11,18 +11,16 @@ import (
 )
 
 // RecipientLists is your handle for the Recipient Lists API.
-type RecipientLists struct {
-	api.API
-	Path string
-}
+type RecipientLists struct{ api.API }
 
 // New gets a RecipientLists object ready to use with the specified config.
 func New(cfg *api.Config) (*RecipientLists, error) {
+	// FIXME: allow caller to set api version
 	rl := &RecipientLists{}
-	//err := rl.Init(cfg)
-	//if err != nil {
-	//	return nil, err
-	//}
+	err := rl.Init(cfg, "/api/v1/recipient-lists")
+	if err != nil {
+		return nil, err
+	}
 	return rl, nil
 }
 
@@ -51,13 +49,6 @@ type Address struct {
 	Email    string `json:"email"`
 	Name     string `json:"name,omitempty"`
 	HeaderTo string `json:"header_to,omitempty"`
-}
-
-// Init sets the path part of the API URL and initializes the embedded API object.
-func (rl *RecipientLists) Init(cfg *api.Config) error {
-	// FIXME: allow caller to set api version
-	rl.Path = "/api/v1/recipient-lists"
-	return rl.API.Init(cfg)
 }
 
 // ParseAddress parses the various allowable Content.From values.

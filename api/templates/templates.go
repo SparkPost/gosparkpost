@@ -13,15 +13,13 @@ import (
 )
 
 // Templates is your handle for the Templates API.
-type Templates struct {
-	api.API
-	Path string
-}
+type Templates struct{ api.API }
 
 // New gets a Templates object ready to use with the specified config.
 func New(cfg *api.Config) (*Templates, error) {
+	// FIXME: allow caller to set api version
 	t := &Templates{}
-	err := t.Init(cfg)
+	err := t.Init(cfg, "/api/v1/templates")
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +65,6 @@ type Options struct {
 	OpenTracking  bool `json:"open_tracking,omitempty"`
 	ClickTracking bool `json:"click_tracking,omitempty"`
 	Transactional bool `json:"transactional,omitempty"`
-}
-
-// Init sets the path part of the API URL and initializes the embedded API object.
-func (t *Templates) Init(cfg *api.Config) error {
-	// FIXME: allow caller to set api version
-	t.Path = "/api/v1/templates"
-	return t.API.Init(cfg)
 }
 
 // ParseFrom parses the various allowable Content.From values.
@@ -196,7 +187,7 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 		return
 	}
 
-	url := fmt.Sprintf("%s%s", t.API.Config.BaseUrl, t.Path)
+	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
 	res, err := t.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
@@ -237,7 +228,7 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 
 // List returns metadata for all Templates in the system.
 func (t Templates) List() ([]Template, error) {
-	url := fmt.Sprintf("%s%s", t.API.Config.BaseUrl, t.Path)
+	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
 	res, err := t.HttpGet(url)
 	if err != nil {
 		return nil, err
@@ -278,7 +269,7 @@ func (t Templates) Delete(id string) (err error) {
 		return
 	}
 
-	url := fmt.Sprintf("%s%s/%s", t.API.Config.BaseUrl, t.Path, id)
+	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
 	res, err := t.HttpDelete(url)
 	if err != nil {
 		return
