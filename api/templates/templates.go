@@ -1,3 +1,5 @@
+// Package templates interacts with the SparkPost Templates API.
+// https://www.sparkpost.com/api#/reference/templates
 package templates
 
 import (
@@ -10,13 +12,16 @@ import (
 	"bitbucket.org/yargevad/go-sparkpost/api"
 )
 
+// Templates is your handle for the Templates API.
 type Templates struct {
 	api.API
 
 	Path     string
 	Response *api.Response
+	// TODO? move Response into api.API
 }
 
+// New gets a Templates object ready to use with the specified config.
 func New(cfg *api.Config) (*Templates, error) {
 	t := &Templates{}
 	err := t.Init(cfg)
@@ -26,6 +31,8 @@ func New(cfg *api.Config) (*Templates, error) {
 	return t, nil
 }
 
+// Template is the JSON structure understood by the SparkPost API.
+// It's mostly metadata at this level - see Content and Options for more detail.
 type Template struct {
 	ID          string    `json:"id,omitempty"`
 	Content     Content   `json:"content,omitempty"`
@@ -37,6 +44,9 @@ type Template struct {
 	Options     *Options  `json:"options,omitempty"`
 }
 
+// Content is what you'll send to your Recipients.
+// Knowledge of SparkPost's substitution/templating capabilities will come in handy here.
+// https://www.sparkpost.com/api#/introduction/substitutions-reference
 type Content struct {
 	HTML        string            `json:"html,omitempty"`
 	Text        string            `json:"text,omitempty"`
@@ -47,23 +57,29 @@ type Content struct {
 	EmailRFC822 string            `json:"email_rfc822,omitempty"`
 }
 
+// From describes the nested object way of specifying the From header.
+// It can also be a plain string.
 type From struct {
 	Email string
 	Name  string
 }
 
+// Options specifies settings to apply to this template.
+// These settings may be overridden in the Transmission API call.
 type Options struct {
 	OpenTracking  bool `json:"open_tracking,omitempty"`
 	ClickTracking bool `json:"click_tracking,omitempty"`
 	Transactional bool `json:"transactional,omitempty"`
 }
 
+// Init sets the path part of the API URL and initializes the embedded API object.
 func (t *Templates) Init(cfg *api.Config) (err error) {
 	// FIXME: allow specifying api version
 	t.Path = "/api/v1/templates"
 	return t.API.Init(cfg)
 }
 
+// ParseFrom parses the various allowable Content.From values.
 func ParseFrom(from interface{}) (f From, err error) {
 	// handle both of the allowed types
 	switch fromVal := from.(type) {
@@ -107,6 +123,8 @@ func ParseFrom(from interface{}) (f From, err error) {
 	return
 }
 
+// Validate runs sanity checks on a Template struct.
+// This should catch most errors before attempting a doomed API call.
 func (t Template) Validate() error {
 	if t.Content.EmailRFC822 != "" {
 		// TODO: optionally validate MIME structure
@@ -141,25 +159,30 @@ func (t Template) Validate() error {
 	return nil
 }
 
-// Helper function for the "at a minimum" case mentioned in the SparkPost API docs:
+// Create is a convenience function implementing the "at a minimum" case mentioned in the
+// SparkPost API docs.
 // https://www.sparkpost.com/api#/reference/templates/create-and-list/create-a-template
-func (t Templates) Create(name string, content Content) (id string, err error) {
+func (t Templates) Create(name string, content Content) (string, error) {
 	template := &Template{
 		Name:    name,
 		Content: content,
 	}
-	err = template.Validate()
-	if err != nil {
-		return
-	}
-
-	id, err = t.CreateWithTemplate(template)
-	return
+	return t.CreateWithTemplate(template)
 }
 
-// Support for all Template API options.
+// CreateWithJSON accepts JSON and calls CreateWithTemplate if parsing succeeds.
+func (t Templates) CreateWithJSON(j string) (string, error) {
+	template := &Template{}
+	err = json.Unmarshal([]byte(j), template)
+	if err != nil {
+		return string(nil), err
+	}
+	return t.CreateWithTemplate(template)
+}
+
+// CreateWithTemplate accepts a populated Template object, validates its Contents,
+// and performs an API call against the configured endpoint.
 // Helper functions call into this function after building a Template object.
-// Validates input before making request.
 func (t Templates) CreateWithTemplate(template *Template) (id string, err error) {
 	if template == nil {
 		err = fmt.Errorf("CreateWithTemplate called with nil Template")
@@ -215,20 +238,7 @@ func (t Templates) CreateWithTemplate(template *Template) (id string, err error)
 	return
 }
 
-// Support for all Template API options.
-// Accepts a JSON string as input.
-// Validates input before making request.
-func (t Templates) CreateWithJSON(j string) (id string, err error) {
-	template := &Template{}
-	err = json.Unmarshal([]byte(j), template)
-	if err != nil {
-		return
-	}
-
-	id, err = t.CreateWithTemplate(template)
-	return
-}
-
+// List returns metadata for all Templates in the system.
 func (t Templates) List() ([]Template, error) {
 	url := fmt.Sprintf("%s%s", t.API.Config.BaseUrl, t.Path)
 	res, err := t.HttpGet(url)
@@ -264,6 +274,7 @@ func (t Templates) List() ([]Template, error) {
 	return nil, err
 }
 
+// Delete removes the Template with the specified id.
 func (t Templates) Delete(id string) (err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
