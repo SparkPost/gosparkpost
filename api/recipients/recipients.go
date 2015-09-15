@@ -41,22 +41,26 @@ type Recipient struct {
 	Address          interface{} `json:"address"`
 	ReturnPath       string      `json:"return_path,omitempty"`
 	Tags             []string    `json:"tags,omitempty"`
-	MetaData         interface{} `json:"metadata,omitempty"`
+	Metadata         interface{} `json:"metadata,omitempty"`
 	SubstitutionData interface{} `json:"substitution_data,omitempty"`
 }
 
+// Address describes the nested object way of specifying the Recipient's email address.
+// It can also be a plain string.
 type Address struct {
 	Email    string `json:"email"`
 	Name     string `json:"name,omitempty"`
 	HeaderTo string `json:"header_to,omitempty"`
 }
 
+// Init sets the path part of the API URL and initializes the embedded API object.
 func (rl *RecipientLists) Init(cfg *api.Config) error {
 	// FIXME: allow caller to set api version
 	rl.Path = "/api/v1/recipient-lists"
 	return rl.API.Init(cfg)
 }
 
+// ParseAddress parses the various allowable Content.From values.
 func ParseAddress(addr interface{}) (a Address, err error) {
 	// handle the allowed types
 	switch addrVal := addr.(type) {
@@ -102,4 +106,59 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 	}
 
 	return
+}
+
+// Validate runs sanity checks on a RecipientList struct.
+// This should catch most errors before attempting a doomed API call.
+func (rl RecipientList) Validate() error {
+	// enforce required parameters
+	if len(rl.Recipients) <= 0 {
+		return fmt.Errorf("RecipientList requires at least one Recipient")
+	}
+
+	// enforce max lengths
+	if len(rl.ID) > 64 {
+		return fmt.Errorf("RecipientList id may not be longer than 64 bytes")
+	} else if len(rl.Name) > 64 {
+		return fmt.Errorf("RecipientList name may not be longer than 64 bytes")
+	} else if len(rl.Description) > 1024 {
+		return fmt.Errorf("RecipientList description may not be longer than 1024 bytes")
+	}
+
+	var err error
+	for _, r := range rl.Recipients {
+		err = r.Validate()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Validate runs sanity checks on a Recipient struct
+// This should catch most errors before attempting a doomed API call.
+func (r Recipient) Validate() error {
+	_, err := ParseAddress(r.Address)
+	if err != nil {
+		return err
+	}
+
+	// Metadata must be an object, not an array or bool etc.
+	if r.Metadata != nil {
+		err := api.AssertObject(r.Metadata, "metadata")
+		if err != nil {
+			return err
+		}
+	}
+
+	// SubstitutionData must be an object, not an array or bool etc.
+	if r.SubstitutionData != nil {
+		err := api.AssertObject(r.SubstitutionData, "substitution_data")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
