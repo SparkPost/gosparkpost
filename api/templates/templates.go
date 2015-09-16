@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/yargevad/go-sparkpost/api"
+	"github.com/SparkPost/go-sparkpost/api"
 )
 
 // Templates is your handle for the Templates API.

@@ -5,9 +5,9 @@ package transmissions
 import (
 	"time"
 
-	"bitbucket.org/yargevad/go-sparkpost/api"
-	//"bitbucket.org/yargevad/go-sparkpost/api/recipients"
-	"bitbucket.org/yargevad/go-sparkpost/api/templates"
+	"github.com/SparkPost/go-sparkpost/api"
+	//"github.com/SparkPost/go-sparkpost/api/recipients"
+	"github.com/SparkPost/go-sparkpost/api/templates"
 )
 
 // Transmissions is your handle for the Transmissions API.

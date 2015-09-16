@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"bitbucket.org/yargevad/go-sparkpost/test"
+	"github.com/SparkPost/go-sparkpost/test"
 )
 
 func TestAPI(t *testing.T) {

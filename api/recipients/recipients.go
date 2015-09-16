@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"bitbucket.org/yargevad/go-sparkpost/api"
+	"github.com/SparkPost/go-sparkpost/api"
 )
 
 // RecipientLists is your handle for the Recipient Lists API.

@@ -3,8 +3,8 @@ package transmissions
 import (
 	"testing"
 
-	"bitbucket.org/yargevad/go-sparkpost/api"
-	"bitbucket.org/yargevad/go-sparkpost/test"
+	"github.com/SparkPost/go-sparkpost/api"
+	"github.com/SparkPost/go-sparkpost/test"
 )
 
 func TestTransmissions(t *testing.T) {

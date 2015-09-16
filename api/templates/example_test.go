@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"bitbucket.org/yargevad/go-sparkpost/api"
-	"bitbucket.org/yargevad/go-sparkpost/api/templates"
+	"github.com/SparkPost/go-sparkpost/api"
+	"github.com/SparkPost/go-sparkpost/api/templates"
 )
 
 // Build a native Go Template structure from a JSON string
