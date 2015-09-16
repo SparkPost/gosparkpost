@@ -113,7 +113,11 @@ func ParseFrom(from interface{}) (f From, err error) {
 
 // Validate runs sanity checks on a Template struct.
 // This should catch most errors before attempting a doomed API call.
-func (t Template) Validate() error {
+func (t *Template) Validate() error {
+	if t == nil {
+		return fmt.Errorf("Can't Validate a nil Template")
+	}
+
 	if t.Content.EmailRFC822 != "" {
 		// TODO: optionally validate MIME structure
 		// if MIME content is present, clobber all other Content options
@@ -172,89 +176,89 @@ func (t *Template) SetHeaders(headers map[string]string) {
 //   from_email: Email portion of From header
 //   from_name: Name portion of From header
 //   reply_to: Reply to of template
-func (T Templates) Build(va map[string]string) (*Template, error) {
-	t := &Template{}
+func (t Templates) Build(va map[string]string) (*Template, error) {
+	tRef := &Template{}
 
 	// Look up expected keys in the map, deleting as we find them.
 	if id, ok := va["id"]; ok {
-		t.ID = id
+		tRef.ID = id
 		delete(va, "id")
 	}
 	if name, ok := va["name"]; ok {
-		t.Name = name
+		tRef.Name = name
 		delete(va, "name")
 	}
 	if desc, ok := va["description"]; ok {
-		t.Description = desc
+		tRef.Description = desc
 		delete(va, "description")
 	}
 	if pub, ok := va["published"]; ok {
 		if strings.EqualFold(pub, "true") {
-			t.Published = true
+			tRef.Published = true
 		} else {
-			t.Published = false
+			tRef.Published = false
 		}
 		delete(va, "published")
 	}
 
 	if opens, ok := va["track_opens"]; ok {
-		if t.Options == nil {
-			t.Options = new(Options)
+		if tRef.Options == nil {
+			tRef.Options = new(Options)
 		}
 		if strings.EqualFold(opens, "true") {
-			*t.Options.OpenTracking = true
+			*tRef.Options.OpenTracking = true
 		} else {
-			*t.Options.OpenTracking = false
+			*tRef.Options.OpenTracking = false
 		}
 		delete(va, "track_opens")
 	}
 
 	if clicks, ok := va["track_clicks"]; ok {
-		if t.Options == nil {
-			t.Options = new(Options)
+		if tRef.Options == nil {
+			tRef.Options = new(Options)
 		}
 		if strings.EqualFold(clicks, "true") {
-			*t.Options.ClickTracking = true
+			*tRef.Options.ClickTracking = true
 		} else {
-			*t.Options.ClickTracking = false
+			*tRef.Options.ClickTracking = false
 		}
 		delete(va, "track_clicks")
 	}
 
 	if isTransactional, ok := va["is_transactional"]; ok {
-		if t.Options == nil {
-			t.Options = new(Options)
+		if tRef.Options == nil {
+			tRef.Options = new(Options)
 		}
 		if strings.EqualFold(isTransactional, "true") {
-			*t.Options.ClickTracking = true
+			*tRef.Options.ClickTracking = true
 		} else {
-			*t.Options.ClickTracking = false
+			*tRef.Options.ClickTracking = false
 		}
 		delete(va, "is_transactional")
 	}
 
 	if html, ok := va["html"]; ok {
-		t.Content.HTML = html
+		tRef.Content.HTML = html
 		delete(va, "html")
 	}
 	if text, ok := va["text"]; ok {
-		t.Content.Text = text
+		tRef.Content.Text = text
 		delete(va, "text")
 	}
 	if subject, ok := va["subject"]; ok {
-		t.Content.Subject = subject
+		tRef.Content.Subject = subject
 		delete(va, "subject")
 	}
 	if replyTo, ok := va["reply_to"]; ok {
-		t.Content.ReplyTo = replyTo
+		tRef.Content.ReplyTo = replyTo
 		delete(va, "reply_to")
 	}
 
 	if email, ok := va["from_email"]; ok {
-		if t.Content.From == nil {
-			t.Content.From = From{}
+		if tRef.Content.From == nil {
+			tRef.Content.From = From{}
 		}
-		switch from := t.Content.From.(type) {
+		switch from := tRef.Content.From.(type) {
 		case From:
 			from.Email = email
 			delete(va, "from_email")
@@ -264,10 +268,10 @@ func (T Templates) Build(va map[string]string) (*Template, error) {
 	}
 
 	if name, ok := va["from_name"]; ok {
-		if t.Content.From == nil {
-			t.Content.From = From{}
+		if tRef.Content.From == nil {
+			tRef.Content.From = From{}
 		}
-		switch from := t.Content.From.(type) {
+		switch from := tRef.Content.From.(type) {
 		case From:
 			from.Name = name
 			delete(va, "from_name")
@@ -280,22 +284,11 @@ func (T Templates) Build(va map[string]string) (*Template, error) {
 	if len(va) > 0 {
 		return nil, fmt.Errorf("Build received unsupported keys")
 	}
-	return t, nil
+	return tRef, nil
 }
 
 // Create accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
-// Helper functions call into this function after building a Template object.
-//
-// Example: build a native Go Template structure from a JSON string
-//
-//   template := &Template{}
-//   err := json.Unmarshal([]byte(jsonStr), template)
-//   if err != nil {
-//     return nil, err
-//   }
-//   id, err := templates.Create(template)
-//
 func (t Templates) Create(template *Template) (id string, err error) {
 	if template == nil {
 		err = fmt.Errorf("Create called with nil Template")
