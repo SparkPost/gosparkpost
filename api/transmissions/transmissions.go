@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/SparkPost/go-sparkpost/api"
-	"github.com/SparkPost/go-sparkpost/api/recipients"
+	recipients "github.com/SparkPost/go-sparkpost/api/recipient_lists"
 	"github.com/SparkPost/go-sparkpost/api/templates"
 )
 
@@ -167,16 +167,16 @@ func (t *Transmission) Validate() error {
 	}
 
 	// Metadata must be an object, not an array or bool etc.
-	if r.Metadata != nil {
-		err := api.AssertObject(r.Metadata, "metadata")
+	if t.Metadata != nil {
+		err := api.AssertObject(t.Metadata, "metadata")
 		if err != nil {
 			return err
 		}
 	}
 
 	// SubstitutionData must be an object, not an array or bool etc.
-	if r.SubstitutionData != nil {
-		err := api.AssertObject(r.SubstitutionData, "substitution_data")
+	if t.SubstitutionData != nil {
+		err := api.AssertObject(t.SubstitutionData, "substitution_data")
 		if err != nil {
 			return err
 		}
