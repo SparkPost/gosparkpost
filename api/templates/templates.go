@@ -62,9 +62,9 @@ type From struct {
 // Options specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
 type Options struct {
-	OpenTracking  bool `json:"open_tracking,omitempty"`
-	ClickTracking bool `json:"click_tracking,omitempty"`
-	Transactional bool `json:"transactional,omitempty"`
+	OpenTracking  *bool `json:"open_tracking,omitempty"`
+	ClickTracking *bool `json:"click_tracking,omitempty"`
+	Transactional *bool `json:"transactional,omitempty"`
 }
 
 // ParseFrom parses the various allowable Content.From values.
@@ -147,33 +147,158 @@ func (t Template) Validate() error {
 	return nil
 }
 
-// Create is a convenience function implementing the "at a minimum" case mentioned in the
-// SparkPost API docs.
-// https://www.sparkpost.com/api#/reference/templates/create-and-list/create-a-template
-func (t Templates) Create(name string, content *Content) (string, error) {
-	template := &Template{
-		Name:    name,
-		Content: *content,
-	}
-	return t.CreateWithTemplate(template)
+// SetHeaders is a convenience method which sets Template.Content.Headers to the provided map.
+func (t *Template) SetHeaders(headers map[string]string) {
+	t.Content.Headers = headers
 }
 
-// CreateWithJSON accepts JSON and calls CreateWithTemplate if parsing succeeds.
-func (t Templates) CreateWithJSON(j string) (string, error) {
-	template := &Template{}
-	err := json.Unmarshal([]byte(j), template)
-	if err != nil {
-		return "", err
+// Build accepts a map of key/value pairs, builds, and returns a Template object
+// suitable for use with Create. Providing an unsupported map key will result in
+// an error. Custom headers must be added to Template.Content.Headers by the caller.
+//
+// The expected map keys are:
+//   id: ID used to reference the template
+//   name: Editable display name
+//   description: Detailed description of the template
+//   published: Defaults to False. Whether the template is a published or draft version
+//   track_opens: Defaults to transmission level setting. Used to track opens of transmission
+//   track_clicks: Defaults to transmission level setting. Used to track clicks of transmission
+//   is_transactional: Defaults to transmission level setting.
+//              Distinguishes between transactional and non-transactional messages
+//              for unsubscribe and suppression purposes
+//   html: HTML part of template
+//   text: Text part of template
+//   subject: Subject of template
+//   from_email: Email portion of From header
+//   from_name: Name portion of From header
+//   reply_to: Reply to of template
+func (T Templates) Build(va map[string]string) (*Template, error) {
+	t := &Template{}
+
+	// Look up expected keys in the map, deleting as we find them.
+	if id, ok := va["id"]; ok {
+		t.ID = id
+		delete(va, "id")
 	}
-	return t.CreateWithTemplate(template)
+	if name, ok := va["name"]; ok {
+		t.Name = name
+		delete(va, "name")
+	}
+	if desc, ok := va["description"]; ok {
+		t.Description = desc
+		delete(va, "description")
+	}
+	if pub, ok := va["published"]; ok {
+		if strings.EqualFold(pub, "true") {
+			t.Published = true
+		} else {
+			t.Published = false
+		}
+		delete(va, "published")
+	}
+
+	if opens, ok := va["track_opens"]; ok {
+		if t.Options == nil {
+			t.Options = new(Options)
+		}
+		if strings.EqualFold(opens, "true") {
+			*t.Options.OpenTracking = true
+		} else {
+			*t.Options.OpenTracking = false
+		}
+		delete(va, "track_opens")
+	}
+
+	if clicks, ok := va["track_clicks"]; ok {
+		if t.Options == nil {
+			t.Options = new(Options)
+		}
+		if strings.EqualFold(clicks, "true") {
+			*t.Options.ClickTracking = true
+		} else {
+			*t.Options.ClickTracking = false
+		}
+		delete(va, "track_clicks")
+	}
+
+	if isTransactional, ok := va["is_transactional"]; ok {
+		if t.Options == nil {
+			t.Options = new(Options)
+		}
+		if strings.EqualFold(isTransactional, "true") {
+			*t.Options.ClickTracking = true
+		} else {
+			*t.Options.ClickTracking = false
+		}
+		delete(va, "is_transactional")
+	}
+
+	if html, ok := va["html"]; ok {
+		t.Content.HTML = html
+		delete(va, "html")
+	}
+	if text, ok := va["text"]; ok {
+		t.Content.Text = text
+		delete(va, "text")
+	}
+	if subject, ok := va["subject"]; ok {
+		t.Content.Subject = subject
+		delete(va, "subject")
+	}
+	if replyTo, ok := va["reply_to"]; ok {
+		t.Content.ReplyTo = replyTo
+		delete(va, "reply_to")
+	}
+
+	if email, ok := va["from_email"]; ok {
+		if t.Content.From == nil {
+			t.Content.From = From{}
+		}
+		switch from := t.Content.From.(type) {
+		case From:
+			from.Email = email
+			delete(va, "from_email")
+		default:
+			return nil, fmt.Errorf("Expected type `From`, got [%s].", reflect.TypeOf(from))
+		}
+	}
+
+	if name, ok := va["from_name"]; ok {
+		if t.Content.From == nil {
+			t.Content.From = From{}
+		}
+		switch from := t.Content.From.(type) {
+		case From:
+			from.Name = name
+			delete(va, "from_name")
+		default:
+			return nil, fmt.Errorf("Expected type `From`, got [%s].", reflect.TypeOf(from))
+		}
+	}
+
+	// If there are any keys left, they are unsupported.
+	if len(va) > 0 {
+		return nil, fmt.Errorf("Build received unsupported keys")
+	}
+	return t, nil
 }
 
-// CreateWithTemplate accepts a populated Template object, validates its Contents,
+// Create accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
 // Helper functions call into this function after building a Template object.
-func (t Templates) CreateWithTemplate(template *Template) (id string, err error) {
+//
+// Example: build a native Go Template structure from a JSON string
+//
+//   template := &Template{}
+//   err := json.Unmarshal([]byte(jsonStr), template)
+//   if err != nil {
+//     return nil, err
+//   }
+//   id, err := templates.Create(template)
+//
+func (t Templates) Create(template *Template) (id string, err error) {
 	if template == nil {
-		err = fmt.Errorf("CreateWithTemplate called with nil Template")
+		err = fmt.Errorf("Create called with nil Template")
 		return
 	}
 

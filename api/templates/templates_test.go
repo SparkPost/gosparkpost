@@ -18,21 +18,38 @@ func TestTemplates(t *testing.T) {
 		ApiKey:  cfgMap["apikey"],
 	}
 
-	Template, err := New(cfg)
+	tmpl, err := New(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	tlist, err := Template.List()
+	//tlist, err := tmpl.List()
+	//if err != nil {
+	//	t.Error(err)
+	//	return
+	//}
+
+	//t.Error(fmt.Errorf("%s", tlist))
+	//return
+
+	templ, err := tmpl.Build(map[string]string{
+		"from_email": "a@b.com",
+		"from_name":  "a b",
+	})
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Error(fmt.Errorf("%s", tlist))
+
+	templ.SetHeaders(map[string]string{
+		"x-binding": "foo",
+	})
+
+	t.Error(fmt.Errorf("%s", templ))
 	return
 
-	content := &Content{
+	content := Content{
 		Subject: "this is a test template",
 		// NB: deliberate syntax error
 		//Text: "text part of the test template {{a}",
@@ -42,15 +59,16 @@ func TestTemplates(t *testing.T) {
 			"email": "test@email.com",
 		},
 	}
+	template := &Template{Content: content, Name: "test template"}
 
-	id, err := Template.Create("test template", content)
+	id, err := tmpl.Create(template)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	fmt.Printf("Created Template with id=%s\n", id)
 
-	err = Template.Delete(id)
+	err = tmpl.Delete(id)
 	if err != nil {
 		t.Error(err)
 		return
