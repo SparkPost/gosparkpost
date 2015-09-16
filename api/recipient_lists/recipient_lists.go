@@ -1,6 +1,6 @@
 // Package recipients interacts with the SparkPost Recipient Lists API.
 // https://www.sparkpost.com/api#/reference/recipient-lists
-package recipients
+package recipient_lists
 
 import (
 	"fmt"

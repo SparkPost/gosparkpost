@@ -1,4 +1,4 @@
-package recipients
+package recipient_lists
 
 import (
 	"testing"
