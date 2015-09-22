@@ -3,6 +3,7 @@
 package transmissions
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -183,4 +184,58 @@ func (t *Transmission) Validate() error {
 	}
 
 	return nil
+}
+
+// Create accepts a populated Transmission object, performs basic sanity
+// checks on it, and performs an API call against the configured endpoint.
+// Calling this function can cause email to be sent, if used correctly.
+func (t Transmissions) Create(transmission *Transmission) (id string, err error) {
+	if transmission == nil {
+		err = fmt.Errorf("Create called with nil Transmission")
+		return
+	}
+
+	err = transmission.Validate()
+	if err != nil {
+		return
+	}
+
+	jsonBytes, err := json.Marshal(transmission)
+	if err != nil {
+		return
+	}
+
+	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
+	res, err := t.HttpPost(url, jsonBytes)
+	if err != nil {
+		return
+	}
+
+	if err = api.AssertJson(res); err != nil {
+		return
+	}
+
+	err = t.ParseResponse(res)
+	if err != nil {
+		return
+	}
+
+	if res.StatusCode == 200 {
+		var ok bool
+		id, ok = t.Response.Results["id"]
+		if !ok {
+			err = fmt.Errorf("Unexpected response to Template creation")
+		}
+
+	} else if len(t.Response.Errors) > 0 {
+		// handle common errors
+		err = api.PrettyError("Transmission", "create", res)
+		if err != nil {
+			return
+		}
+
+		err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
+	}
+
+	return
 }

@@ -20,15 +20,14 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
-	//Transmission, err := New(cfg)
-	_, err = New(*cfg)
+	TransAPI, err := New(*cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	T := &Transmission{
-		CampaignID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		CampaignID: "msys_smoke",
 		Recipients: map[string]string{
 			"list_id": "test list",
 		},
@@ -41,4 +40,12 @@ func TestTransmissions(t *testing.T) {
 		t.Error(err)
 		return
 	}
+
+	id, err := TransAPI.Create(T)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Errorf("Transmission created with id [%s]", id)
 }
