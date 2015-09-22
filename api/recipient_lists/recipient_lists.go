@@ -15,10 +15,10 @@ import (
 type RecipientLists struct{ api.API }
 
 // New gets a RecipientLists object ready to use with the specified config.
-func New(cfg *api.Config) (*RecipientLists, error) {
-	// FIXME: allow caller to set api version
+func New(cfg api.Config) (*RecipientLists, error) {
 	rl := &RecipientLists{}
-	err := rl.Init(cfg, "/api/v1/recipient-lists")
+	path := fmt.Sprintf("/api/v%d/recipient-lists", cfg.ApiVersion)
+	err := rl.Init(cfg, path)
 	if err != nil {
 		return nil, err
 	}

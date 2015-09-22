@@ -12,13 +12,15 @@ func TestTemplates(t *testing.T) {
 	cfgMap, err := test.LoadConfig()
 	if err != nil {
 		t.Error(err)
+		return
 	}
-	cfg := &api.Config{
-		BaseUrl: cfgMap["baseurl"],
-		ApiKey:  cfgMap["apikey"],
+	cfg, err := api.NewConfig(cfgMap)
+	if err != nil {
+		t.Error(err)
+		return
 	}
 
-	tmpl, err := New(cfg)
+	tmpl, err := New(*cfg)
 	if err != nil {
 		t.Error(err)
 		return

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
@@ -16,8 +17,37 @@ import (
 
 // Config includes all information necessary to make an API request.
 type Config struct {
-	BaseUrl string
-	ApiKey  string
+	BaseUrl    string
+	ApiKey     string
+	ApiVersion int
+}
+
+func NewConfig(m map[string]string) (*Config, error) {
+	c := &Config{}
+
+	if baseurl, ok := m["baseurl"]; ok {
+		c.BaseUrl = baseurl
+	} else {
+		return nil, fmt.Errorf("BaseUrl is required for api config")
+	}
+
+	if apikey, ok := m["apikey"]; ok {
+		c.ApiKey = apikey
+	} else {
+		return nil, fmt.Errorf("ApiKey is required for api config")
+	}
+
+	if apiver, ok := m["apiver"]; ok {
+		var err error
+		c.ApiVersion, err = strconv.Atoi(apiver)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("ApiVer is required for api config")
+	}
+
+	return c, nil
 }
 
 // Response contains information about the last HTTP response.
@@ -48,8 +78,8 @@ type Error struct {
 
 // Init sets each API's path and pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided Config object.
-func (api *API) Init(cfg *Config, path string) error {
-	api.Config = cfg
+func (api *API) Init(cfg Config, path string) error {
+	api.Config = &cfg
 	api.Path = path
 
 	if api.Client == nil {

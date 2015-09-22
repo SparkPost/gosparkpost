@@ -16,10 +16,10 @@ import (
 type Templates struct{ api.API }
 
 // New gets a Templates object ready to use with the specified config.
-func New(cfg *api.Config) (*Templates, error) {
-	// FIXME: allow caller to set api version
+func New(cfg api.Config) (*Templates, error) {
 	t := &Templates{}
-	err := t.Init(cfg, "/api/v1/templates")
+	path := fmt.Sprintf("/api/v%d/templates", cfg.ApiVersion)
+	err := t.Init(cfg, path)
 	if err != nil {
 		return nil, err
 	}
