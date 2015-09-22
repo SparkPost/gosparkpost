@@ -176,115 +176,115 @@ func (t *Template) SetHeaders(headers map[string]string) {
 //   from_email: Email portion of From header
 //   from_name: Name portion of From header
 //   reply_to: Reply to of template
-func (t Templates) Build(va map[string]string) (*Template, error) {
-	tRef := &Template{}
+func (t Templates) Build(p map[string]string) (*Template, error) {
+	T := &Template{}
 
 	// Look up expected keys in the map, deleting as we find them.
-	if id, ok := va["id"]; ok {
-		tRef.ID = id
-		delete(va, "id")
+	if id, ok := p["id"]; ok {
+		T.ID = id
+		delete(p, "id")
 	}
-	if name, ok := va["name"]; ok {
-		tRef.Name = name
-		delete(va, "name")
+	if name, ok := p["name"]; ok {
+		T.Name = name
+		delete(p, "name")
 	}
-	if desc, ok := va["description"]; ok {
-		tRef.Description = desc
-		delete(va, "description")
+	if desc, ok := p["description"]; ok {
+		T.Description = desc
+		delete(p, "description")
 	}
-	if pub, ok := va["published"]; ok {
+	if pub, ok := p["published"]; ok {
 		if strings.EqualFold(pub, "true") {
-			tRef.Published = true
+			T.Published = true
 		} else {
-			tRef.Published = false
+			T.Published = false
 		}
-		delete(va, "published")
+		delete(p, "published")
 	}
 
-	if opens, ok := va["track_opens"]; ok {
-		if tRef.Options == nil {
-			tRef.Options = new(Options)
+	if opens, ok := p["track_opens"]; ok {
+		if T.Options == nil {
+			T.Options = new(Options)
 		}
 		if strings.EqualFold(opens, "true") {
-			*tRef.Options.OpenTracking = true
+			*T.Options.OpenTracking = true
 		} else {
-			*tRef.Options.OpenTracking = false
+			*T.Options.OpenTracking = false
 		}
-		delete(va, "track_opens")
+		delete(p, "track_opens")
 	}
 
-	if clicks, ok := va["track_clicks"]; ok {
-		if tRef.Options == nil {
-			tRef.Options = new(Options)
+	if clicks, ok := p["track_clicks"]; ok {
+		if T.Options == nil {
+			T.Options = new(Options)
 		}
 		if strings.EqualFold(clicks, "true") {
-			*tRef.Options.ClickTracking = true
+			*T.Options.ClickTracking = true
 		} else {
-			*tRef.Options.ClickTracking = false
+			*T.Options.ClickTracking = false
 		}
-		delete(va, "track_clicks")
+		delete(p, "track_clicks")
 	}
 
-	if isTransactional, ok := va["is_transactional"]; ok {
-		if tRef.Options == nil {
-			tRef.Options = new(Options)
+	if isTransactional, ok := p["is_transactional"]; ok {
+		if T.Options == nil {
+			T.Options = new(Options)
 		}
 		if strings.EqualFold(isTransactional, "true") {
-			*tRef.Options.ClickTracking = true
+			*T.Options.ClickTracking = true
 		} else {
-			*tRef.Options.ClickTracking = false
+			*T.Options.ClickTracking = false
 		}
-		delete(va, "is_transactional")
+		delete(p, "is_transactional")
 	}
 
-	if html, ok := va["html"]; ok {
-		tRef.Content.HTML = html
-		delete(va, "html")
+	if html, ok := p["html"]; ok {
+		T.Content.HTML = html
+		delete(p, "html")
 	}
-	if text, ok := va["text"]; ok {
-		tRef.Content.Text = text
-		delete(va, "text")
+	if text, ok := p["text"]; ok {
+		T.Content.Text = text
+		delete(p, "text")
 	}
-	if subject, ok := va["subject"]; ok {
-		tRef.Content.Subject = subject
-		delete(va, "subject")
+	if subject, ok := p["subject"]; ok {
+		T.Content.Subject = subject
+		delete(p, "subject")
 	}
-	if replyTo, ok := va["reply_to"]; ok {
-		tRef.Content.ReplyTo = replyTo
-		delete(va, "reply_to")
+	if replyTo, ok := p["reply_to"]; ok {
+		T.Content.ReplyTo = replyTo
+		delete(p, "reply_to")
 	}
 
-	if email, ok := va["from_email"]; ok {
-		if tRef.Content.From == nil {
-			tRef.Content.From = From{}
+	if email, ok := p["from_email"]; ok {
+		if T.Content.From == nil {
+			T.Content.From = From{}
 		}
-		switch from := tRef.Content.From.(type) {
+		switch from := T.Content.From.(type) {
 		case From:
 			from.Email = email
-			delete(va, "from_email")
+			delete(p, "from_email")
 		default:
 			return nil, fmt.Errorf("Expected type `From`, got [%s].", reflect.TypeOf(from))
 		}
 	}
 
-	if name, ok := va["from_name"]; ok {
-		if tRef.Content.From == nil {
-			tRef.Content.From = From{}
+	if name, ok := p["from_name"]; ok {
+		if T.Content.From == nil {
+			T.Content.From = From{}
 		}
-		switch from := tRef.Content.From.(type) {
+		switch from := T.Content.From.(type) {
 		case From:
 			from.Name = name
-			delete(va, "from_name")
+			delete(p, "from_name")
 		default:
 			return nil, fmt.Errorf("Expected type `From`, got [%s].", reflect.TypeOf(from))
 		}
 	}
 
 	// If there are any keys left, they are unsupported.
-	if len(va) > 0 {
+	if len(p) > 0 {
 		return nil, fmt.Errorf("Build received unsupported keys")
 	}
-	return tRef, nil
+	return T, nil
 }
 
 // Create accepts a populated Template object, validates its Contents,
@@ -335,7 +335,8 @@ func (t Templates) Create(template *Template) (id string, err error) {
 		}
 
 		if res.StatusCode == 422 { // template syntax error
-			err = fmt.Errorf(t.Response.Errors[0].Description)
+			eobj := t.Response.Errors[0]
+			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
 		} else { // everything else
 			err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
 		}
