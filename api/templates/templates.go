@@ -126,9 +126,7 @@ func (t *Template) Validate() error {
 	}
 
 	// enforce required parameters
-	if t.Name == "" && t.ID == "" {
-		return fmt.Errorf("Template requires a name or id")
-	} else if t.Content.Subject == "" {
+	if t.Content.Subject == "" {
 		return fmt.Errorf("Template requires a non-empty Content.Subject")
 	} else if t.Content.HTML == "" && t.Content.Text == "" {
 		return fmt.Errorf("Template requires either Content.HTML or Content.Text")
