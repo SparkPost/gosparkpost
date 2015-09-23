@@ -154,6 +154,9 @@ func (api *API) ParseResponse(res *http.Response) error {
 		return err
 	}
 
+	if api.Response == nil {
+		api.Response = new(Response)
+	}
 	err = json.Unmarshal(body, api.Response)
 	if err != nil {
 		return fmt.Errorf("Failed to parse API response: [%s]\n%s", err, string(body))
