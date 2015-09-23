@@ -94,6 +94,14 @@ func ParseRecipients(recips interface{}) (err error) {
 			}
 		}
 
+	case []recipients.Recipient:
+		for _, v := range rVal {
+			err = v.Validate()
+			if err != nil {
+				return err
+			}
+		}
+
 	default:
 		return fmt.Errorf("Unsupported Transmission.Recipient type [%s]", reflect.TypeOf(rVal))
 	}
