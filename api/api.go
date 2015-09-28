@@ -77,6 +77,37 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
+// eventTypes contains all of the valid event types
+var eventTypes = map[string]bool{
+	"creation":             true,
+	"delivery":             true,
+	"injection":            true,
+	"bounce":               true,
+	"delay":                true,
+	"policy_rejection":     true,
+	"out_of_band":          true,
+	"open":                 true,
+	"click":                true,
+	"generation_failure":   true,
+	"generation_rejection": true,
+	"spam_complaint":       true,
+	"list_unsubscribe":     true,
+	"link_unsubscribe":     true,
+	"relay_delivery":       true,
+	"relay_injection":      true,
+	"relay_permfail":       true,
+	"relay_rejection":      true,
+	"relay_tempfail":       true,
+}
+
+// ValidEventType returns true if the event name parameter is valid.
+func ValidEventType(eventType string) bool {
+	if _, ok := eventTypes[eventType]; ok {
+		return true
+	}
+	return false
+}
+
 // Init sets each API's path and pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided API object.
 func (api *API) Init(cfg Config, path string) error {
@@ -194,14 +225,17 @@ func AssertObject(obj interface{}, label string) error {
 	return nil
 }
 
+var jctype string = "application/json"
+
 // AssertJson returns an error if the provided HTTP response isn't JSON.
 func AssertJson(res *http.Response) error {
 	if res == nil {
 		return fmt.Errorf("AssertJson got nil http.Response")
 	}
-	contentType := res.Header.Get("Content-Type")
-	if !strings.EqualFold(contentType, "application/json") {
-		return fmt.Errorf("Expected json, got [%s] with code %d", contentType, res.StatusCode)
+	ctype := res.Header.Get("Content-Type")
+	// allow things like "application/json; charset=utf-8" in addition to the bare content type
+	if !(strings.EqualFold(ctype, jctype) && strings.HasPrefix(ctype, jctype)) {
+		return fmt.Errorf("Expected json, got [%s] with code %d", ctype, res.StatusCode)
 	}
 	return nil
 }
