@@ -22,6 +22,7 @@ type Config struct {
 	ApiVersion int
 }
 
+// NewConfig builds a Config object using the provided map.
 func NewConfig(m map[string]string) (*Config, error) {
 	c := &Config{}
 
@@ -59,7 +60,7 @@ type Response struct {
 	Errors  []Error           `json:"errors,omitempty"`
 }
 
-// API exists to be embedded in other API objects.
+// API exists to be embedded in other API objects, to enable transparent method forwarding.
 type API struct {
 	Path     string
 	Config   *Config
@@ -77,7 +78,7 @@ type Error struct {
 }
 
 // Init sets each API's path and pulls together everything necessary to make an API request.
-// Caller may provide their own http.Client by setting it in the provided Config object.
+// Caller may provide their own http.Client by setting it in the provided API object.
 func (api *API) Init(cfg Config, path string) error {
 	api.Config = &cfg
 	api.Path = path
@@ -85,6 +86,7 @@ func (api *API) Init(cfg Config, path string) error {
 	if api.Client == nil {
 		// Ran into an issue where USERTrust was not recognized on OSX.
 		// The rest of this block was the fix.
+
 		// load Mozilla cert pool
 		pool, err := certifi.CACerts()
 		if err != nil {
@@ -140,8 +142,9 @@ func (api *API) HttpDelete(url string) (*http.Response, error) {
 	return api.Client.Do(req)
 }
 
-// ReadBody is a convenience wrapper for the response body.
+// ReadBody is a convenience wrapper that returns the response body.
 func ReadBody(res *http.Response) ([]byte, error) {
+	// FIXME: make this work on calls 2+ for the same http.Response
 	defer res.Body.Close()
 	return ioutil.ReadAll(res.Body)
 }
@@ -168,6 +171,7 @@ func (api *API) ParseResponse(res *http.Response) error {
 }
 
 // AssertObject asserts that the provided variable is a map[string]something.
+// The string parameter is used to customize the generated error message.
 func AssertObject(obj interface{}, label string) error {
 	// List of handled types from here:
 	// http://golang.org/pkg/encoding/json/#Unmarshal
@@ -203,6 +207,8 @@ func AssertJson(res *http.Response) error {
 }
 
 // PrettyError returns a human-readable error message for common http errors returned by the API.
+// The string parameters are used to customize the generated error message
+// (example: noun=template, verb=create).
 func PrettyError(noun, verb string, res *http.Response) error {
 	if res.StatusCode == 404 {
 		return fmt.Errorf("%s does not exist, %s failed.", noun, verb)

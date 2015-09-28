@@ -17,6 +17,7 @@ import (
 // Transmissions is your handle for the Transmissions API.
 type Transmissions struct{ api.API }
 
+// New gets a Transmissions object ready to use with the specified config.
 func New(cfg api.Config) (*Transmissions, error) {
 	t := &Transmissions{}
 	path := fmt.Sprintf("/api/v%d/transmissions", cfg.ApiVersion)
