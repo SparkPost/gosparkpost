@@ -68,44 +68,13 @@ type API struct {
 	Response *Response
 }
 
-// The error structure returned by SparkPost APIs.
+// Error mirrors the error format returned by SparkPost APIs.
 type Error struct {
 	Message     string `json:"message"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
 	Part        string `json:"part,omitempty"`
 	Line        int    `json:"line,omitempty"`
-}
-
-// eventTypes contains all of the valid event types
-var eventTypes = map[string]bool{
-	"creation":             true,
-	"delivery":             true,
-	"injection":            true,
-	"bounce":               true,
-	"delay":                true,
-	"policy_rejection":     true,
-	"out_of_band":          true,
-	"open":                 true,
-	"click":                true,
-	"generation_failure":   true,
-	"generation_rejection": true,
-	"spam_complaint":       true,
-	"list_unsubscribe":     true,
-	"link_unsubscribe":     true,
-	"relay_delivery":       true,
-	"relay_injection":      true,
-	"relay_permfail":       true,
-	"relay_rejection":      true,
-	"relay_tempfail":       true,
-}
-
-// ValidEventType returns true if the event name parameter is valid.
-func ValidEventType(eventType string) bool {
-	if _, ok := eventTypes[eventType]; ok {
-		return true
-	}
-	return false
 }
 
 // Init sets each API's path and pulls together everything necessary to make an API request.
@@ -234,7 +203,7 @@ func AssertJson(res *http.Response) error {
 	}
 	ctype := res.Header.Get("Content-Type")
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
-	if !(strings.EqualFold(ctype, jctype) && strings.HasPrefix(ctype, jctype)) {
+	if !(strings.EqualFold(ctype, jctype) || strings.HasPrefix(ctype, jctype)) {
 		return fmt.Errorf("Expected json, got [%s] with code %d", ctype, res.StatusCode)
 	}
 	return nil
