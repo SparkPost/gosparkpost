@@ -1,6 +1,8 @@
 // Package events defines a struct for each type of event and provides various other helper functions.
 package events
 
+import "fmt"
+
 // eventTypes contains all of the valid event types
 var eventTypes = map[string]bool{
 	//"creation":             false,
@@ -68,9 +70,13 @@ func EventForName(eventType string) Event {
 	}
 }
 
-// All event types must satisfy this interface, so we can have heterogenous Event slices.
+// Event allows 2+ types of event in a data structure.
 type Event interface {
 	EventType() string
+}
+
+type ECLogger interface {
+	ECLog() string
 }
 
 // EventCommon contains fields common to all types of Event objects
@@ -108,6 +114,25 @@ type Bounce struct {
 	TemplateVersion string      `json:"template_version"`
 	Timestamp       int64       `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
+}
+
+// TODO: make all events Stringers
+
+// String returns a brief summary of a Bounce event
+func (b *Bounce) String() string {
+	return fmt.Sprintf("%d %s => %s: %s",
+		b.Timestamp, b.MessageFrom, b.Recipient, b.RawReason)
+}
+
+// TODO: add ECLog() for all events that can show up in *.ec
+
+// ECLog emits a Bounce in the same format that it would be logged to bouncelog.ec:
+// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
+func (b *Bounce) ECLog() string {
+	return fmt.Sprintf("%d@%s@@@B@%s@%s@%s@%s@@%s@%s@%s@%s",
+		b.Timestamp, b.MessageID, b.Recipient, b.MessageFrom,
+		b.Binding, b.BindingGroup, b.BounceClass, b.MessageSize,
+		b.IPAddress, b.RawReason)
 }
 
 type GeoIP struct {

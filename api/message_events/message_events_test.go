@@ -28,7 +28,7 @@ func TestMessageEvents(t *testing.T) {
 		return
 	}
 
-	types := []string{"open"}
+	types := []string{"open", "click", "bounce"}
 	e, err := mev.Samples(&types)
 	if err != nil {
 		t.Error(err)
@@ -37,13 +37,12 @@ func TestMessageEvents(t *testing.T) {
 
 	for _, ev := range *e {
 		switch event := ev.(type) {
-		case *events.Open:
-			g := event.GeoIP
-			if g != nil {
-				t.Error(fmt.Errorf("%s (%s, %s)", e, g.Latitude, g.Longitude))
-			} else {
-				t.Error(fmt.Errorf("%s", e))
-			}
+		case *events.Open, *events.Click:
+			t.Error(fmt.Errorf("%s", event))
+
+		case *events.Bounce:
+			t.Error(fmt.Errorf("%s", event.ECLog()))
+
 		default:
 			t.Errorf("Unsupported type [%s]", reflect.TypeOf(ev))
 		}
