@@ -5,19 +5,18 @@ import "fmt"
 
 // eventTypes contains all of the valid event types
 var eventTypes = map[string]bool{
-	//"creation":             false,
-
-	"delivery":             true,
-	"injection":            true,
 	"bounce":               true,
-	"delay":                true,
-	"out_of_band":          true,
-	"open":                 true,
 	"click":                true,
+	"creation":             false,
+	"delay":                true,
+	"delivery":             true,
 	"generation_failure":   true,
 	"generation_rejection": true,
+	"injection":            true,
 	"list_unsubscribe":     true,
 	"link_unsubscribe":     true,
+	"open":                 true,
+	"out_of_band":          true,
 	"policy_rejection":     true,
 	"spam_complaint":       true,
 	"relay_delivery":       true,
@@ -46,6 +45,8 @@ func EventForName(eventType string) Event {
 		return &Bounce{}
 	case "click":
 		return &Click{}
+	case "creation":
+		return &Creation{}
 	case "delay":
 		return &Delay{}
 	case "delivery":
@@ -201,6 +202,28 @@ type Click struct {
 func (c *Click) String() string {
 	return fmt.Sprintf("%d C %s %s => %s",
 		c.Timestamp, c.TransmissionID, c.Recipient, c.TargetLinkURL)
+}
+
+type Creation struct {
+	EventCommon
+	Accepted        string      `json:"accepted_rcpts"`
+	CampaignID      string      `json:"campaign_id"`
+	CustomerID      string      `json:"customer_id"`
+	InjectionMethod string      `json:"inj_method"`
+	NodeName        string      `json:"node_name"`
+	Metadata        interface{} `json:"rcpt_meta"`
+	Tags            []string    `json:"rcpt_tags"`
+	Submitted       string      `json:"submitted_rcpts"`
+	TemplateID      string      `json:"template_id"`
+	TemplateVersion string      `json:"template_version"`
+	Timestamp       int64       `json:"timestamp"`
+	TransmissionID  string      `json:"transmission_id"`
+	UserID          string      `json:"user_id"`
+}
+
+func (c *Creation) String() string {
+	return fmt.Sprintf("%d CT %s (%s, %s)",
+		c.Timestamp, c.TransmissionID, c.Submitted, c.Accepted)
 }
 
 type Delay struct {
