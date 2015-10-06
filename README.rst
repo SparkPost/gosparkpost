@@ -1,0 +1,70 @@
+SparkPost Go API client
+=======================
+
+The official Go package for using the SparkPost API.
+
+Installation
+------------
+
+Install from GitHub using `go get`_:
+
+.. code-block:: bash
+
+    $ go get https://github.com/SparkPost/go-sparkpost
+
+.. _go get: https://golang.org/cmd/go/#hdr-Download_and_install_packages_and_dependencies
+
+Get a key
+---------
+
+Go to `API & SMTP`_ in the SparkPost app and create an API key. We recommend using the ``SPARKPOST_API_KEY`` environment variable. The example code below shows how to set this up.
+
+.. _API & SMTP: https://app.sparkpost.com/#/configuration/credentials
+
+Send a message
+--------------
+
+Here at SparkPost, our "send some messages" api is called the `transmissions API`_ - let's use it to send a friendly test message:
+
+.. code-block:: go
+
+    package main
+
+    import (
+      "log"
+      "os"
+
+      "github.com/SparkPost/go-sparkpost/api"
+      trApi "github.com/SparkPost/go-sparkpost/api/transmissions"
+      teApi "github.com/SparkPost/go-sparkpost/api/templates"
+    )
+
+    func main() {
+      apiKey := os.Getenv("SPARKPOST_API_KEY")
+      TrAPI, err := trApi.New(api.Config{
+        BaseUrl:    "https://api.sparkpost.com",
+        ApiKey:     apiKey,
+        ApiVersion: "1",
+      })
+      if err != nil {
+        log.Fatalf("Transmissions API init failed: %s\n", err)
+      }
+
+      id, err := trApi.Create(&trApi.Transmission{
+        Recipients: []string{"someone@somedomain.com"},
+        Content:    teApi.Content{
+          HTML:    "<p>Hello world</p>",
+          From:    "test@sparkpostbox.com",
+          Subject: "Hello from go-sparkpost",
+        },
+      })
+      if err != nil {
+        log.Fatal(err)
+      }
+
+      log.Printf("Transmission sent with id [%s]\n", id)
+
+      // trApi.Response has full response details
+    }
+
+.. _transmissions API: https://www.sparkpost.com/api#/reference/transmissions
