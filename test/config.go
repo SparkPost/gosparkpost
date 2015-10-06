@@ -17,9 +17,9 @@ func LoadConfig() (map[string]string, error) {
 	}
 	cfg["baseurl"] = baseUrl
 
-	apiKey := os.Getenv("SPARKPOST_APIKEY")
+	apiKey := os.Getenv("SPARKPOST_API_KEY")
 	if apiKey == "" {
-		return nil, fmt.Errorf("API Key not set in environment: SPARKPOST_APIKEY")
+		return nil, fmt.Errorf("API Key not set in environment: SPARKPOST_API_KEY")
 	}
 	cfg["apikey"] = apiKey
 
