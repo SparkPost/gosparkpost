@@ -71,3 +71,27 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
     }
 
 .. _transmissions API: https://www.sparkpost.com/api#/reference/transmissions
+
+Documentation
+-------------
+
+* `SparkPost API Reference`_
+
+.. _SparkPost API Reference: https://www.sparkpost.com/api
+
+Contribute
+----------
+
+TL;DR:
+
+#. Check for open issues or open a fresh issue to start a discussion around a feature idea or a bug.
+#. Fork `the repository`_ on GitHub and make your changes in a branch on your fork
+#. Write a test which shows that the bug was fixed or that the feature works as expected.
+#. Send a pull request. Make sure to add yourself to AUTHORS_.
+
+More on the `contribution process`_
+
+.. _`the repository`: https://github.com/SparkPost/go-sparkpost
+.. _AUTHORS: https://github.com/SparkPost/go-sparkpost/blob/master/AUTHORS.rst
+.. _`contribution process`: https://github.com/SparkPost/go-sparkpost/CONTRIBUTING.md
+
