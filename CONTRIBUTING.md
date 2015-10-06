@@ -26,8 +26,8 @@ propose changes to this document in a pull request.
 
 ### Guidelines
 
-- Provide documentation for any newly added code.
-- Provide tests for any newly added code.
+- Provide [documentation](http://blog.golang.org/godoc-documenting-go-code) for any newly added code.
+- Provide [tests](https://golang.org/doc/code.html#Testing) for any newly added code.
 - Run ``go fmt`` before submitting.
 
 1. Create a new branch named after the issue you’ll be fixing (include the issue number as the branch name, example: Issue in GitHub is #8 then the branch name should be ISSUE-8))
