@@ -1,4 +1,4 @@
-// Package recipients interacts with the SparkPost Recipient Lists API.
+// Package recipient_lists interacts with the SparkPost Recipient Lists API.
 // https://www.sparkpost.com/api#/reference/recipient-lists
 package recipient_lists
 
@@ -58,7 +58,7 @@ type Recipient struct {
 }
 
 // Address describes the nested object way of specifying the Recipient's email address.
-// It can also be a plain string.
+// Recipient.Address can also be a plain string.
 type Address struct {
 	Email    string `json:"email"`
 	Name     string `json:"name,omitempty"`
@@ -113,9 +113,9 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 	return
 }
 
-// Validate runs sanity checks on a RecipientList struct.
-// This should catch most errors before attempting a doomed API call.
-func (rl RecipientList) Validate() error {
+// Validate runs sanity checks on a RecipientList struct. This should
+// catch most errors before attempting a doomed API call.
+func (rl *RecipientList) Validate() error {
 	// enforce required parameters
 	if rl.Recipients == nil || len(*rl.Recipients) <= 0 {
 		return fmt.Errorf("RecipientList requires at least one Recipient")
@@ -141,8 +141,8 @@ func (rl RecipientList) Validate() error {
 	return nil
 }
 
-// Validate runs sanity checks on a Recipient struct
-// This should catch most errors before attempting a doomed API call.
+// Validate runs sanity checks on a Recipient struct. This should
+// catch most errors before attempting a doomed API call.
 func (r Recipient) Validate() error {
 	_, err := ParseAddress(r.Address)
 	if err != nil {
@@ -169,8 +169,16 @@ func (r Recipient) Validate() error {
 }
 
 // BuildRecipient accepts a map of key/value pairs, builds, and returns a Recipient object.
-// TODO: list expected keys
-func (rl RecipientLists) BuildRecipient(p map[string]interface{}) (*Recipient, error) {
+//
+// The expected map keys are:
+//   email: Valid email address
+//   name: User-friendly name for the email address
+//   header_to: Email address to display in the To header instead of address.email (for BCC)
+//   tags: Array of text labels, 10 max per recipient
+//   metadata: JSON object of Recipient data, included in Webhooks
+//   substitution_data: JSON object of Recipient data, not included in Webhooks
+//   return_path: Used for envelope from (SparkPost Elite only)
+func (rl *RecipientLists) BuildRecipient(p map[string]interface{}) (*Recipient, error) {
 	R := &Recipient{}
 
 	// Look up expected keys in the map, deleting as we find them.
@@ -290,7 +298,7 @@ func (rl RecipientLists) BuildRecipient(p map[string]interface{}) (*Recipient, e
 
 // BuildRecipients accepts an array of key/value pairs, builds, and returns
 // an array of Recipient objects.
-func (rl RecipientLists) BuildRecipients(p []interface{}) (*[]Recipient, error) {
+func (rl *RecipientLists) BuildRecipients(p []interface{}) (*[]Recipient, error) {
 	recipients := make([]Recipient, len(p))
 	for idx, recipientUntyped := range p {
 		switch recipient := recipientUntyped.(type) {
@@ -310,8 +318,14 @@ func (rl RecipientLists) BuildRecipients(p []interface{}) (*[]Recipient, error) 
 
 // Build accepts a map of key/value pairs, builds, and returns a RecipientList
 // object suitable for use with Create.
-// TODO: list expected keys
-func (rl RecipientLists) Build(p map[string]interface{}) (*RecipientList, error) {
+//
+// The expected map keys are:
+//   id: ID used to reference the recipient list
+//   name: Editable display name
+//   description: Detailed description of the recipient list
+//   attributes: Arbitrary JSON data, for the caller's use
+//   recipients: Array of Recipient objects
+func (rl *RecipientLists) Build(p map[string]interface{}) (*RecipientList, error) {
 	RL := &RecipientList{}
 
 	// Look up expected keys in the map, deleting as we find them.
@@ -374,7 +388,7 @@ func (rl RecipientLists) Build(p map[string]interface{}) (*RecipientList, error)
 
 // Create accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
-func (rl RecipientLists) Create(recipList *RecipientList) (id string, err error) {
+func (rl *RecipientLists) Create(recipList *RecipientList) (id string, err error) {
 	if recipList == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
 		return
@@ -430,7 +444,7 @@ func (rl RecipientLists) Create(recipList *RecipientList) (id string, err error)
 	return
 }
 
-func (rl RecipientLists) List() (*[]RecipientList, error) {
+func (rl *RecipientLists) List() (*[]RecipientList, error) {
 	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
 	res, err := rl.HttpGet(url)
 	if err != nil {

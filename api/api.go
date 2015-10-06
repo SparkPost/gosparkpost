@@ -142,7 +142,10 @@ func (api *API) HttpDelete(url string) (*http.Response, error) {
 	return api.Client.Do(req)
 }
 
-// ReadBody is a convenience wrapper that returns the response body.
+// ReadBody is a convenience method that returns the http.Response body.
+// The first time this function is called, the body is read from the
+// http.Response. For subsequent calls, the cached version in
+// api.Response.Body is returned.
 func (api *API) ReadBody(res *http.Response) ([]byte, error) {
 	// Calls 2+ to this function for the same http.Response will now DWIM
 	if api.Response != nil && api.Response.Body != nil {
@@ -158,7 +161,7 @@ func (api *API) ReadBody(res *http.Response) ([]byte, error) {
 	return bodyBytes, err
 }
 
-// ParseApiResponse pulls info from JSON http responses into api.Response object.
+// ParseResponse pulls info from JSON http responses into api.Response object.
 // It's helpful to call api.AssertJson before calling this function.
 func (api *API) ParseResponse(res *http.Response) error {
 	body, err := api.ReadBody(res)

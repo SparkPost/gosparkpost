@@ -29,7 +29,7 @@ func New(cfg api.Config) (*MessageEvents, error) {
 }
 
 // Samples requests a list of example event data.
-func (m MessageEvents) Samples(types *[]string) (*[]events.Event, error) {
+func (m *MessageEvents) Samples(types *[]string) (*[]events.Event, error) {
 	// append any requested event types to path
 	var url string
 	if types == nil {

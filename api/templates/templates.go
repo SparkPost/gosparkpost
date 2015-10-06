@@ -53,7 +53,7 @@ type Content struct {
 }
 
 // From describes the nested object way of specifying the From header.
-// It can also be a plain string.
+// Content.From can be specified this way, or as a plain string.
 type From struct {
 	Email string
 	Name  string
@@ -174,7 +174,7 @@ func (t *Template) SetHeaders(headers map[string]string) {
 //   from_email: Email portion of From header
 //   from_name: Name portion of From header
 //   reply_to: Reply to of template
-func (t Templates) Build(p map[string]string) (*Template, error) {
+func (t *Templates) Build(p map[string]string) (*Template, error) {
 	T := &Template{}
 
 	// Look up expected keys in the map, deleting as we find them.
@@ -287,7 +287,7 @@ func (t Templates) Build(p map[string]string) (*Template, error) {
 
 // Create accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
-func (t Templates) Create(template *Template) (id string, err error) {
+func (t *Templates) Create(template *Template) (id string, err error) {
 	if template == nil {
 		err = fmt.Errorf("Create called with nil Template")
 		return
@@ -344,7 +344,7 @@ func (t Templates) Create(template *Template) (id string, err error) {
 }
 
 // List returns metadata for all Templates in the system.
-func (t Templates) List() ([]Template, error) {
+func (t *Templates) List() ([]Template, error) {
 	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
 	res, err := t.HttpGet(url)
 	if err != nil {
@@ -380,7 +380,7 @@ func (t Templates) List() ([]Template, error) {
 }
 
 // Delete removes the Template with the specified id.
-func (t Templates) Delete(id string) (err error) {
+func (t *Templates) Delete(id string) (err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
 		return
