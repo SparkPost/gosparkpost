@@ -28,20 +28,25 @@ func TestMessageEvents(t *testing.T) {
 		return
 	}
 
-	types := []string{"open", "click", "bounce"}
-	e, err := mev.Samples(&types)
+	//types := []string{"open", "click", "bounce"}
+	//e, err := mev.Samples(&types)
+	e, err := mev.Samples(nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	for _, ev := range *e {
+		//t.Error(fmt.Errorf("%s", ev))
 		switch event := ev.(type) {
-		case *events.Open, *events.Click:
+		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
+			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
+			*events.RelayInjection, *events.RelayRejection, *events.RelayDelivery,
+			*events.RelayTempfail, *events.RelayPermfail, *events.SpamComplaint:
 			t.Error(fmt.Errorf("%s", event))
 
-		case *events.Bounce:
-			t.Error(fmt.Errorf("%s", event.ECLog()))
+		case *events.Bounce, *events.Delay, *events.Delivery, *events.Injection, *events.OutOfBand:
+			t.Error(fmt.Errorf("%s", events.ECLog(event)))
 
 		default:
 			t.Errorf("Unsupported type [%s]", reflect.TypeOf(ev))

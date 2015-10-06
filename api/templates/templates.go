@@ -336,7 +336,7 @@ func (t Templates) Create(template *Template) (id string, err error) {
 			eobj := t.Response.Errors[0]
 			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
 		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
+			err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
 		}
 	}
 
@@ -357,7 +357,7 @@ func (t Templates) List() ([]Template, error) {
 
 	if res.StatusCode == 200 {
 		var body []byte
-		body, err = api.ReadBody(res)
+		body, err = t.ReadBody(res)
 		if err != nil {
 			return nil, err
 		}
@@ -415,7 +415,7 @@ func (t Templates) Delete(id string) (err error) {
 		if res.StatusCode == 409 {
 			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
 		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
+			err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
 		}
 	}
 

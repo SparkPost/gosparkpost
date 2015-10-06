@@ -67,7 +67,7 @@ func (m MessageEvents) Samples(types *[]string) (*[]events.Event, error) {
 	}
 
 	// Get the Content
-	bodyBytes, err := api.ReadBody(res)
+	bodyBytes, err := m.ReadBody(res)
 	if err != nil {
 		return nil, err
 	}
@@ -129,5 +129,6 @@ func ParseEvents(jlist []*json.RawMessage) (*[]events.Event, error) {
 		i++
 	}
 
-	return &elist, nil
+	rv := elist[:i]
+	return &rv, nil
 }

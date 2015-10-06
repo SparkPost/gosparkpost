@@ -423,7 +423,7 @@ func (rl RecipientLists) Create(recipList *RecipientList) (id string, err error)
 			eobj := rl.Response.Errors[0]
 			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
 		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.StatusCode, rl.Response.Body)
+			err = fmt.Errorf("%d: %s", res.StatusCode, string(rl.Response.Body))
 		}
 	}
 
@@ -443,7 +443,7 @@ func (rl RecipientLists) List() (*[]RecipientList, error) {
 
 	if res.StatusCode == 200 {
 		var body []byte
-		body, err = api.ReadBody(res)
+		body, err = rl.ReadBody(res)
 		if err != nil {
 			return nil, err
 		}

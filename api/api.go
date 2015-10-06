@@ -55,7 +55,7 @@ func NewConfig(m map[string]string) (*Config, error) {
 // Helpful when an error message doesn't necessarily give the complete picture.
 type Response struct {
 	HTTP    *http.Response
-	Body    string
+	Body    []byte
 	Results map[string]string `json:"results,omitempty"`
 	Errors  []Error           `json:"errors,omitempty"`
 }
@@ -143,16 +143,25 @@ func (api *API) HttpDelete(url string) (*http.Response, error) {
 }
 
 // ReadBody is a convenience wrapper that returns the response body.
-func ReadBody(res *http.Response) ([]byte, error) {
-	// FIXME: make this work on calls 2+ for the same http.Response
+func (api *API) ReadBody(res *http.Response) ([]byte, error) {
+	// Calls 2+ to this function for the same http.Response will now DWIM
+	if api.Response != nil && api.Response.Body != nil {
+		return api.Response.Body, nil
+	}
+
 	defer res.Body.Close()
-	return ioutil.ReadAll(res.Body)
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if api.Response == nil {
+		api.Response = new(Response)
+	}
+	api.Response.Body = bodyBytes
+	return bodyBytes, err
 }
 
 // ParseApiResponse pulls info from JSON http responses into api.Response object.
 // It's helpful to call api.AssertJson before calling this function.
 func (api *API) ParseResponse(res *http.Response) error {
-	body, err := ReadBody(res)
+	body, err := api.ReadBody(res)
 	if err != nil {
 		return err
 	}
@@ -164,7 +173,6 @@ func (api *API) ParseResponse(res *http.Response) error {
 	if err != nil {
 		return fmt.Errorf("Failed to parse API response: [%s]\n%s", err, string(body))
 	}
-	api.Response.Body = string(body)
 	api.Response.HTTP = res
 
 	return nil

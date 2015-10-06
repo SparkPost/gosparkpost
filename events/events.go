@@ -18,13 +18,13 @@ var eventTypes = map[string]bool{
 	"generation_rejection": true,
 	"list_unsubscribe":     true,
 	"link_unsubscribe":     true,
-	"policy_rejection":     false,
-	"spam_complaint":       false,
-	"relay_delivery":       false,
-	"relay_injection":      false,
-	"relay_permfail":       false,
-	"relay_rejection":      false,
-	"relay_tempfail":       false,
+	"policy_rejection":     true,
+	"spam_complaint":       true,
+	"relay_delivery":       true,
+	"relay_injection":      true,
+	"relay_permfail":       true,
+	"relay_rejection":      true,
+	"relay_tempfail":       true,
 }
 
 // ValidEventType returns true if the event name parameter is valid.
@@ -64,6 +64,20 @@ func EventForName(eventType string) Event {
 		return &Open{}
 	case "out_of_band":
 		return &OutOfBand{}
+	case "policy_rejection":
+		return &PolicyRejection{}
+	case "spam_complaint":
+		return &SpamComplaint{}
+	case "relay_delivery":
+		return &RelayDelivery{}
+	case "relay_injection":
+		return &RelayInjection{}
+	case "relay_permfail":
+		return &RelayPermfail{}
+	case "relay_rejection":
+		return &RelayRejection{}
+	case "relay_tempfail":
+		return &RelayTempfail{}
 
 	default:
 		return nil
@@ -73,6 +87,28 @@ func EventForName(eventType string) Event {
 // Event allows 2+ types of event in a data structure.
 type Event interface {
 	EventType() string
+}
+
+func ECLog(e Event) string {
+	// XXX: this feels like the wrong way; can't figure out the right way
+	switch e.(type) {
+	case *Bounce:
+		b := e.(*Bounce)
+		return b.ECLog()
+	case *Delay:
+		d := e.(*Delay)
+		return d.ECLog()
+	case *Delivery:
+		d := e.(*Delivery)
+		return d.ECLog()
+	case *Injection:
+		i := e.(*Injection)
+		return i.ECLog()
+	case *OutOfBand:
+		o := e.(*OutOfBand)
+		return o.ECLog()
+	}
+	return ""
 }
 
 type ECLogger interface {
@@ -116,15 +152,12 @@ type Bounce struct {
 	TransmissionID  string      `json:"transmission_id"`
 }
 
-// TODO: make all events Stringers
-
 // String returns a brief summary of a Bounce event
 func (b *Bounce) String() string {
-	return fmt.Sprintf("%d %s => %s: %s",
-		b.Timestamp, b.MessageFrom, b.Recipient, b.RawReason)
+	return fmt.Sprintf("%d B %s %s => %s %s: %s",
+		b.Timestamp, b.TransmissionID, b.Binding, b.Recipient,
+		b.BounceClass, b.RawReason)
 }
-
-// TODO: add ECLog() for all events that can show up in *.ec
 
 // ECLog emits a Bounce in the same format that it would be logged to bouncelog.ec:
 // https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
@@ -164,6 +197,12 @@ type Click struct {
 	UserAgent       string      `json:"user_agent"`
 }
 
+// String returns a brief summary of a Click event
+func (c *Click) String() string {
+	return fmt.Sprintf("%d C %s %s => %s",
+		c.Timestamp, c.TransmissionID, c.Recipient, c.TargetLinkURL)
+}
+
 type Delay struct {
 	EventCommon
 	Binding         string      `json:"binding"`
@@ -194,6 +233,21 @@ type Delay struct {
 	TransmissionID  string      `json:"transmission_id"`
 }
 
+// String returns a brief summary of a Delay event
+func (d *Delay) String() string {
+	return fmt.Sprintf("%d T %s => %s %s: %s",
+		d.Timestamp, d.MessageFrom, d.Recipient, d.BounceClass, d.RawReason)
+}
+
+// ECLog emits a Delay in the same format that it would be logged to bouncelog.ec:
+// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
+func (d *Delay) ECLog() string {
+	return fmt.Sprintf("%d@%s@@@T@%s@%s@%s@%s@@%s@%s@%s@%s",
+		d.Timestamp, d.MessageID, d.Recipient, d.MessageFrom,
+		d.Binding, d.BindingGroup, d.BounceClass, d.MessageSize,
+		d.IPAddress, d.RawReason)
+}
+
 type Delivery struct {
 	EventCommon
 	Binding         string      `json:"binding"`
@@ -220,6 +274,20 @@ type Delivery struct {
 	TransmissionID  string      `json:"transmission_id"`
 }
 
+// String returns a brief summary of a Delivery event
+func (d *Delivery) String() string {
+	return fmt.Sprintf("%d D %s %s => %s",
+		d.Timestamp, d.TransmissionID, d.Binding, d.Recipient)
+}
+
+// ECLog emits a Delivery in the same format that it would be logged to mainlog.ec:
+// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
+func (d *Delivery) ECLog() string {
+	return fmt.Sprintf("%d@%s@@@D@%s@%s@%s@%s@%s@%s@%s",
+		d.Timestamp, d.MessageID, d.RoutingDomain, d.MessageSize,
+		d.Binding, d.BindingGroup, d.Retries, d.QueueTime, d.IPAddress)
+}
+
 type GenerationFailure struct {
 	EventCommon
 	Binding          string      `json:"binding"`
@@ -241,7 +309,21 @@ type GenerationFailure struct {
 	TransmissionID   string      `json:"transmission_id"`
 }
 
+// String returns a brief summary of a GenerationFailure event
+func (g *GenerationFailure) String() string {
+	return fmt.Sprintf("%d GF %s %s => %s %s: %s",
+		g.Timestamp, g.TransmissionID, g.Binding, g.Recipient,
+		g.ErrorCode, g.RawReason)
+}
+
 type GenerationRejection GenerationFailure
+
+// String returns a brief summary of a GenerationFailure event
+func (g *GenerationRejection) String() string {
+	return fmt.Sprintf("%d GR %s %s => %s %s: %s",
+		g.Timestamp, g.TransmissionID, g.Binding, g.Recipient,
+		g.ErrorCode, g.RawReason)
+}
 
 type Injection struct {
 	EventCommon
@@ -267,6 +349,21 @@ type Injection struct {
 	TransmissionID  string      `json:"transmission_id"`
 }
 
+// String returns a brief summary of a GenerationFailure event
+func (i *Injection) String() string {
+	return fmt.Sprintf("%d R %s %s => %s",
+		i.Timestamp, i.TransmissionID, i.Binding, i.Recipient)
+}
+
+// ECLog emits an Injection in the same format that it would be logged to mainlog.ec:
+// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
+func (i *Injection) ECLog() string {
+	return fmt.Sprintf("%d@%s@@@R@%s@%s@@%s@%s@%s@%s",
+		i.Timestamp, i.MessageID, i.Recipient, i.MessageFrom,
+		i.MessageSize, i.ReceiveProtocol,
+		i.Binding, i.BindingGroup)
+}
+
 type ListUnsubscribe struct {
 	EventCommon
 	CampaignID      string      `json:"campaign_id"`
@@ -283,10 +380,22 @@ type ListUnsubscribe struct {
 	TransmissionID  string      `json:"transmission_id"`
 }
 
+// String returns a brief summary of a ListUnsubscribe event
+func (l *ListUnsubscribe) String() string {
+	return fmt.Sprintf("%d U %s %s: [%s]",
+		l.Timestamp, l.TransmissionID, l.Recipient, l.CampaignID)
+}
+
 type LinkUnsubscribe struct {
 	EventCommon
 	ListUnsubscribe
 	UserAgent string `json:"user_agent"`
+}
+
+// String returns a brief summary of a ListUnsubscribe event
+func (l *LinkUnsubscribe) String() string {
+	return fmt.Sprintf("%d LU %s %s: [%s]",
+		l.Timestamp, l.TransmissionID, l.Recipient, l.CampaignID)
 }
 
 type Open struct {
@@ -306,6 +415,12 @@ type Open struct {
 	Timestamp       int64       `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserAgent       string      `json:"user_agent"`
+}
+
+// String returns a brief summary of an Open event
+func (o *Open) String() string {
+	return fmt.Sprintf("%d O %s %s",
+		o.Timestamp, o.TransmissionID, o.Recipient)
 }
 
 type OutOfBand struct {
@@ -330,6 +445,21 @@ type OutOfBand struct {
 	Timestamp       int64  `json:"timestamp"`
 }
 
+// String returns a brief summary of a Bounce event
+func (b *OutOfBand) String() string {
+	return fmt.Sprintf("%d OOB [%s] %s => %s %s: %s",
+		b.Timestamp, b.CampaignID, b.Binding, b.Recipient,
+		b.BounceClass, b.RawReason)
+}
+
+// ECLog emits an OutOfBand in the same format that it would be logged to bouncelog.ec:
+// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
+func (b *OutOfBand) ECLog() string {
+	return fmt.Sprintf("%d@%s@@@B@%s@%s@%s@%s@@%s@@@%s",
+		b.Timestamp, b.MessageID, b.Recipient, b.MessageFrom,
+		b.Binding, b.BindingGroup, b.BounceClass, b.RawReason)
+}
+
 type PolicyRejection struct {
 	EventCommon
 	CampaignID      string      `json:"campaign_id"`
@@ -352,6 +482,13 @@ type PolicyRejection struct {
 	TransmissionID  string      `json:"transmission_id"`
 }
 
+// String returns a brief summary of a PolicyRejection event
+func (p *PolicyRejection) String() string {
+	return fmt.Sprintf("%d PR %s [%s] => %s %s: %s",
+		p.Timestamp, p.TransmissionID, p.CampaignID, p.Recipient,
+		p.ErrorCode, p.RawReason)
+}
+
 type RelayInjection struct {
 	EventCommon
 	Binding         string `json:"binding"`
@@ -366,6 +503,12 @@ type RelayInjection struct {
 	RelayID         string `json:"relay_id"`
 	RoutingDomain   string `json:"routing_domain"`
 	Timestamp       int64  `json:"timestamp"`
+}
+
+// String returns a brief summary of a RelayInjection event
+func (i *RelayInjection) String() string {
+	return fmt.Sprintf("%d RI %s %s %s => %s",
+		i.Timestamp, i.RelayID, i.Binding, i.MessageFrom, i.Recipient)
 }
 
 type RelayRejection struct {
@@ -384,6 +527,12 @@ type RelayRejection struct {
 	Timestamp       int64  `json:"timestamp"`
 }
 
+// String returns a brief summary of a RelayInjection event
+func (r *RelayRejection) String() string {
+	return fmt.Sprintf("%d RR %s %s => %s %s: %s",
+		r.Timestamp, r.RelayID, r.MessageFrom, r.Recipient, r.ErrorCode, r.RawReason)
+}
+
 type RelayDelivery struct {
 	EventCommon
 	Binding         string `json:"binding"`
@@ -399,6 +548,12 @@ type RelayDelivery struct {
 	Retries         string `json:"num_retries"`
 	RoutingDomain   string `json:"routing_domain"`
 	Timestamp       int64  `json:"timestamp"`
+}
+
+// String returns a brief summary of a RelayDelivery event
+func (d *RelayDelivery) String() string {
+	return fmt.Sprintf("%d RD %s %s <= %s",
+		d.Timestamp, d.RelayID, d.Binding, d.MessageFrom)
 }
 
 type RelayTempfail struct {
@@ -421,7 +576,19 @@ type RelayTempfail struct {
 	Timestamp       int64  `json:"timestamp"`
 }
 
+// String returns a brief summary of a RelayTempfail event
+func (t *RelayTempfail) String() string {
+	return fmt.Sprintf("%d RT %s %s <= %s %s: %s",
+		t.Timestamp, t.RelayID, t.Binding, t.MessageFrom, t.ErrorCode, t.RawReason)
+}
+
 type RelayPermfail RelayTempfail
+
+// String returns a brief summary of a RelayInjection event
+func (p *RelayPermfail) String() string {
+	return fmt.Sprintf("%d RP %s %s <= %s %s: %s",
+		p.Timestamp, p.RelayID, p.Binding, p.MessageFrom, p.ErrorCode, p.RawReason)
+}
 
 type SpamComplaint struct {
 	EventCommon
@@ -445,4 +612,10 @@ type SpamComplaint struct {
 	Timestamp       int64       `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserString      string      `json:"user_str"`
+}
+
+// String returns a brief summary of a SpamComplaint event
+func (p *SpamComplaint) String() string {
+	return fmt.Sprintf("%d S %s %s %s => %s (%s)",
+		p.Timestamp, p.TransmissionID, p.Binding, p.ReportedBy, p.ReportedTo, p.Recipient)
 }

@@ -243,7 +243,7 @@ func (t Transmissions) Create(transmission *Transmission) (id string, err error)
 			return
 		}
 
-		err = fmt.Errorf("%d: %s", res.StatusCode, t.Response.Body)
+		err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
 	}
 
 	return
