@@ -407,7 +407,7 @@ func (rl RecipientLists) Create(recipList *RecipientList) (id string, err error)
 
 	if res.StatusCode == 200 {
 		var ok bool
-		id, ok = rl.Response.Results["id"]
+		id, ok = rl.Response.Results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Recipient List creation")
 		}

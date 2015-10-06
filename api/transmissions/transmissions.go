@@ -58,28 +58,41 @@ type Options struct {
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
-func ParseRecipients(recips interface{}) (err error) {
+func ParseRecipients(recips interface{}) (ra *[]recipients.Recipient, err error) {
 	switch rVal := recips.(type) {
 	case map[string]interface{}:
 		for k, v := range rVal {
 			switch vVal := v.(type) {
 			case string:
 				if strings.EqualFold(k, "list_id") {
-					return nil
+					return
 				}
 			default:
-				return fmt.Errorf("Transmission.Recipient objects must contain string values, not [%s]", reflect.TypeOf(vVal))
+				err = fmt.Errorf("Transmission.Recipient objects must contain string values, not [%s]",
+					reflect.TypeOf(vVal))
+				return
 			}
 		}
-		return fmt.Errorf("Transmission.Recipient objects must contain a key `list_id`")
+		err = fmt.Errorf("Transmission.Recipient objects must contain a key `list_id`")
+		return
 
 	case map[string]string:
 		for k, _ := range rVal {
 			if strings.EqualFold(k, "list_id") {
-				return nil
+				return
 			}
 		}
-		return fmt.Errorf("Transmission.Recipient objects must contain a key `list_id`")
+		err = fmt.Errorf("Transmission.Recipient objects must contain a key `list_id`")
+		return
+
+	case []string:
+		raObj := make([]recipients.Recipient, len(rVal))
+		for i, r := range rVal {
+			// Make a full Recipient object from each string
+			raObj[i] = recipients.Recipient{Address: map[string]string{"email": r}}
+		}
+		ra := &raObj
+		return ra, nil
 
 	case []interface{}:
 		for _, v := range rVal {
@@ -87,11 +100,12 @@ func ParseRecipients(recips interface{}) (err error) {
 			case recipients.Recipient:
 				err = r.Validate()
 				if err != nil {
-					return err
+					return
 				}
 
 			default:
-				return fmt.Errorf("Failed to parse inline Transmission.Recipient list")
+				err = fmt.Errorf("Failed to parse inline Transmission.Recipient list")
+				return
 			}
 		}
 
@@ -99,12 +113,13 @@ func ParseRecipients(recips interface{}) (err error) {
 		for _, v := range rVal {
 			err = v.Validate()
 			if err != nil {
-				return err
+				return
 			}
 		}
 
 	default:
-		return fmt.Errorf("Unsupported Transmission.Recipient type [%s]", reflect.TypeOf(rVal))
+		err = fmt.Errorf("Unsupported Transmission.Recipient type [%s]", reflect.TypeOf(rVal))
+		return
 	}
 
 	return
@@ -167,10 +182,15 @@ func (t *Transmission) Validate() error {
 	}
 
 	// validate members from other packages
-	err := ParseRecipients(t.Recipients)
+	recips, err := ParseRecipients(t.Recipients)
 	if err != nil {
 		return err
 	}
+	// Use the updated Recipients object optionally returned from ParseRecipients
+	if recips != nil {
+		t.Recipients = *recips
+	}
+
 	err = ParseContent(t.Content)
 	if err != nil {
 		return err
@@ -231,7 +251,7 @@ func (t Transmissions) Create(transmission *Transmission) (id string, err error)
 
 	if res.StatusCode == 200 {
 		var ok bool
-		id, ok = t.Response.Results["id"]
+		id, ok = t.Response.Results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}

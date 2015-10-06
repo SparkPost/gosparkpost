@@ -56,8 +56,8 @@ func NewConfig(m map[string]string) (*Config, error) {
 type Response struct {
 	HTTP    *http.Response
 	Body    []byte
-	Results map[string]string `json:"results,omitempty"`
-	Errors  []Error           `json:"errors,omitempty"`
+	Results map[string]interface{} `json:"results,omitempty"`
+	Errors  []Error                `json:"errors,omitempty"`
 }
 
 // API exists to be embedded in other API objects, to enable transparent method forwarding.

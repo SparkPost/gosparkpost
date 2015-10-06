@@ -320,7 +320,7 @@ func (t Templates) Create(template *Template) (id string, err error) {
 
 	if res.StatusCode == 200 {
 		var ok bool
-		id, ok = t.Response.Results["id"]
+		id, ok = t.Response.Results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}
