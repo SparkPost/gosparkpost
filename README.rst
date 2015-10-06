@@ -40,6 +40,7 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
     )
 
     func main() {
+      // Get our API key from the environment; configure.
       apiKey := os.Getenv("SPARKPOST_API_KEY")
       TrAPI, err := tr_api.New(api.Config{
         BaseUrl:    "https://api.sparkpost.com",
@@ -50,6 +51,8 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
         log.Fatalf("Transmissions API init failed: %s\n", err)
       }
 
+      // Create a Transmission using an inline Recipient List
+      // and inline email Content.
       id, err := TrAPI.Create(&tr_api.Transmission{
         Recipients: []string{"someone@somedomain.com"},
         Content:    te_api.Content{
@@ -62,9 +65,9 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
         log.Fatal(err)
       }
 
+      // tr_api.Response has more details, in case you'd
+      // like to see more than the Transmission id.
       log.Printf("Transmission sent with id [%s]\n", id)
-
-      // tr_api.Response has full response details
     }
 
 .. _transmissions API: https://www.sparkpost.com/api#/reference/transmissions
