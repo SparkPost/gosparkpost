@@ -166,7 +166,7 @@ func (api *API) ReadBody(res *http.Response) ([]byte, error) {
 	defer res.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(res.Body)
 	if api.Response == nil {
-		api.Response = new(Response)
+		api.Response = &Response{HTTP: res}
 	}
 	api.Response.Body = bodyBytes
 	return bodyBytes, err
@@ -187,7 +187,6 @@ func (api *API) ParseResponse(res *http.Response) error {
 	if err != nil {
 		return fmt.Errorf("Failed to parse API response: [%s]\n%s", err, string(body))
 	}
-	api.Response.HTTP = res
 
 	return nil
 }
