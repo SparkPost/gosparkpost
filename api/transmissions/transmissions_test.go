@@ -26,6 +26,17 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
+	campaignID := "msys_smoke"
+	tlist, err := TransAPI.List(&campaignID, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Errorf("List: %d, %d entries", TransAPI.Response.HTTP.StatusCode, len(tlist))
+	for _, tr := range tlist {
+		t.Errorf("%s: %s", tr.ID, tr.CampaignID)
+	}
+
 	// TODO: 404 from Transmission Create could mean either
 	// Recipient List or Content wasn't found - open doc ticket
 	// to make error message more specific

@@ -406,6 +406,13 @@ func (t *Templates) List() ([]Template, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(t.Response.Errors) > 0 {
+			err = api.PrettyError("Transmission", "list", res)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
 	}
 
 	return nil, err

@@ -5,6 +5,7 @@ package transmissions
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 	re "regexp"
 	"strings"
@@ -235,8 +236,8 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, err error
 		return
 	}
 
-	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	res, err := t.HttpPost(url, jsonBytes)
+	u := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
+	res, err := t.HttpPost(u, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -272,13 +273,13 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, err error
 
 var nonDigit *re.Regexp = re.MustCompile(`\D`)
 
-// Create accepts a Transmission.ID and retrieves the corresponding object.
+// Retrieve accepts a Transmission.ID and retrieves the corresponding object.
 func (t *Transmissions) Retrieve(id string) (*Transmission, error) {
 	if nonDigit.MatchString(id) {
 		return nil, fmt.Errorf("Transmissions.Retrieve: id may only contain digits")
 	}
-	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
-	res, err := t.HttpGet(url)
+	u := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
+	res, err := t.HttpGet(u)
 	if err != nil {
 		return nil, err
 	}
@@ -312,6 +313,13 @@ func (t *Transmissions) Retrieve(id string) (*Transmission, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(t.Response.Errors) > 0 {
+			err = api.PrettyError("Transmission", "retrieve", res)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
 	}
 
 	return nil, err
@@ -328,8 +336,8 @@ func (t *Transmissions) Delete(id string) (err error) {
 		return fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
-	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
-	res, err := t.HttpDelete(url)
+	u := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
+	res, err := t.HttpDelete(u)
 	if err != nil {
 		return
 	}
@@ -356,4 +364,61 @@ func (t *Transmissions) Delete(id string) (err error) {
 	}
 
 	return
+}
+
+// List returns Transmission summary information for matching Transmissions.
+// To skip filtering by campaign or template id, use a nil param.
+func (t *Transmissions) List(campaignID, templateID *string) ([]Transmission, error) {
+	// If a query parameter is present and empty, that searches for blank IDs, as opposed
+	// to when it is omitted entirely, which returns everything.
+	qp := make([]string, 0, 2)
+	if campaignID != nil {
+		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(*campaignID)))
+	}
+	if templateID != nil {
+		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(*templateID)))
+	}
+
+	qstr := ""
+	if len(qp) > 0 {
+		qstr = strings.Join(qp, "&")
+	}
+	u := fmt.Sprintf("%s%s?%s", t.Config.BaseUrl, t.Path, qstr)
+
+	res, err := t.HttpGet(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = api.AssertJson(res); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 {
+		var body []byte
+		body, err = t.ReadBody(res)
+		if err != nil {
+			return nil, err
+		}
+		tlist := map[string][]Transmission{}
+		if err = json.Unmarshal(body, &tlist); err != nil {
+			return nil, err
+		} else if list, ok := tlist["results"]; ok {
+			return list, nil
+		}
+		return nil, fmt.Errorf("Unexpected response to Transmission list")
+
+	} else {
+		err = t.ParseResponse(res)
+		if err != nil {
+			return nil, err
+		}
+		if len(t.Response.Errors) > 0 {
+			err = api.PrettyError("Transmission", "list", res)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+	}
 }
