@@ -11,7 +11,7 @@ import (
 
 // Build a native Go Template structure from a JSON string
 func ExampleFromJSON() {
-	cfg := &api.Config{BaseUrl: "https://example.com", ApiKey: "foo"}
+	cfg := api.Config{BaseUrl: "https://example.com", ApiKey: "foo"}
 	T, err := templates.New(cfg)
 	if err != nil {
 		log.Fatal(err)

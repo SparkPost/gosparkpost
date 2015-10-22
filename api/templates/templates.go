@@ -43,14 +43,26 @@ type Template struct {
 // Knowledge of SparkPost's substitution/templating capabilities will come in handy here.
 // https://www.sparkpost.com/api#/introduction/substitutions-reference
 type Content struct {
-	HTML        string            `json:"html,omitempty"`
-	Text        string            `json:"text,omitempty"`
-	Subject     string            `json:"subject,omitempty"`
-	From        interface{}       `json:"from,omitempty"`
-	ReplyTo     string            `json:"reply_to,omitempty"`
-	Headers     map[string]string `json:"headers,omitempty"`
-	EmailRFC822 string            `json:"email_rfc822,omitempty"`
+	HTML         string            `json:"html,omitempty"`
+	Text         string            `json:"text,omitempty"`
+	Subject      string            `json:"subject,omitempty"`
+	From         interface{}       `json:"from,omitempty"`
+	ReplyTo      string            `json:"reply_to,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	EmailRFC822  string            `json:"email_rfc822,omitempty"`
+	Attachments  []Attachment      `json:"attachments,omitempty"`
+	InlineImages []InlineImage     `json:"inline_images,omitempty"`
 }
+
+// Attachment contains metadata and the contents of the file to attach.
+type Attachment struct {
+	MIMEType string `json:"type"`
+	Filename string `json:"name"`
+	B64Data  string `json:"data"`
+}
+
+// InlineImage contains metadata and the contents of the image to make available for inline use.
+type InlineImage Attachment
 
 // From describes the nested object way of specifying the From header.
 // Content.From can be specified this way, or as a plain string.
@@ -136,8 +148,27 @@ func (t *Template) Validate() error {
 		return err
 	}
 
+	if len(t.Content.Attachments) > 0 {
+		for _, att := range t.Content.Attachments {
+			if len(att.Filename) > 255 {
+				return fmt.Errorf("Attachment name length must be <= 255: [%s]", att.Filename)
+			} else if strings.ContainsAny(att.B64Data, "\r\n") {
+				return fmt.Errorf("Attachment data may not contain line breaks [\\r\\n]")
+			}
+		}
+	}
+
+	if len(t.Content.InlineImages) > 0 {
+		for _, img := range t.Content.InlineImages {
+			if len(img.Filename) > 255 {
+				return fmt.Errorf("InlineImage name length must be <= 255: [%s]", img.Filename)
+			} else if strings.ContainsAny(img.B64Data, "\r\n") {
+				return fmt.Errorf("InlineImage data may not contain line breaks [\\r\\n]")
+			}
+		}
+	}
+
 	// enforce max lengths
-	// TODO: enforce 15MB Content limit
 	if len(t.ID) > 64 {
 		return fmt.Errorf("Template id may not be longer than 64 bytes")
 	} else if len(t.Name) > 1024 {
