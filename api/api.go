@@ -113,6 +113,7 @@ func (api *API) HttpPost(url string, data []byte) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	api.Response = nil
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", api.Config.ApiKey)
 	return api.Client.Do(req)
@@ -126,6 +127,7 @@ func (api *API) HttpGet(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	api.Response = nil
 	req.Header.Set("Authorization", api.Config.ApiKey)
 	return api.Client.Do(req)
 }
@@ -138,6 +140,7 @@ func (api *API) HttpDelete(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	api.Response = nil
 	req.Header.Set("Authorization", api.Config.ApiKey)
 	return api.Client.Do(req)
 }
