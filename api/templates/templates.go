@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	re "regexp"
 	"strings"
 	"time"
 
@@ -74,9 +75,9 @@ type From struct {
 // Options specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
 type Options struct {
-	OpenTracking  *bool `json:"open_tracking,omitempty"`
-	ClickTracking *bool `json:"click_tracking,omitempty"`
-	Transactional *bool `json:"transactional,omitempty"`
+	OpenTracking  string `json:"open_tracking,omitempty"`
+	ClickTracking string `json:"click_tracking,omitempty"`
+	Transactional string `json:"transactional,omitempty"`
 }
 
 // ParseFrom parses the various allowable Content.From values.
@@ -235,9 +236,9 @@ func (t *Templates) Build(p map[string]string) (*Template, error) {
 			T.Options = new(Options)
 		}
 		if strings.EqualFold(opens, "true") {
-			*T.Options.OpenTracking = true
+			T.Options.OpenTracking = "true"
 		} else {
-			*T.Options.OpenTracking = false
+			T.Options.OpenTracking = "false"
 		}
 		delete(p, "track_opens")
 	}
@@ -247,9 +248,9 @@ func (t *Templates) Build(p map[string]string) (*Template, error) {
 			T.Options = new(Options)
 		}
 		if strings.EqualFold(clicks, "true") {
-			*T.Options.ClickTracking = true
+			T.Options.ClickTracking = "true"
 		} else {
-			*T.Options.ClickTracking = false
+			T.Options.ClickTracking = "false"
 		}
 		delete(p, "track_clicks")
 	}
@@ -259,9 +260,9 @@ func (t *Templates) Build(p map[string]string) (*Template, error) {
 			T.Options = new(Options)
 		}
 		if strings.EqualFold(isTransactional, "true") {
-			*T.Options.ClickTracking = true
+			T.Options.ClickTracking = "true"
 		} else {
-			*T.Options.ClickTracking = false
+			T.Options.ClickTracking = "false"
 		}
 		delete(p, "is_transactional")
 	}
@@ -410,11 +411,16 @@ func (t *Templates) List() ([]Template, error) {
 	return nil, err
 }
 
+var nonDigit *re.Regexp = re.MustCompile(`\D`)
+
 // Delete removes the Template with the specified id.
 func (t *Templates) Delete(id string) (err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
 		return
+	}
+	if nonDigit.MatchString(id) {
+		return fmt.Errorf("Templates.Delete: id may only contain digits")
 	}
 
 	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)

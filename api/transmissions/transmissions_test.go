@@ -79,7 +79,16 @@ func TestTransmissions(t *testing.T) {
 				t.Errorf("%s\n", json)
 			}
 		} else {
-			t.Errorf("Transmission retrieved:\n%s\n", tr)
+			t.Errorf("Transmission retrieved: %s=%s\n", tr.ID, tr.State)
 		}
 	}
+
+	err = TransAPI.Delete(id)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Errorf("Delete returned HTTP %s\n%s\n", TransAPI.Response.HTTP.Status, TransAPI.Response.Body)
+
 }

@@ -54,8 +54,8 @@ type Options struct {
 	templates.Options
 
 	StartTime       time.Time `json:"start_time,omitempty"`
-	Sandbox         bool      `json:"sandbox,omitempty"`
-	SkipSuppression bool      `json:"skip_suppression,omitempty"`
+	Sandbox         string    `json:"sandbox,omitempty"`
+	SkipSuppression string    `json:"skip_suppression,omitempty"`
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
@@ -293,7 +293,6 @@ func (t *Transmissions) Retrieve(id string) (*Transmission, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("Retrieve body:\n%s\n", body)
 
 		// Unwrap the returned Transmission
 		tmp := map[string]map[string]Transmission{}
@@ -316,4 +315,45 @@ func (t *Transmissions) Retrieve(id string) (*Transmission, error) {
 	}
 
 	return nil, err
+}
+
+// Delete attempts to remove the Transmission with the specified id.
+// Only Transmissions which are scheduled for future generation may be deleted.
+func (t *Transmissions) Delete(id string) (err error) {
+	if id == "" {
+		err = fmt.Errorf("Delete called with blank id")
+		return
+	}
+	if nonDigit.MatchString(id) {
+		return fmt.Errorf("Transmissions.Delete: id may only contain digits")
+	}
+
+	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
+	res, err := t.HttpDelete(url)
+	if err != nil {
+		return
+	}
+
+	if err = api.AssertJson(res); err != nil {
+		return
+	}
+
+	if err = t.ParseResponse(res); err != nil {
+		return
+	}
+
+	if res.StatusCode == 200 {
+		return nil
+
+	} else if len(t.Response.Errors) > 0 {
+		// handle common errors
+		err = api.PrettyError("Transmission", "delete", res)
+		if err != nil {
+			return
+		}
+
+		err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+	}
+
+	return
 }
