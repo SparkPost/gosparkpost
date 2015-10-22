@@ -10,7 +10,7 @@ import (
 )
 
 // Build a native Go Template structure from a JSON string
-func ExampleFromJSON() {
+func ExampleTemplate() {
 	cfg := api.Config{BaseUrl: "https://example.com", ApiKey: "foo"}
 	T, err := templates.New(cfg)
 	if err != nil {
@@ -34,11 +34,4 @@ func ExampleFromJSON() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	id, err := T.Create(template)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("Created Template with id [%s]\n", id)
 }
