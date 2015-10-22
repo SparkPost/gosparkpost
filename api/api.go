@@ -77,6 +77,14 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
+func (e Error) Json() (string, error) {
+	jsonBytes, err := json.Marshal(e)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
+}
+
 // Init sets each API's path and pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided API object.
 func (api *API) Init(cfg Config, path string) error {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	re "regexp"
 	"strings"
 	"time"
 
@@ -267,4 +268,52 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, err error
 	}
 
 	return
+}
+
+var nonDigit *re.Regexp = re.MustCompile(`\D`)
+
+// Create accepts a Transmission.ID and retrieves the corresponding object.
+func (t *Transmissions) Retrieve(id string) (*Transmission, error) {
+	if nonDigit.MatchString(id) {
+		return nil, fmt.Errorf("Transmissions.Retrieve: id may only contain digits")
+	}
+	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
+	res, err := t.HttpGet(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = api.AssertJson(res); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 {
+		var body []byte
+		body, err = t.ReadBody(res)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("Retrieve body:\n%s\n", body)
+
+		// Unwrap the returned Transmission
+		tmp := map[string]map[string]Transmission{}
+		if err = json.Unmarshal(body, &tmp); err != nil {
+			return nil, err
+		} else if results, ok := tmp["results"]; ok {
+			if tr, ok := results["transmission"]; ok {
+				return &tr, nil
+			} else {
+				return nil, fmt.Errorf("Unexpected results structure in response:\n%s", body)
+			}
+		}
+		return nil, fmt.Errorf("Unexpected response to Transmission.Retrieve:\n%s", body)
+
+	} else {
+		err = t.ParseResponse(res)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, err
 }
