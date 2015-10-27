@@ -90,7 +90,7 @@ TL;DR:
 #. Add your fork as a remote - ``git remote add fork http://github.com/YOURID/go-sparkpost``
 #. Make your changes in a branch on your fork
 #. Write a test which shows that the bug was fixed or that the feature works as expected.
-#. Push your changes - git push fork
+#. Push your changes - ``git push fork HEAD``
 #. Send a pull request. Make sure to add yourself to AUTHORS_.
 
 More on the `contribution process`_
