@@ -24,7 +24,7 @@ propose changes to this document in a pull request.
 * Create a branch - ``go checkout -b fix-or-feature``
 * Write code!
 * Commit code!
-* Push code with - ``go push fork``
+* Push code with - ``go push fork HEAD``
 
 ## Contribution Steps
 

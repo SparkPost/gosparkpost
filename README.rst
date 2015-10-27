@@ -97,5 +97,5 @@ More on the `contribution process`_
 
 .. _`the repository`: https://github.com/SparkPost/go-sparkpost
 .. _AUTHORS: https://github.com/SparkPost/go-sparkpost/blob/master/AUTHORS.rst
-.. _`contribution process`: https://github.com/SparkPost/go-sparkpost/CONTRIBUTING.md
+.. _`contribution process`: https://github.com/SparkPost/blob/master/go-sparkpost/CONTRIBUTING.md
 
