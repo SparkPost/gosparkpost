@@ -6,4 +6,5 @@ Core contributors
 Patches and suggestions
 -----------------------
 
-- ADD YOURSELF HERE (and link to your github page)
+- Jeff Macdonald <jeff@sparkpost.com> `@macfisherman <https://github.com/macfisherman>`_
+ADD YOURSELF HERE (and link to your github page)
