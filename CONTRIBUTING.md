@@ -21,7 +21,7 @@ propose changes to this document in a pull request.
 * Fork this repository
 * Clone the _original source_  using ``go get https://github.com/SparkPost/go-sparkpost``
 * Add a remote pointing to your fork - ``go remote add fork https://github.com/YOUR_ID/go-sparkpost``
-* Create a branch - `go checkout -b fix-or-feature`
+* Create a branch - ``go checkout -b fix-or-feature``
 * Write code!
 * Commit code!
 * Push code with - ``go push fork``
