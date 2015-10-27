@@ -85,8 +85,12 @@ Contribute
 TL;DR:
 
 #. Check for open issues or open a fresh issue to start a discussion around a feature idea or a bug.
-#. Fork `the repository`_ on GitHub and make your changes in a branch on your fork
+#. Fork `the repository`_.
+#. Go get the original code - go get https://github.com/SparkPost/go-sparkpost)
+#. Add your fork as a remote - git remote add fork http://github.com/YOURID/go-sparkpost
+#. Make your changes in a branch on your fork
 #. Write a test which shows that the bug was fixed or that the feature works as expected.
+#. Push your changes - git push fork
 #. Send a pull request. Make sure to add yourself to AUTHORS_.
 
 More on the `contribution process`_
