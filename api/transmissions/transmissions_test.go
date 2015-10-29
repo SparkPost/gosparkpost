@@ -65,7 +65,7 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
-	id, err := TransAPI.Create(T)
+	id, _, err := TransAPI.Create(T)
 	if err != nil {
 		t.Error(err)
 		return

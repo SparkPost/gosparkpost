@@ -220,7 +220,7 @@ func (t *Transmission) Validate() error {
 // Create accepts a populated Transmission object, performs basic sanity
 // checks on it, and performs an API call against the configured endpoint.
 // Calling this function can cause email to be sent, if used correctly.
-func (t *Transmissions) Create(transmission *Transmission) (id string, err error) {
+func (t *Transmissions) Create(transmission *Transmission) (id string, res *api.Response, err error) {
 	if transmission == nil {
 		err = fmt.Errorf("Create called with nil Transmission")
 		return
@@ -237,21 +237,22 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, err error
 	}
 
 	u := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	res, err := t.HttpPost(u, jsonBytes)
+	httpRes, err := t.HttpPost(u, jsonBytes)
+	if err != nil {
+		return
+	}
+	res = &api.Response{HTTP: httpRes}
+
+	if err = api.AssertJson(httpRes); err != nil {
+		return
+	}
+
+	err = t.ParseResponse(httpRes)
 	if err != nil {
 		return
 	}
 
-	if err = api.AssertJson(res); err != nil {
-		return
-	}
-
-	err = t.ParseResponse(res)
-	if err != nil {
-		return
-	}
-
-	if res.StatusCode == 200 {
+	if httpRes.StatusCode == 200 {
 		var ok bool
 		id, ok = t.Response.Results["id"].(string)
 		if !ok {
@@ -260,12 +261,12 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, err error
 
 	} else if len(t.Response.Errors) > 0 {
 		// handle common errors
-		err = api.PrettyError("Transmission", "create", res)
+		err = api.PrettyError("Transmission", "create", httpRes)
 		if err != nil {
 			return
 		}
 
-		err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+		err = fmt.Errorf("%d: %s", httpRes.StatusCode, string(t.Response.Body))
 	}
 
 	return
