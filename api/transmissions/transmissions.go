@@ -237,36 +237,35 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, res *api.
 	}
 
 	u := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	httpRes, err := t.HttpPost(u, jsonBytes)
-	if err != nil {
-		return
-	}
-	res = &api.Response{HTTP: httpRes}
-
-	if err = api.AssertJson(httpRes); err != nil {
-		return
-	}
-
-	err = t.ParseResponse(httpRes)
+	res, err = t.HttpPost(u, jsonBytes)
 	if err != nil {
 		return
 	}
 
-	if httpRes.StatusCode == 200 {
+	if err = res.AssertJson(); err != nil {
+		return
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return
+	}
+
+	if res.HTTP.StatusCode == 200 {
 		var ok bool
-		id, ok = t.Response.Results["id"].(string)
+		id, ok = res.Results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}
 
-	} else if len(t.Response.Errors) > 0 {
+	} else if len(res.Errors) > 0 {
 		// handle common errors
-		err = api.PrettyError("Transmission", "create", httpRes)
+		err = res.PrettyError("Transmission", "create")
 		if err != nil {
 			return
 		}
 
-		err = fmt.Errorf("%d: %s", httpRes.StatusCode, string(t.Response.Body))
+		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return
@@ -275,101 +274,100 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, res *api.
 var nonDigit *re.Regexp = re.MustCompile(`\D`)
 
 // Retrieve accepts a Transmission.ID and retrieves the corresponding object.
-func (t *Transmissions) Retrieve(id string) (*Transmission, error) {
+func (t *Transmissions) Retrieve(id string) (*Transmission, *api.Response, error) {
 	if nonDigit.MatchString(id) {
-		return nil, fmt.Errorf("Transmissions.Retrieve: id may only contain digits")
+		return nil, nil, fmt.Errorf("Transmissions.Retrieve: id may only contain digits")
 	}
 	u := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
 	res, err := t.HttpGet(u)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err = api.AssertJson(res); err != nil {
-		return nil, err
+	if err = res.AssertJson(); err != nil {
+		return nil, res, err
 	}
 
-	if res.StatusCode == 200 {
+	if res.HTTP.StatusCode == 200 {
 		var body []byte
-		body, err = t.ReadBody(res)
+		body, err = res.ReadBody()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
 
 		// Unwrap the returned Transmission
 		tmp := map[string]map[string]Transmission{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
-			return nil, err
+			return nil, res, err
 		} else if results, ok := tmp["results"]; ok {
 			if tr, ok := results["transmission"]; ok {
-				return &tr, nil
+				return &tr, res, nil
 			} else {
-				return nil, fmt.Errorf("Unexpected results structure in response:\n%s", body)
+				return nil, res, fmt.Errorf("Unexpected results structure in response")
 			}
 		}
-		return nil, fmt.Errorf("Unexpected response to Transmission.Retrieve:\n%s", body)
+		return nil, res, fmt.Errorf("Unexpected response to Transmission.Retrieve")
 
 	} else {
-		err = t.ParseResponse(res)
+		err = res.ParseResponse()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
-		if len(t.Response.Errors) > 0 {
-			err = api.PrettyError("Transmission", "retrieve", res)
+		if len(res.Errors) > 0 {
+			err = res.PrettyError("Transmission", "retrieve")
 			if err != nil {
-				return nil, err
+				return nil, res, err
 			}
 		}
-		return nil, fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return nil, err
+	return nil, res, err
 }
 
 // Delete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
-func (t *Transmissions) Delete(id string) (err error) {
+func (t *Transmissions) Delete(id string) (*api.Response, error) {
 	if id == "" {
-		err = fmt.Errorf("Delete called with blank id")
-		return
+		return nil, fmt.Errorf("Delete called with blank id")
 	}
 	if nonDigit.MatchString(id) {
-		return fmt.Errorf("Transmissions.Delete: id may only contain digits")
+		return nil, fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
 	u := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
 	res, err := t.HttpDelete(u)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	if err = api.AssertJson(res); err != nil {
-		return
+	if err = res.AssertJson(); err != nil {
+		return res, err
 	}
 
-	if err = t.ParseResponse(res); err != nil {
-		return
+	if err = res.ParseResponse(); err != nil {
+		return res, err
 	}
 
-	if res.StatusCode == 200 {
-		return nil
+	if res.HTTP.StatusCode == 200 {
+		return res, nil
 
-	} else if len(t.Response.Errors) > 0 {
+	} else if len(res.Errors) > 0 {
 		// handle common errors
-		err = api.PrettyError("Transmission", "delete", res)
+		err = res.PrettyError("Transmission", "delete")
 		if err != nil {
-			return
+			return res, err
 		}
 
-		err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+		return res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return
+	return res, nil
 }
 
 // List returns Transmission summary information for matching Transmissions.
 // To skip filtering by campaign or template id, use a nil param.
-func (t *Transmissions) List(campaignID, templateID *string) ([]Transmission, error) {
+func (t *Transmissions) List(campaignID, templateID *string) ([]Transmission, *api.Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
@@ -388,38 +386,38 @@ func (t *Transmissions) List(campaignID, templateID *string) ([]Transmission, er
 
 	res, err := t.HttpGet(u)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err = api.AssertJson(res); err != nil {
-		return nil, err
+	if err = res.AssertJson(); err != nil {
+		return nil, res, err
 	}
 
-	if res.StatusCode == 200 {
+	if res.HTTP.StatusCode == 200 {
 		var body []byte
-		body, err = t.ReadBody(res)
+		body, err = res.ReadBody()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
 		tlist := map[string][]Transmission{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
-			return nil, err
+			return nil, res, err
 		} else if list, ok := tlist["results"]; ok {
-			return list, nil
+			return list, res, nil
 		}
-		return nil, fmt.Errorf("Unexpected response to Transmission list")
+		return nil, res, fmt.Errorf("Unexpected response to Transmission list")
 
 	} else {
-		err = t.ParseResponse(res)
+		err = res.ParseResponse()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
-		if len(t.Response.Errors) > 0 {
-			err = api.PrettyError("Transmission", "list", res)
+		if len(res.Errors) > 0 {
+			err = res.PrettyError("Transmission", "list")
 			if err != nil {
-				return nil, err
+				return nil, res, err
 			}
 		}
-		return nil, fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 }

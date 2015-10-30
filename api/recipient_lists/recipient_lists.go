@@ -388,7 +388,7 @@ func (rl *RecipientLists) Build(p map[string]interface{}) (*RecipientList, error
 
 // Create accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
-func (rl *RecipientLists) Create(recipList *RecipientList) (id string, err error) {
+func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *api.Response, err error) {
 	if recipList == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
 		return
@@ -405,76 +405,84 @@ func (rl *RecipientLists) Create(recipList *RecipientList) (id string, err error
 	}
 
 	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
-	res, err := rl.HttpPost(url, jsonBytes)
+	res, err = rl.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
 	}
 
-	if err = api.AssertJson(res); err != nil {
+	if err = res.AssertJson(); err != nil {
 		return
 	}
 
-	err = rl.ParseResponse(res)
+	err = res.ParseResponse()
 	if err != nil {
 		return
 	}
 
-	if res.StatusCode == 200 {
+	if res.HTTP.StatusCode == 200 {
 		var ok bool
-		id, ok = rl.Response.Results["id"].(string)
+		id, ok = res.Results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Recipient List creation")
 		}
 
-	} else if len(rl.Response.Errors) > 0 {
+	} else if len(res.Errors) > 0 {
 		// handle common errors
-		err = api.PrettyError("RecipientList", "create", res)
+		err = res.PrettyError("RecipientList", "create")
 		if err != nil {
 			return
 		}
 
-		if res.StatusCode == 400 || res.StatusCode == 422 {
-			eobj := rl.Response.Errors[0]
+		code := res.HTTP.StatusCode
+		if code == 400 || code == 422 {
+			eobj := res.Errors[0]
 			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
 		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.StatusCode, string(rl.Response.Body))
+			err = fmt.Errorf("%d: %s", code, string(res.Body))
 		}
 	}
 
 	return
 }
 
-func (rl *RecipientLists) List() (*[]RecipientList, error) {
+func (rl *RecipientLists) List() (*[]RecipientList, *api.Response, error) {
 	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
 	res, err := rl.HttpGet(url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err = api.AssertJson(res); err != nil {
-		return nil, err
+	if err = res.AssertJson(); err != nil {
+		return nil, res, err
 	}
 
-	if res.StatusCode == 200 {
+	if res.HTTP.StatusCode == 200 {
 		var body []byte
-		body, err = rl.ReadBody(res)
+		body, err = res.ReadBody()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
 		rllist := map[string][]RecipientList{}
 		if err = json.Unmarshal(body, &rllist); err != nil {
-			return nil, err
+			return nil, res, err
 		} else if list, ok := rllist["results"]; ok {
-			return &list, nil
+			return &list, res, nil
 		}
-		return nil, fmt.Errorf("Unexpected response to RecipientList list")
+		return nil, res, fmt.Errorf("Unexpected response to RecipientList list")
 
 	} else {
-		err = rl.ParseResponse(res)
+		err = res.ParseResponse()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
+		if len(res.Errors) > 0 {
+			err = res.PrettyError("RecipientList", "list")
+			if err != nil {
+				return nil, res, err
+			}
+		}
+		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return nil, err
+	return nil, res, err
 }

@@ -62,10 +62,9 @@ type Response struct {
 
 // API exists to be embedded in other API objects, to enable transparent method forwarding.
 type API struct {
-	Path     string
-	Config   *Config
-	Client   *http.Client
-	Response *Response
+	Path   string
+	Config *Config
+	Client *http.Client
 }
 
 // Error mirrors the error format returned by SparkPost APIs.
@@ -116,74 +115,71 @@ func (api *API) Init(cfg Config, path string) error {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *API) HttpPost(url string, data []byte) (*http.Response, error) {
+func (api *API) HttpPost(url string, data []byte) (*Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
-	api.Response = nil
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", api.Config.ApiKey)
-	return api.Client.Do(req)
+	res, err := api.Client.Do(req)
+	ares := &Response{HTTP: res}
+	return ares, err
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *API) HttpGet(url string) (*http.Response, error) {
+func (api *API) HttpGet(url string) (*Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	api.Response = nil
 	req.Header.Set("Authorization", api.Config.ApiKey)
-	return api.Client.Do(req)
+	res, err := api.Client.Do(req)
+	ares := &Response{HTTP: res}
+	return ares, err
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *API) HttpDelete(url string) (*http.Response, error) {
+func (api *API) HttpDelete(url string) (*Response, error) {
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	api.Response = nil
 	req.Header.Set("Authorization", api.Config.ApiKey)
-	return api.Client.Do(req)
+	res, err := api.Client.Do(req)
+	ares := &Response{HTTP: res}
+	return ares, err
 }
 
 // ReadBody is a convenience method that returns the http.Response body.
 // The first time this function is called, the body is read from the
 // http.Response. For subsequent calls, the cached version in
-// api.Response.Body is returned.
-func (api *API) ReadBody(res *http.Response) ([]byte, error) {
+// Response.Body is returned.
+func (r *Response) ReadBody() ([]byte, error) {
 	// Calls 2+ to this function for the same http.Response will now DWIM
-	if api.Response != nil && api.Response.Body != nil {
-		return api.Response.Body, nil
+	if r.Body != nil {
+		return r.Body, nil
 	}
 
-	defer res.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(res.Body)
-	if api.Response == nil {
-		api.Response = &Response{HTTP: res}
-	}
-	api.Response.Body = bodyBytes
+	defer r.HTTP.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(r.HTTP.Body)
+	r.Body = bodyBytes
 	return bodyBytes, err
 }
 
 // ParseResponse pulls info from JSON http responses into api.Response object.
-// It's helpful to call api.AssertJson before calling this function.
-func (api *API) ParseResponse(res *http.Response) error {
-	body, err := api.ReadBody(res)
+// It's helpful to call Response.AssertJson before calling this function.
+func (r *Response) ParseResponse() error {
+	body, err := r.ReadBody()
 	if err != nil {
 		return err
 	}
 
-	if api.Response == nil {
-		api.Response = new(Response)
-	}
-	err = json.Unmarshal(body, api.Response)
+	err = json.Unmarshal(body, r)
 	if err != nil {
 		return fmt.Errorf("Failed to parse API response: [%s]\n%s", err, string(body))
 	}
@@ -218,14 +214,14 @@ func AssertObject(obj interface{}, label string) error {
 var jctype string = "application/json"
 
 // AssertJson returns an error if the provided HTTP response isn't JSON.
-func AssertJson(res *http.Response) error {
-	if res == nil {
+func (r *Response) AssertJson() error {
+	if r.HTTP == nil {
 		return fmt.Errorf("AssertJson got nil http.Response")
 	}
-	ctype := res.Header.Get("Content-Type")
+	ctype := r.HTTP.Header.Get("Content-Type")
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
 	if !(strings.EqualFold(ctype, jctype) || strings.HasPrefix(ctype, jctype)) {
-		return fmt.Errorf("Expected json, got [%s] with code %d", ctype, res.StatusCode)
+		return fmt.Errorf("Expected json, got [%s] with code %d", ctype, r.HTTP.StatusCode)
 	}
 	return nil
 }
@@ -233,13 +229,17 @@ func AssertJson(res *http.Response) error {
 // PrettyError returns a human-readable error message for common http errors returned by the API.
 // The string parameters are used to customize the generated error message
 // (example: noun=template, verb=create).
-func PrettyError(noun, verb string, res *http.Response) error {
-	if res.StatusCode == 404 {
+func (r *Response) PrettyError(noun, verb string) error {
+	if r.HTTP == nil {
+		return nil
+	}
+	code := r.HTTP.StatusCode
+	if code == 404 {
 		return fmt.Errorf("%s does not exist, %s failed.", noun, verb)
-	} else if res.StatusCode == 401 {
+	} else if code == 401 {
 		return fmt.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
-	} else if res.StatusCode == 403 {
-		// This is what happens if an endpoint URL gets typo'd. (dgray 2015-09-14)
+	} else if code == 403 {
+		// This is what happens if an endpoint URL gets typo'd.
 		return fmt.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
 	}
 	return nil

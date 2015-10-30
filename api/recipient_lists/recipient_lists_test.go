@@ -48,7 +48,7 @@ func TestRecipients(t *testing.T) {
 		t.Error(fmt.Errorf("%s", R1))
 	*/
 
-	list, err := RLAPI.List()
+	list, res, err := RLAPI.List()
 	if err != nil {
 		t.Error(err)
 		return

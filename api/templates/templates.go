@@ -319,7 +319,7 @@ func (t *Templates) Build(p map[string]string) (*Template, error) {
 
 // Create accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
-func (t *Templates) Create(template *Template) (id string, err error) {
+func (t *Templates) Create(template *Template) (id string, res *api.Response, err error) {
 	if template == nil {
 		err = fmt.Errorf("Create called with nil Template")
 		return
@@ -336,39 +336,39 @@ func (t *Templates) Create(template *Template) (id string, err error) {
 	}
 
 	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	res, err := t.HttpPost(url, jsonBytes)
+	res, err = t.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
 	}
 
-	if err = api.AssertJson(res); err != nil {
+	if err = res.AssertJson(); err != nil {
 		return
 	}
 
-	err = t.ParseResponse(res)
+	err = res.ParseResponse()
 	if err != nil {
 		return
 	}
 
-	if res.StatusCode == 200 {
+	if res.HTTP.StatusCode == 200 {
 		var ok bool
-		id, ok = t.Response.Results["id"].(string)
+		id, ok = res.Results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}
 
-	} else if len(t.Response.Errors) > 0 {
+	} else if len(res.Errors) > 0 {
 		// handle common errors
-		err = api.PrettyError("Template", "create", res)
+		err = res.PrettyError("Template", "create")
 		if err != nil {
 			return
 		}
 
-		if res.StatusCode == 422 { // template syntax error
-			eobj := t.Response.Errors[0]
+		if res.HTTP.StatusCode == 422 { // template syntax error
+			eobj := res.Errors[0]
 			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
 		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 		}
 	}
 
@@ -376,90 +376,91 @@ func (t *Templates) Create(template *Template) (id string, err error) {
 }
 
 // List returns metadata for all Templates in the system.
-func (t *Templates) List() ([]Template, error) {
+func (t *Templates) List() ([]Template, *api.Response, error) {
 	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
 	res, err := t.HttpGet(url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err = api.AssertJson(res); err != nil {
-		return nil, err
+	if err = res.AssertJson(); err != nil {
+		return nil, res, err
 	}
 
-	if res.StatusCode == 200 {
+	if res.HTTP.StatusCode == 200 {
 		var body []byte
-		body, err = t.ReadBody(res)
+		body, err = res.ReadBody()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
 		tlist := map[string][]Template{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
-			return nil, err
+			return nil, res, err
 		} else if list, ok := tlist["results"]; ok {
-			return list, nil
+			return list, res, nil
 		}
-		return nil, fmt.Errorf("Unexpected response to Template list")
+		return nil, res, fmt.Errorf("Unexpected response to Template list")
 
 	} else {
-		err = t.ParseResponse(res)
+		err = res.ParseResponse()
 		if err != nil {
-			return nil, err
+			return nil, res, err
 		}
-		if len(t.Response.Errors) > 0 {
-			err = api.PrettyError("Transmission", "list", res)
+		if len(res.Errors) > 0 {
+			err = res.PrettyError("Transmission", "list")
 			if err != nil {
-				return nil, err
+				return nil, res, err
 			}
 		}
-		return nil, fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return nil, err
+	return nil, res, err
 }
 
 var nonDigit *re.Regexp = re.MustCompile(`\D`)
 
 // Delete removes the Template with the specified id.
-func (t *Templates) Delete(id string) (err error) {
+func (t *Templates) Delete(id string) (res *api.Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
 		return
 	}
 	if nonDigit.MatchString(id) {
-		return fmt.Errorf("Templates.Delete: id may only contain digits")
+		err = fmt.Errorf("Templates.Delete: id may only contain digits")
+		return
 	}
 
 	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
-	res, err := t.HttpDelete(url)
+	res, err = t.HttpDelete(url)
 	if err != nil {
 		return
 	}
 
-	if err = api.AssertJson(res); err != nil {
+	if err = res.AssertJson(); err != nil {
 		return
 	}
 
-	err = t.ParseResponse(res)
+	err = res.ParseResponse()
 	if err != nil {
 		return
 	}
 
-	if res.StatusCode == 200 {
-		return nil
+	if res.HTTP.StatusCode == 200 {
+		return
 
-	} else if len(t.Response.Errors) > 0 {
+	} else if len(res.Errors) > 0 {
 		// handle common errors
-		err = api.PrettyError("Template", "delete", res)
+		err = res.PrettyError("Template", "delete")
 		if err != nil {
 			return
 		}
 
 		// handle template-specific ones
-		if res.StatusCode == 409 {
+		if res.HTTP.StatusCode == 409 {
 			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
 		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.StatusCode, string(t.Response.Body))
+			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 		}
 	}
 

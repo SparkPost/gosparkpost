@@ -63,14 +63,14 @@ func TestTemplates(t *testing.T) {
 	}
 	template := &Template{Content: content, Name: "test template"}
 
-	id, err := tmpl.Create(template)
+	id, _, err := tmpl.Create(template)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	fmt.Printf("Created Template with id=%s\n", id)
 
-	err = tmpl.Delete(id)
+	_, err = tmpl.Delete(id)
 	if err != nil {
 		t.Error(err)
 		return

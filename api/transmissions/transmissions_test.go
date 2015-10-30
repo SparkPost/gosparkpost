@@ -27,12 +27,12 @@ func TestTransmissions(t *testing.T) {
 	}
 
 	campaignID := "msys_smoke"
-	tlist, err := TransAPI.List(&campaignID, nil)
+	tlist, res, err := TransAPI.List(&campaignID, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Errorf("List: %d, %d entries", TransAPI.Response.HTTP.StatusCode, len(tlist))
+	t.Errorf("List: %d, %d entries", res.HTTP.StatusCode, len(tlist))
 	for _, tr := range tlist {
 		t.Errorf("%s: %s", tr.ID, tr.CampaignID)
 	}
@@ -73,16 +73,16 @@ func TestTransmissions(t *testing.T) {
 
 	t.Errorf("Transmission created with id [%s]", id)
 
-	tr, err := TransAPI.Retrieve(id)
+	tr, res, err := TransAPI.Retrieve(id)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if TransAPI.Response != nil {
-		t.Errorf("Retrieve returned HTTP %s\n", TransAPI.Response.HTTP.Status)
-		if len(TransAPI.Response.Errors) > 0 {
-			for _, e := range TransAPI.Response.Errors {
+	if res != nil {
+		t.Errorf("Retrieve returned HTTP %s\n", res.HTTP.Status)
+		if len(res.Errors) > 0 {
+			for _, e := range res.Errors {
 				json, err := e.Json()
 				if err != nil {
 					t.Error(err)
@@ -94,12 +94,12 @@ func TestTransmissions(t *testing.T) {
 		}
 	}
 
-	err = TransAPI.Delete(id)
+	res, err = TransAPI.Delete(id)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	t.Errorf("Delete returned HTTP %s\n%s\n", TransAPI.Response.HTTP.Status, TransAPI.Response.Body)
+	t.Errorf("Delete returned HTTP %s\n%s\n", res.HTTP.Status, res.Body)
 
 }
