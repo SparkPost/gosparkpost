@@ -62,7 +62,7 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
 
       // Create a Transmission using an inline Recipient List
       // and inline email Content.
-      id, err := TrAPI.Create(&tr_api.Transmission{
+      id, _, err := TrAPI.Create(&tr_api.Transmission{
         Recipients: []string{"someone@somedomain.com"},
         Content:    te_api.Content{
           HTML:    "<p>Hello world</p>",
@@ -74,8 +74,9 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
         log.Fatal(err)
       }
 
-      // tr_api.Response has more details, in case you'd
-      // like to see more than the Transmission id.
+      // The second value returned from Create has more info
+      // about the HTTP response, in case you'd like to see
+      // more than the Transmission id.
       log.Printf("Transmission sent with id [%s]\n", id)
     }
 
