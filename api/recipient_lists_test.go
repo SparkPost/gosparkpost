@@ -1,10 +1,9 @@
-package recipient_lists
+package api
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
 	"github.com/SparkPost/go-sparkpost/test"
 )
 
@@ -14,13 +13,13 @@ func TestRecipients(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	RLAPI, err := New(*cfg)
+	RLAPI, err := RecipientListsHandle(*cfg)
 	if err != nil {
 		t.Error(err)
 		return

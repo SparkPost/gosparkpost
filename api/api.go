@@ -17,9 +17,21 @@ import (
 
 // Config includes all information necessary to make an API request.
 type Config struct {
-	BaseUrl    string
-	ApiKey     string
-	ApiVersion int
+	BaseUrl string
+	ApiKey  string
+}
+
+// Client contains connection and authentication information.
+// Specifying your own http.Client gives you lots of control over how connections are made.
+type Client struct {
+	Config *Config
+	Client *http.Client
+}
+
+// API contains information used to connect to a specific API, such as Transmissions.
+type API struct {
+	Path    string
+	Version int
 }
 
 // NewConfig builds a Config object using the provided map.
@@ -38,16 +50,6 @@ func NewConfig(m map[string]string) (*Config, error) {
 		return nil, fmt.Errorf("ApiKey is required for api config")
 	}
 
-	if apiver, ok := m["apiver"]; ok {
-		var err error
-		c.ApiVersion, err = strconv.Atoi(apiver)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, fmt.Errorf("ApiVer is required for api config")
-	}
-
 	return c, nil
 }
 
@@ -58,13 +60,6 @@ type Response struct {
 	Body    []byte
 	Results map[string]interface{} `json:"results,omitempty"`
 	Errors  []Error                `json:"errors,omitempty"`
-}
-
-// API exists to be embedded in other API objects, to enable transparent method forwarding.
-type API struct {
-	Path   string
-	Config *Config
-	Client *http.Client
 }
 
 // Error mirrors the error format returned by SparkPost APIs.
@@ -86,9 +81,8 @@ func (e Error) Json() (string, error) {
 
 // Init sets each API's path and pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided API object.
-func (api *API) Init(cfg Config, path string) error {
+func (api *Client) Init(cfg Config) error {
 	api.Config = &cfg
-	api.Path = path
 
 	if api.Client == nil {
 		// Ran into an issue where USERTrust was not recognized on OSX.
@@ -115,7 +109,7 @@ func (api *API) Init(cfg Config, path string) error {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *API) HttpPost(url string, data []byte) (*Response, error) {
+func (api *Client) HttpPost(url string, data []byte) (*Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -130,7 +124,7 @@ func (api *API) HttpPost(url string, data []byte) (*Response, error) {
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *API) HttpGet(url string) (*Response, error) {
+func (api *Client) HttpGet(url string) (*Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -144,7 +138,7 @@ func (api *API) HttpGet(url string) (*Response, error) {
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *API) HttpDelete(url string) (*Response, error) {
+func (api *Client) HttpDelete(url string) (*Response, error) {
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return nil, err

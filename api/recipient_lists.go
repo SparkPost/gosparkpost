@@ -1,29 +1,32 @@
 // Package recipient_lists interacts with the SparkPost Recipient Lists API.
 // https://www.sparkpost.com/api#/reference/recipient-lists
-package recipient_lists
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/SparkPost/go-sparkpost/api"
 )
 
 // RecipientLists is your handle for the Recipient Lists API.
-type RecipientLists struct{ api.API }
+type RecipientListsAPI API
+
+var RecipientLists = RecipientListsAPI{
+	Path:    "/api/v%d/recipient-lists",
+	Version: 1,
+}
 
 // New gets a RecipientLists object ready to use with the specified config.
-func New(cfg api.Config) (*RecipientLists, error) {
-	rl := &RecipientLists{}
-	path := fmt.Sprintf("/api/v%d/recipient-lists", cfg.ApiVersion)
-	err := rl.Init(cfg, path)
-	if err != nil {
-		return nil, err
-	}
-	return rl, nil
-}
+//func RecipientListsHandle(cfg Config) (*RecipientLists, error) {
+//	rl := &RecipientLists{}
+//	path := fmt.Sprintf("/api/v%d/recipient-lists", cfg.ApiVersion)
+//	err := rl.Init(cfg, path)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return rl, nil
+//}
 
 // RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
 // It's mostly metadata at this level - see Recipients for more detail.
@@ -151,7 +154,7 @@ func (r Recipient) Validate() error {
 
 	// Metadata must be an object, not an array or bool etc.
 	if r.Metadata != nil {
-		err := api.AssertObject(r.Metadata, "metadata")
+		err := AssertObject(r.Metadata, "metadata")
 		if err != nil {
 			return err
 		}
@@ -159,7 +162,7 @@ func (r Recipient) Validate() error {
 
 	// SubstitutionData must be an object, not an array or bool etc.
 	if r.SubstitutionData != nil {
-		err := api.AssertObject(r.SubstitutionData, "substitution_data")
+		err := AssertObject(r.SubstitutionData, "substitution_data")
 		if err != nil {
 			return err
 		}
@@ -170,7 +173,7 @@ func (r Recipient) Validate() error {
 
 // Create accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
-func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *api.Response, err error) {
+func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *Response, err error) {
 	if recipList == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
 		return
@@ -227,7 +230,7 @@ func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *api.
 	return
 }
 
-func (rl *RecipientLists) List() (*[]RecipientList, *api.Response, error) {
+func (rl *RecipientLists) List() (*[]RecipientList, *Response, error) {
 	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
 	res, err := rl.HttpGet(url)
 	if err != nil {
