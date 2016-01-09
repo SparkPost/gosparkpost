@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	re "regexp"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
@@ -30,6 +31,8 @@ type Client struct {
 	Config *Config
 	Client *http.Client
 }
+
+var nonDigit *re.Regexp = re.MustCompile(`\D`)
 
 // NewConfig builds a Config object using the provided map.
 func NewConfig(m map[string]string) (*Config, error) {

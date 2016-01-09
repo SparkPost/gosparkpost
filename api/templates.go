@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	re "regexp"
 	"strings"
 	"time"
 )
@@ -15,14 +14,14 @@ var templatesPathFormat = "/api/v%d/templates"
 // Template is the JSON structure accepted by and returned from the SparkPost Templates API.
 // It's mostly metadata at this level - see Content and Options for more detail.
 type Template struct {
-	ID          string    `json:"id,omitempty"`
-	Content     Content   `json:"content,omitempty"`
-	Published   bool      `json:"published,omitempty"`
-	Name        string    `json:"name,omitempty"`
-	Description string    `json:"description,omitempty"`
-	LastUse     time.Time `json:"last_use,omitempty"`
-	LastUpdate  time.Time `json:"last_update_time,omitempty"`
-	Options     *Options  `json:"options,omitempty"`
+	ID          string       `json:"id,omitempty"`
+	Content     Content      `json:"content,omitempty"`
+	Published   bool         `json:"published,omitempty"`
+	Name        string       `json:"name,omitempty"`
+	Description string       `json:"description,omitempty"`
+	LastUse     time.Time    `json:"last_use,omitempty"`
+	LastUpdate  time.Time    `json:"last_update_time,omitempty"`
+	Options     *TmplOptions `json:"options,omitempty"`
 }
 
 // Content is what you'll send to your Recipients.
@@ -59,7 +58,7 @@ type From struct {
 
 // Options specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
-type Options struct {
+type TmplOptions struct {
 	OpenTracking  string `json:"open_tracking,omitempty"`
 	ClickTracking string `json:"click_tracking,omitempty"`
 	Transactional string `json:"transactional,omitempty"`
@@ -273,8 +272,6 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 
 	return nil, res, err
 }
-
-var nonDigit *re.Regexp = re.MustCompile(`\D`)
 
 // Delete removes the Template with the specified id.
 func (c *Client) TemplateDelete(id string) (res *Response, err error) {
