@@ -1,4 +1,4 @@
-package api
+package gosparkpost
 
 import (
 	"encoding/json"

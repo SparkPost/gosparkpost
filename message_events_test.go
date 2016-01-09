@@ -1,11 +1,11 @@
-package api_test
+package gosparkpost_test
 
 import (
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
+	sp "github.com/SparkPost/go-sparkpost"
 	"github.com/SparkPost/go-sparkpost/events"
 	"github.com/SparkPost/go-sparkpost/test"
 )
@@ -16,13 +16,13 @@ func TestMessageEvents(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	var client api.Client
+	var client sp.Client
 	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)

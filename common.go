@@ -1,5 +1,4 @@
-// Package api provides structures and functions used by other SparkPost API packages.
-package api
+package gosparkpost
 
 import (
 	"bytes"

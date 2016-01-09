@@ -1,10 +1,10 @@
-package api_test
+package gosparkpost_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
+	sp "github.com/SparkPost/go-sparkpost"
 	"github.com/SparkPost/go-sparkpost/test"
 )
 
@@ -14,13 +14,13 @@ func TestTemplates(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	var client api.Client
+	var client sp.Client
 	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
@@ -36,7 +36,7 @@ func TestTemplates(t *testing.T) {
 	t.Error(fmt.Errorf("%s", tlist))
 	return
 
-	content := api.Content{
+	content := sp.Content{
 		Subject: "this is a test template",
 		// NB: deliberate syntax error
 		//Text: "text part of the test template {{a}",
@@ -46,7 +46,7 @@ func TestTemplates(t *testing.T) {
 			"email": "test@email.com",
 		},
 	}
-	template := &api.Template{Content: content, Name: "test template"}
+	template := &sp.Template{Content: content, Name: "test template"}
 
 	id, _, err := client.TemplateCreate(template)
 	if err != nil {

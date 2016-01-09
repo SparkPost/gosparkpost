@@ -1,9 +1,9 @@
-package api_test
+package gosparkpost_test
 
 import (
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
+	sp "github.com/SparkPost/go-sparkpost"
 	"github.com/SparkPost/go-sparkpost/test"
 )
 
@@ -13,13 +13,13 @@ func TestTransmissions(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	var client api.Client
+	var client sp.Client
 	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
@@ -41,13 +41,13 @@ func TestTransmissions(t *testing.T) {
 	// Recipient List or Content wasn't found - open doc ticket
 	// to make error message more specific
 
-	T := &api.Transmission{
+	T := &sp.Transmission{
 		CampaignID: "msys_smoke",
 		ReturnPath: "dgray@messagesystems.com",
 		Recipients: []string{"dgray@messagesystems.com", "dgray@sparkpost.com"},
 		// Single-recipient Transmissions are transient - Retrieve will 404
 		//Recipients: []string{"dgray@messagesystems.com"},
-		Content: api.Content{
+		Content: sp.Content{
 			Subject: "this is a test message",
 			HTML:    "this is the <b>HTML</b> body of the test message",
 			From: map[string]string{

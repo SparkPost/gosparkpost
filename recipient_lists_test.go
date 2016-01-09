@@ -1,9 +1,10 @@
-package api
+package gosparkpost_test
 
 import (
 	"strings"
 	"testing"
 
+	sp "github.com/SparkPost/go-sparkpost"
 	"github.com/SparkPost/go-sparkpost/test"
 )
 
@@ -13,13 +14,13 @@ func TestRecipients(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	var client Client
+	var client sp.Client
 	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)

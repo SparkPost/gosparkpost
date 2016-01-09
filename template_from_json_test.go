@@ -1,15 +1,15 @@
-package api_test
+package gosparkpost_test
 
 import (
 	"encoding/json"
 	"log"
 
-	"github.com/SparkPost/go-sparkpost/api"
+	sp "github.com/SparkPost/go-sparkpost"
 )
 
 // Build a native Go Template structure from a JSON string
 func ExampleTemplate() {
-	template := &api.Template{}
+	template := &sp.Template{}
 	jsonStr := `{
 		"name": "testy template",
 		"content": {
