@@ -1,6 +1,4 @@
-// Package message_events interacts with the SparkPost Message Events API.
-// https://www.sparkpost.com/api#/reference/message-events
-package message_events
+package gosparkpost
 
 import (
 	"encoding/json"
@@ -10,30 +8,19 @@ import (
 	re "regexp"
 	"strings"
 
-	"github.com/SparkPost/go-sparkpost/api"
-	"github.com/SparkPost/go-sparkpost/events"
+	"github.com/SparkPost/gosparkpost/events"
 )
 
-// MessageEvents is your handle for the MessageEvents API.
-type MessageEvents struct{ api.API }
-
-// New gets a MessageEvents object ready to use with the specified config.
-func New(cfg api.Config) (*MessageEvents, error) {
-	m := &MessageEvents{}
-	path := fmt.Sprintf("/api/v%d/message-events", cfg.ApiVersion)
-	err := m.Init(cfg, path)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
+// https://www.sparkpost.com/api#/reference/message-events
+var messageEventsPathFormat = "/api/v%d/message-events"
 
 // Samples requests a list of example event data.
-func (m *MessageEvents) Samples(types *[]string) (*[]events.Event, error) {
+func (c *Client) EventSamples(types *[]string) (*[]events.Event, error) {
 	// append any requested event types to path
 	var url string
+	path := fmt.Sprintf(messageEventsPathFormat, c.Config.ApiVersion)
 	if types == nil {
-		url = fmt.Sprintf("%s%s/events/samples", m.Config.BaseUrl, m.Path)
+		url = fmt.Sprintf("%s%s/events/samples", c.Config.BaseUrl, path)
 	} else {
 		// validate types
 		for _, etype := range *types {
@@ -42,7 +29,7 @@ func (m *MessageEvents) Samples(types *[]string) (*[]events.Event, error) {
 			}
 		}
 		// break up the url into a net.URL object
-		u, err := URL.Parse(fmt.Sprintf("%s%s/events/samples", m.Config.BaseUrl, m.Path))
+		u, err := URL.Parse(fmt.Sprintf("%s%s/events/samples", c.Config.BaseUrl, path))
 		if err != nil {
 			return nil, err
 		}
@@ -56,18 +43,18 @@ func (m *MessageEvents) Samples(types *[]string) (*[]events.Event, error) {
 	}
 
 	// Send off our request
-	res, err := m.HttpGet(url)
+	res, err := c.HttpGet(url)
 	if err != nil {
 		return nil, err
 	}
 
 	// Assert that we got a JSON Content-Type back
-	if err = api.AssertJson(res); err != nil {
+	if err = res.AssertJson(); err != nil {
 		return nil, err
 	}
 
 	// Get the Content
-	bodyBytes, err := m.ReadBody(res)
+	bodyBytes, err := res.ReadBody()
 	if err != nil {
 		return nil, err
 	}

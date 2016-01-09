@@ -1,13 +1,13 @@
-package message_events
+package gosparkpost_test
 
 import (
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
-	"github.com/SparkPost/go-sparkpost/events"
-	"github.com/SparkPost/go-sparkpost/test"
+	sp "github.com/SparkPost/gosparkpost"
+	"github.com/SparkPost/gosparkpost/events"
+	"github.com/SparkPost/gosparkpost/test"
 )
 
 func TestMessageEvents(t *testing.T) {
@@ -16,21 +16,22 @@ func TestMessageEvents(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	mev, err := New(*cfg)
+	var client sp.Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	//types := []string{"open", "click", "bounce"}
-	//e, err := mev.Samples(&types)
-	e, err := mev.Samples(nil)
+	//e, err := client.EventSamples(&types)
+	e, err := client.EventSamples(nil)
 	if err != nil {
 		t.Error(err)
 		return

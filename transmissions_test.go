@@ -1,11 +1,10 @@
-package transmissions
+package gosparkpost_test
 
 import (
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
-	"github.com/SparkPost/go-sparkpost/api/templates"
-	"github.com/SparkPost/go-sparkpost/test"
+	sp "github.com/SparkPost/gosparkpost"
+	"github.com/SparkPost/gosparkpost/test"
 )
 
 func TestTransmissions(t *testing.T) {
@@ -14,20 +13,21 @@ func TestTransmissions(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	TransAPI, err := New(*cfg)
+	var client sp.Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	campaignID := "msys_smoke"
-	tlist, res, err := TransAPI.List(&campaignID, nil)
+	tlist, res, err := client.Transmissions(&campaignID, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -41,13 +41,13 @@ func TestTransmissions(t *testing.T) {
 	// Recipient List or Content wasn't found - open doc ticket
 	// to make error message more specific
 
-	T := &Transmission{
+	T := &sp.Transmission{
 		CampaignID: "msys_smoke",
 		ReturnPath: "dgray@messagesystems.com",
 		Recipients: []string{"dgray@messagesystems.com", "dgray@sparkpost.com"},
 		// Single-recipient Transmissions are transient - Retrieve will 404
 		//Recipients: []string{"dgray@messagesystems.com"},
-		Content: templates.Content{
+		Content: sp.Content{
 			Subject: "this is a test message",
 			HTML:    "this is the <b>HTML</b> body of the test message",
 			From: map[string]string{
@@ -65,7 +65,7 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
-	id, _, err := TransAPI.Create(T)
+	id, _, err := client.TransmissionCreate(T)
 	if err != nil {
 		t.Error(err)
 		return
@@ -73,7 +73,7 @@ func TestTransmissions(t *testing.T) {
 
 	t.Errorf("Transmission created with id [%s]", id)
 
-	tr, res, err := TransAPI.Retrieve(id)
+	tr, res, err := client.Transmission(id)
 	if err != nil {
 		t.Error(err)
 		return
@@ -94,7 +94,7 @@ func TestTransmissions(t *testing.T) {
 		}
 	}
 
-	res, err = TransAPI.Delete(id)
+	res, err = client.TransmissionDelete(id)
 	if err != nil {
 		t.Error(err)
 		return

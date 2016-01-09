@@ -1,11 +1,11 @@
-package templates
+package gosparkpost_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
-	"github.com/SparkPost/go-sparkpost/test"
+	sp "github.com/SparkPost/gosparkpost"
+	"github.com/SparkPost/gosparkpost/test"
 )
 
 func TestTemplates(t *testing.T) {
@@ -14,44 +14,29 @@ func TestTemplates(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := sp.NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	tmpl, err := New(*cfg)
+	var client sp.Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	//tlist, err := tmpl.List()
-	//if err != nil {
-	//	t.Error(err)
-	//	return
-	//}
-
-	//t.Error(fmt.Errorf("%s", tlist))
-	//return
-
-	templ, err := tmpl.Build(map[string]string{
-		"from_email": "a@b.com",
-		"from_name":  "a b",
-	})
+	tlist, _, err := client.Templates()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	templ.SetHeaders(map[string]string{
-		"x-binding": "foo",
-	})
-
-	t.Error(fmt.Errorf("%s", templ))
+	t.Error(fmt.Errorf("%s", tlist))
 	return
 
-	content := Content{
+	content := sp.Content{
 		Subject: "this is a test template",
 		// NB: deliberate syntax error
 		//Text: "text part of the test template {{a}",
@@ -61,16 +46,16 @@ func TestTemplates(t *testing.T) {
 			"email": "test@email.com",
 		},
 	}
-	template := &Template{Content: content, Name: "test template"}
+	template := &sp.Template{Content: content, Name: "test template"}
 
-	id, _, err := tmpl.Create(template)
+	id, _, err := client.TemplateCreate(template)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	fmt.Printf("Created Template with id=%s\n", id)
 
-	_, err = tmpl.Delete(id)
+	_, err = client.TemplateDelete(id)
 	if err != nil {
 		t.Error(err)
 		return

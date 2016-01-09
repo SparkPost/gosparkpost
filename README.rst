@@ -19,7 +19,7 @@ Install from GitHub using `go get`_:
 
 .. code-block:: bash
 
-    $ go get https://github.com/SparkPost/go-sparkpost
+    $ go get https://github.com/SparkPost/gosparkpost
 
 .. _go get: https://golang.org/cmd/go/#hdr-Download_and_install_packages_and_dependencies
 
@@ -43,40 +43,41 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
       "log"
       "os"
 
-      "github.com/SparkPost/go-sparkpost/api"
-      te_api "github.com/SparkPost/go-sparkpost/api/templates"
-      tr_api "github.com/SparkPost/go-sparkpost/api/transmissions"
+      sp "github.com/SparkPost/gosparkpost"
     )
 
     func main() {
       // Get our API key from the environment; configure.
       apiKey := os.Getenv("SPARKPOST_API_KEY")
-      TrAPI, err := tr_api.New(api.Config{
+      cfg := &sp.Config{
         BaseUrl:    "https://api.sparkpost.com",
         ApiKey:     apiKey,
         ApiVersion: 1,
-      })
+      }
+      var client sp.Client
+      err := client.Init(cfg)
       if err != nil {
-        log.Fatalf("Transmissions API init failed: %s\n", err)
+        log.Fatalf("SparkPost client init failed: %s\n", err)
       }
 
       // Create a Transmission using an inline Recipient List
       // and inline email Content.
-      id, _, err := TrAPI.Create(&tr_api.Transmission{
+      tx := &sp.Transmission{
         Recipients: []string{"someone@somedomain.com"},
-        Content:    te_api.Content{
+        Content: sp.Content{
           HTML:    "<p>Hello world</p>",
           From:    "test@sparkpostbox.com",
-          Subject: "Hello from go-sparkpost",
+          Subject: "Hello from gosparkpost",
         },
-      })
+      }
+      id, _, err := client.TransmissionCreate(tx)
       if err != nil {
         log.Fatal(err)
       }
 
-      // The second value returned from Create has more info
-      // about the HTTP response, in case you'd like to see
-      // more than the Transmission id.
+      // The second value returned from TransmissionCreate
+      // has more info about the HTTP response, in case
+      // you'd like to see more than the Transmission id.
       log.Printf("Transmission sent with id [%s]\n", id)
     }
 
@@ -96,8 +97,8 @@ TL;DR:
 
 #. Check for open issues or open a fresh issue to start a discussion around a feature idea or a bug.
 #. Fork `the repository`_.
-#. Go get the original code - ``go get https://github.com/SparkPost/go-sparkpost``
-#. Add your fork as a remote - ``git remote add fork http://github.com/YOURID/go-sparkpost``
+#. Go get the original code - ``go get https://github.com/SparkPost/gosparkpost``
+#. Add your fork as a remote - ``git remote add fork http://github.com/YOURID/gosparkpost``
 #. Make your changes in a branch on your fork
 #. Write a test which shows that the bug was fixed or that the feature works as expected.
 #. Push your changes - ``git push fork HEAD``
@@ -105,7 +106,7 @@ TL;DR:
 
 More on the `contribution process`_
 
-.. _`the repository`: https://github.com/SparkPost/go-sparkpost
+.. _`the repository`: https://github.com/SparkPost/gosparkpost
 .. _AUTHORS: AUTHORS.rst
 .. _`contribution process`: CONTRIBUTING.md
 

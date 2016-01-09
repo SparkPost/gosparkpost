@@ -1,29 +1,14 @@
-// Package recipient_lists interacts with the SparkPost Recipient Lists API.
-// https://www.sparkpost.com/api#/reference/recipient-lists
-package recipient_lists
+package gosparkpost
 
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/SparkPost/go-sparkpost/api"
 )
 
-// RecipientLists is your handle for the Recipient Lists API.
-type RecipientLists struct{ api.API }
-
-// New gets a RecipientLists object ready to use with the specified config.
-func New(cfg api.Config) (*RecipientLists, error) {
-	rl := &RecipientLists{}
-	path := fmt.Sprintf("/api/v%d/recipient-lists", cfg.ApiVersion)
-	err := rl.Init(cfg, path)
-	if err != nil {
-		return nil, err
-	}
-	return rl, nil
-}
+// https://www.sparkpost.com/api#/reference/recipient-lists
+var recipListsPathFormat = "/api/v%d/recipient-lists"
 
 // RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
 // It's mostly metadata at this level - see Recipients for more detail.
@@ -151,7 +136,7 @@ func (r Recipient) Validate() error {
 
 	// Metadata must be an object, not an array or bool etc.
 	if r.Metadata != nil {
-		err := api.AssertObject(r.Metadata, "metadata")
+		err := AssertObject(r.Metadata, "metadata")
 		if err != nil {
 			return err
 		}
@@ -159,7 +144,7 @@ func (r Recipient) Validate() error {
 
 	// SubstitutionData must be an object, not an array or bool etc.
 	if r.SubstitutionData != nil {
-		err := api.AssertObject(r.SubstitutionData, "substitution_data")
+		err := AssertObject(r.SubstitutionData, "substitution_data")
 		if err != nil {
 			return err
 		}
@@ -170,24 +155,25 @@ func (r Recipient) Validate() error {
 
 // Create accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
-func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *api.Response, err error) {
-	if recipList == nil {
+func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Response, err error) {
+	if rl == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
 		return
 	}
 
-	err = recipList.Validate()
+	err = rl.Validate()
 	if err != nil {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(recipList)
+	jsonBytes, err := json.Marshal(rl)
 	if err != nil {
 		return
 	}
 
-	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
-	res, err = rl.HttpPost(url, jsonBytes)
+	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err = c.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -227,9 +213,10 @@ func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *api.
 	return
 }
 
-func (rl *RecipientLists) List() (*[]RecipientList, *api.Response, error) {
-	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
-	res, err := rl.HttpGet(url)
+func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
+	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err := c.HttpGet(url)
 	if err != nil {
 		return nil, nil, err
 	}

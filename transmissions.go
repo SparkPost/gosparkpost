@@ -1,40 +1,22 @@
-// Package transmissions interacts with the SparkPost Transmissions API.
-// https://www.sparkpost.com/api#/reference/transmissions
-package transmissions
+package gosparkpost
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"reflect"
-	re "regexp"
 	"strings"
 	"time"
-
-	"github.com/SparkPost/go-sparkpost/api"
-	recipients "github.com/SparkPost/go-sparkpost/api/recipient_lists"
-	"github.com/SparkPost/go-sparkpost/api/templates"
 )
 
-// Transmissions is your handle for the Transmissions API.
-type Transmissions struct{ api.API }
-
-// New gets a Transmissions object ready to use with the specified config.
-func New(cfg api.Config) (*Transmissions, error) {
-	t := &Transmissions{}
-	path := fmt.Sprintf("/api/v%d/transmissions", cfg.ApiVersion)
-	err := t.Init(cfg, path)
-	if err != nil {
-		return nil, err
-	}
-	return t, nil
-}
+// https://www.sparkpost.com/api#/reference/transmissions
+var transmissionsPathFormat = "/api/v%d/transmissions"
 
 // Transmission is the JSON structure accepted by and returned from the SparkPost Transmissions API.
 type Transmission struct {
 	ID               string      `json:"id,omitempty"`
 	State            string      `json:"state,omitempty"`
-	Options          *Options    `json:"options,omitempty"`
+	Options          *TxOptions  `json:"options,omitempty"`
 	Recipients       interface{} `json:"recipients"`
 	CampaignID       string      `json:"campaign_id,omitempty"`
 	Description      string      `json:"description,omitempty"`
@@ -50,9 +32,9 @@ type Transmission struct {
 }
 
 // Options specifies settings to apply to this Transmission.
-// If not specified, and present in templates.Options, those values will be used.
-type Options struct {
-	templates.Options
+// If not specified, and present in TmplOptions, those values will be used.
+type TxOptions struct {
+	TmplOptions
 
 	StartTime       time.Time `json:"start_time,omitempty"`
 	Sandbox         string    `json:"sandbox,omitempty"`
@@ -60,7 +42,7 @@ type Options struct {
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
-func ParseRecipients(recips interface{}) (ra *[]recipients.Recipient, err error) {
+func ParseRecipients(recips interface{}) (ra *[]Recipient, err error) {
 	switch rVal := recips.(type) {
 	case map[string]interface{}:
 		for k, v := range rVal {
@@ -88,10 +70,10 @@ func ParseRecipients(recips interface{}) (ra *[]recipients.Recipient, err error)
 		return
 
 	case []string:
-		raObj := make([]recipients.Recipient, len(rVal))
+		raObj := make([]Recipient, len(rVal))
 		for i, r := range rVal {
 			// Make a full Recipient object from each string
-			raObj[i] = recipients.Recipient{Address: map[string]string{"email": r}}
+			raObj[i] = Recipient{Address: map[string]string{"email": r}}
 		}
 		ra := &raObj
 		return ra, nil
@@ -99,7 +81,7 @@ func ParseRecipients(recips interface{}) (ra *[]recipients.Recipient, err error)
 	case []interface{}:
 		for _, v := range rVal {
 			switch r := v.(type) {
-			case recipients.Recipient:
+			case Recipient:
 				err = r.Validate()
 				if err != nil {
 					return
@@ -111,7 +93,7 @@ func ParseRecipients(recips interface{}) (ra *[]recipients.Recipient, err error)
 			}
 		}
 
-	case []recipients.Recipient:
+	case []Recipient:
 		for _, v := range rVal {
 			err = v.Validate()
 			if err != nil {
@@ -151,8 +133,8 @@ func ParseContent(content interface{}) (err error) {
 		}
 		return fmt.Errorf("Transmission.Content objects must contain a key `template_id`")
 
-	case templates.Content:
-		te := &templates.Template{Name: "tmp", Content: rVal}
+	case Content:
+		te := &Template{Name: "tmp", Content: rVal}
 		return te.Validate()
 
 	default:
@@ -200,7 +182,7 @@ func (t *Transmission) Validate() error {
 
 	// Metadata must be an object, not an array or bool etc.
 	if t.Metadata != nil {
-		err := api.AssertObject(t.Metadata, "metadata")
+		err := AssertObject(t.Metadata, "metadata")
 		if err != nil {
 			return err
 		}
@@ -208,7 +190,7 @@ func (t *Transmission) Validate() error {
 
 	// SubstitutionData must be an object, not an array or bool etc.
 	if t.SubstitutionData != nil {
-		err := api.AssertObject(t.SubstitutionData, "substitution_data")
+		err := AssertObject(t.SubstitutionData, "substitution_data")
 		if err != nil {
 			return err
 		}
@@ -220,24 +202,25 @@ func (t *Transmission) Validate() error {
 // Create accepts a populated Transmission object, performs basic sanity
 // checks on it, and performs an API call against the configured endpoint.
 // Calling this function can cause email to be sent, if used correctly.
-func (t *Transmissions) Create(transmission *Transmission) (id string, res *api.Response, err error) {
-	if transmission == nil {
+func (c *Client) TransmissionCreate(t *Transmission) (id string, res *Response, err error) {
+	if t == nil {
 		err = fmt.Errorf("Create called with nil Transmission")
 		return
 	}
 
-	err = transmission.Validate()
+	err = t.Validate()
 	if err != nil {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(transmission)
+	jsonBytes, err := json.Marshal(t)
 	if err != nil {
 		return
 	}
 
-	u := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	res, err = t.HttpPost(u, jsonBytes)
+	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err = c.HttpPost(u, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -271,15 +254,14 @@ func (t *Transmissions) Create(transmission *Transmission) (id string, res *api.
 	return
 }
 
-var nonDigit *re.Regexp = re.MustCompile(`\D`)
-
 // Retrieve accepts a Transmission.ID and retrieves the corresponding object.
-func (t *Transmissions) Retrieve(id string) (*Transmission, *api.Response, error) {
+func (c *Client) Transmission(id string) (*Transmission, *Response, error) {
 	if nonDigit.MatchString(id) {
-		return nil, nil, fmt.Errorf("Transmissions.Retrieve: id may only contain digits")
+		return nil, nil, fmt.Errorf("id may only contain digits")
 	}
-	u := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
-	res, err := t.HttpGet(u)
+	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
+	res, err := c.HttpGet(u)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -327,7 +309,7 @@ func (t *Transmissions) Retrieve(id string) (*Transmission, *api.Response, error
 
 // Delete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
-func (t *Transmissions) Delete(id string) (*api.Response, error) {
+func (c *Client) TransmissionDelete(id string) (*Response, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Delete called with blank id")
 	}
@@ -335,8 +317,9 @@ func (t *Transmissions) Delete(id string) (*api.Response, error) {
 		return nil, fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
-	u := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
-	res, err := t.HttpDelete(u)
+	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
+	res, err := c.HttpDelete(u)
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +350,7 @@ func (t *Transmissions) Delete(id string) (*api.Response, error) {
 
 // List returns Transmission summary information for matching Transmissions.
 // To skip filtering by campaign or template id, use a nil param.
-func (t *Transmissions) List(campaignID, templateID *string) ([]Transmission, *api.Response, error) {
+func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, *Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
@@ -382,9 +365,10 @@ func (t *Transmissions) List(campaignID, templateID *string) ([]Transmission, *a
 	if len(qp) > 0 {
 		qstr = strings.Join(qp, "&")
 	}
-	u := fmt.Sprintf("%s%s?%s", t.Config.BaseUrl, t.Path, qstr)
+	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := t.HttpGet(u)
+	res, err := c.HttpGet(u)
 	if err != nil {
 		return nil, nil, err
 	}
