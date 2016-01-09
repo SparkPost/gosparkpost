@@ -16,8 +16,8 @@ func TestAPI(t *testing.T) {
 		ApiKey:  cfgMap["apikey"],
 	}
 
-	var a API
-	err = a.Init(cfg)
+	var client Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 	}

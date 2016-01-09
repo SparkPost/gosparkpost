@@ -9,24 +9,7 @@ import (
 	"strings"
 )
 
-// RecipientLists is your handle for the Recipient Lists API.
-type RecipientListsAPI API
-
-var RecipientLists = RecipientListsAPI{
-	Path:    "/api/v%d/recipient-lists",
-	Version: 1,
-}
-
-// New gets a RecipientLists object ready to use with the specified config.
-//func RecipientListsHandle(cfg Config) (*RecipientLists, error) {
-//	rl := &RecipientLists{}
-//	path := fmt.Sprintf("/api/v%d/recipient-lists", cfg.ApiVersion)
-//	err := rl.Init(cfg, path)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return rl, nil
-//}
+var RecipientListsPathFormat = "/api/v%d/recipient-lists"
 
 // RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
 // It's mostly metadata at this level - see Recipients for more detail.
@@ -173,24 +156,25 @@ func (r Recipient) Validate() error {
 
 // Create accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
-func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *Response, err error) {
-	if recipList == nil {
+func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Response, err error) {
+	if rl == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
 		return
 	}
 
-	err = recipList.Validate()
+	err = rl.Validate()
 	if err != nil {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(recipList)
+	jsonBytes, err := json.Marshal(rl)
 	if err != nil {
 		return
 	}
 
-	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
-	res, err = rl.HttpPost(url, jsonBytes)
+	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err = c.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -230,9 +214,10 @@ func (rl *RecipientLists) Create(recipList *RecipientList) (id string, res *Resp
 	return
 }
 
-func (rl *RecipientLists) List() (*[]RecipientList, *Response, error) {
-	url := fmt.Sprintf("%s%s", rl.Config.BaseUrl, rl.Path)
-	res, err := rl.HttpGet(url)
+func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
+	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err := c.HttpGet(url)
 	if err != nil {
 		return nil, nil, err
 	}

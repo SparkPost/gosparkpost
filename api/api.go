@@ -9,16 +9,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
 )
 
+// TODO: define paths statically in each endpoint's file, move version to Config
+// TODO: rename e.g. Transmissions.Create to Client.SendTransmission
+
 // Config includes all information necessary to make an API request.
 type Config struct {
-	BaseUrl string
-	ApiKey  string
+	BaseUrl    string
+	ApiKey     string
+	ApiVersion int
 }
 
 // Client contains connection and authentication information.
@@ -26,12 +29,6 @@ type Config struct {
 type Client struct {
 	Config *Config
 	Client *http.Client
-}
-
-// API contains information used to connect to a specific API, such as Transmissions.
-type API struct {
-	Path    string
-	Version int
 }
 
 // NewConfig builds a Config object using the provided map.
@@ -79,10 +76,10 @@ func (e Error) Json() (string, error) {
 	return string(jsonBytes), nil
 }
 
-// Init sets each API's path and pulls together everything necessary to make an API request.
+// Init pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided API object.
-func (api *Client) Init(cfg Config) error {
-	api.Config = &cfg
+func (api *Client) Init(cfg *Config) error {
+	api.Config = cfg
 
 	if api.Client == nil {
 		// Ran into an issue where USERTrust was not recognized on OSX.
@@ -109,14 +106,14 @@ func (api *Client) Init(cfg Config) error {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *Client) HttpPost(url string, data []byte) (*Response, error) {
+func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", api.Config.ApiKey)
-	res, err := api.Client.Do(req)
+	req.Header.Set("Authorization", c.Config.ApiKey)
+	res, err := c.Client.Do(req)
 	ares := &Response{HTTP: res}
 	return ares, err
 }
@@ -124,13 +121,13 @@ func (api *Client) HttpPost(url string, data []byte) (*Response, error) {
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *Client) HttpGet(url string) (*Response, error) {
+func (c *Client) HttpGet(url string) (*Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", api.Config.ApiKey)
-	res, err := api.Client.Do(req)
+	req.Header.Set("Authorization", c.Config.ApiKey)
+	res, err := c.Client.Do(req)
 	ares := &Response{HTTP: res}
 	return ares, err
 }
@@ -138,13 +135,13 @@ func (api *Client) HttpGet(url string) (*Response, error) {
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (api *Client) HttpDelete(url string) (*Response, error) {
+func (c *Client) HttpDelete(url string) (*Response, error) {
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", api.Config.ApiKey)
-	res, err := api.Client.Do(req)
+	req.Header.Set("Authorization", c.Config.ApiKey)
+	res, err := c.Client.Do(req)
 	ares := &Response{HTTP: res}
 	return ares, err
 }

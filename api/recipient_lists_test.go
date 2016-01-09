@@ -19,35 +19,14 @@ func TestRecipients(t *testing.T) {
 		return
 	}
 
-	RLAPI, err := RecipientListsHandle(*cfg)
+	var client Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	/*
-		R1, err := RLAPI.BuildRecipient(map[string]interface{}{
-			"return_path": "a@b.com",
-			"email":       "abc@example.com",
-			"name":        "A B C",
-			"tags":        []string{"abc", "def", "ghi"},
-			"metadata": map[string]interface{}{
-				"abc": "def",
-				"ghi": []interface{}{"j", "k", "l"},
-				"mno": map[string]interface{}{
-					"p": []interface{}{"q": "r"},
-					"s": "t",
-				},
-			},
-		})
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		t.Error(fmt.Errorf("%s", R1))
-	*/
-
-	list, res, err := RLAPI.List()
+	list, _, err := client.RecipientLists()
 	if err != nil {
 		t.Error(err)
 		return
