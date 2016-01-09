@@ -8,7 +8,7 @@ import (
 	re "regexp"
 	"strings"
 
-	"github.com/SparkPost/go-sparkpost/events"
+	"github.com/SparkPost/gosparkpost/events"
 )
 
 // https://www.sparkpost.com/api#/reference/message-events

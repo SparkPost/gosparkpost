@@ -1,26 +1,26 @@
-# Contributing to go-sparkpost
+# Contributing to gosparkpost
 
 Transparency is one of our core values, and we encourage developers to contribute and become part of the SparkPost developer community.
 
-The following is a set of guidelines for contributing to go-sparkpost,
+The following is a set of guidelines for contributing to gosparkpost,
 which is hosted in the [SparkPost Organization](https://github.com/sparkpost) on GitHub.
 These are just guidelines, not rules, use your best judgment and feel free to
 propose changes to this document in a pull request.
 
 ## Submitting Issues
 
-* You can create an issue [here](https://github.com/sparkpost/go-sparkpost/issues/new), but
+* You can create an issue [here](https://github.com/sparkpost/gosparkpost/issues/new), but
   before doing that please read the notes below on debugging and submitting issues,
   and include as many details as possible with your report.
-* Include the version of go-sparkpost you are using.
-* Perform a [cursory search](https://github.com/issues?utf8=%E2%9C%93&q=is%3Aissue+user%3Asparkpost+repo%3Ago-sparkpost)
+* Include the version of gosparkpost you are using.
+* Perform a [cursory search](https://github.com/issues?utf8=%E2%9C%93&q=is%3Aissue+user%3Asparkpost+repo%3Agosparkpost)
   to see if a similar issue has already been submitted.
 
 ## Local development
 
 * Fork this repository
-* Clone the _original source_  using ``go get https://github.com/SparkPost/go-sparkpost``
-* Add a remote pointing to your fork - ``go remote add fork https://github.com/YOUR_ID/go-sparkpost``
+* Clone the _original source_  using ``go get https://github.com/SparkPost/gosparkpost``
+* Add a remote pointing to your fork - ``go remote add fork https://github.com/YOUR_ID/gosparkpost``
 * Create a branch - ``go checkout -b fix-or-feature``
 * Write code!
 * Commit code!

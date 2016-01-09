@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	sp "github.com/SparkPost/go-sparkpost"
-	"github.com/SparkPost/go-sparkpost/test"
+	sp "github.com/SparkPost/gosparkpost"
+	"github.com/SparkPost/gosparkpost/test"
 )
 
 func TestTemplates(t *testing.T) {

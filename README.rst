@@ -19,7 +19,7 @@ Install from GitHub using `go get`_:
 
 .. code-block:: bash
 
-    $ go get https://github.com/SparkPost/go-sparkpost
+    $ go get https://github.com/SparkPost/gosparkpost
 
 .. _go get: https://golang.org/cmd/go/#hdr-Download_and_install_packages_and_dependencies
 
@@ -43,9 +43,9 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
       "log"
       "os"
 
-      "github.com/SparkPost/go-sparkpost/api"
-      te_api "github.com/SparkPost/go-sparkpost/api/templates"
-      tr_api "github.com/SparkPost/go-sparkpost/api/transmissions"
+      "github.com/SparkPost/gosparkpost/api"
+      te_api "github.com/SparkPost/gosparkpost/api/templates"
+      tr_api "github.com/SparkPost/gosparkpost/api/transmissions"
     )
 
     func main() {
@@ -67,7 +67,7 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
         Content:    te_api.Content{
           HTML:    "<p>Hello world</p>",
           From:    "test@sparkpostbox.com",
-          Subject: "Hello from go-sparkpost",
+          Subject: "Hello from gosparkpost",
         },
       })
       if err != nil {
@@ -96,8 +96,8 @@ TL;DR:
 
 #. Check for open issues or open a fresh issue to start a discussion around a feature idea or a bug.
 #. Fork `the repository`_.
-#. Go get the original code - ``go get https://github.com/SparkPost/go-sparkpost``
-#. Add your fork as a remote - ``git remote add fork http://github.com/YOURID/go-sparkpost``
+#. Go get the original code - ``go get https://github.com/SparkPost/gosparkpost``
+#. Add your fork as a remote - ``git remote add fork http://github.com/YOURID/gosparkpost``
 #. Make your changes in a branch on your fork
 #. Write a test which shows that the bug was fixed or that the feature works as expected.
 #. Push your changes - ``git push fork HEAD``
@@ -105,7 +105,7 @@ TL;DR:
 
 More on the `contribution process`_
 
-.. _`the repository`: https://github.com/SparkPost/go-sparkpost
+.. _`the repository`: https://github.com/SparkPost/gosparkpost
 .. _AUTHORS: AUTHORS.rst
 .. _`contribution process`: CONTRIBUTING.md
 
