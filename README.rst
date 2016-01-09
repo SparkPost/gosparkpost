@@ -43,40 +43,41 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
       "log"
       "os"
 
-      "github.com/SparkPost/gosparkpost/api"
-      te_api "github.com/SparkPost/gosparkpost/api/templates"
-      tr_api "github.com/SparkPost/gosparkpost/api/transmissions"
+      sp "github.com/SparkPost/gosparkpost"
     )
 
     func main() {
       // Get our API key from the environment; configure.
       apiKey := os.Getenv("SPARKPOST_API_KEY")
-      TrAPI, err := tr_api.New(api.Config{
+      cfg := &sp.Config{
         BaseUrl:    "https://api.sparkpost.com",
         ApiKey:     apiKey,
         ApiVersion: 1,
-      })
+      }
+      var client sp.Client
+      err := client.Init(cfg)
       if err != nil {
-        log.Fatalf("Transmissions API init failed: %s\n", err)
+        log.Fatalf("SparkPost client init failed: %s\n", err)
       }
 
       // Create a Transmission using an inline Recipient List
       // and inline email Content.
-      id, _, err := TrAPI.Create(&tr_api.Transmission{
+      tx := &sp.Transmission{
         Recipients: []string{"someone@somedomain.com"},
-        Content:    te_api.Content{
+        Content: sp.Content{
           HTML:    "<p>Hello world</p>",
           From:    "test@sparkpostbox.com",
           Subject: "Hello from gosparkpost",
         },
-      })
+      }
+      id, _, err := client.TransmissionCreate(tx)
       if err != nil {
         log.Fatal(err)
       }
 
-      // The second value returned from Create has more info
-      // about the HTTP response, in case you'd like to see
-      // more than the Transmission id.
+      // The second value returned from TransmissionCreate
+      // has more info about the HTTP response, in case
+      // you'd like to see more than the Transmission id.
       log.Printf("Transmission sent with id [%s]\n", id)
     }
 
