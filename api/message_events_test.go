@@ -1,4 +1,4 @@
-package message_events
+package api_test
 
 import (
 	"fmt"
@@ -22,15 +22,16 @@ func TestMessageEvents(t *testing.T) {
 		return
 	}
 
-	mev, err := New(*cfg)
+	var client api.Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	//types := []string{"open", "click", "bounce"}
-	//e, err := mev.Samples(&types)
-	e, err := mev.Samples(nil)
+	//e, err := client.EventSamples(&types)
+	e, err := client.EventSamples(nil)
 	if err != nil {
 		t.Error(err)
 		return
