@@ -1,6 +1,4 @@
-// Package templates interacts with the SparkPost Templates API.
-// https://www.sparkpost.com/api#/reference/templates
-package templates
+package api
 
 import (
 	"encoding/json"
@@ -9,23 +7,10 @@ import (
 	re "regexp"
 	"strings"
 	"time"
-
-	"github.com/SparkPost/go-sparkpost/api"
 )
 
-// Templates is your handle for the Templates API.
-type Templates struct{ api.API }
-
-// New gets a Templates object ready to use with the specified config.
-func New(cfg api.Config) (*Templates, error) {
-	t := &Templates{}
-	path := fmt.Sprintf("/api/v%d/templates", cfg.ApiVersion)
-	err := t.Init(cfg, path)
-	if err != nil {
-		return nil, err
-	}
-	return t, nil
-}
+// https://www.sparkpost.com/api#/reference/templates
+var templatesPathFormat = "/api/v%d/templates"
 
 // Template is the JSON structure accepted by and returned from the SparkPost Templates API.
 // It's mostly metadata at this level - see Content and Options for more detail.
@@ -188,24 +173,25 @@ func (t *Template) SetHeaders(headers map[string]string) {
 
 // Create accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
-func (t *Templates) Create(template *Template) (id string, res *api.Response, err error) {
-	if template == nil {
+func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err error) {
+	if t == nil {
 		err = fmt.Errorf("Create called with nil Template")
 		return
 	}
 
-	err = template.Validate()
+	err = t.Validate()
 	if err != nil {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(template)
+	jsonBytes, err := json.Marshal(t)
 	if err != nil {
 		return
 	}
 
-	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	res, err = t.HttpPost(url, jsonBytes)
+	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err = c.HttpPost(url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -245,9 +231,10 @@ func (t *Templates) Create(template *Template) (id string, res *api.Response, er
 }
 
 // List returns metadata for all Templates in the system.
-func (t *Templates) List() ([]Template, *api.Response, error) {
-	url := fmt.Sprintf("%s%s", t.Config.BaseUrl, t.Path)
-	res, err := t.HttpGet(url)
+func (c *Client) Templates() ([]Template, *Response, error) {
+	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	res, err := c.HttpGet(url)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -276,7 +263,7 @@ func (t *Templates) List() ([]Template, *api.Response, error) {
 			return nil, res, err
 		}
 		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "list")
+			err = res.PrettyError("Template", "list")
 			if err != nil {
 				return nil, res, err
 			}
@@ -290,18 +277,19 @@ func (t *Templates) List() ([]Template, *api.Response, error) {
 var nonDigit *re.Regexp = re.MustCompile(`\D`)
 
 // Delete removes the Template with the specified id.
-func (t *Templates) Delete(id string) (res *api.Response, err error) {
+func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
 		return
 	}
 	if nonDigit.MatchString(id) {
-		err = fmt.Errorf("Templates.Delete: id may only contain digits")
+		err = fmt.Errorf("id may only contain digits")
 		return
 	}
 
-	url := fmt.Sprintf("%s%s/%s", t.Config.BaseUrl, t.Path, id)
-	res, err = t.HttpDelete(url)
+	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
+	res, err = c.HttpDelete(url)
 	if err != nil {
 		return
 	}

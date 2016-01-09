@@ -1,10 +1,9 @@
-package templates
+package api
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/SparkPost/go-sparkpost/api"
 	"github.com/SparkPost/go-sparkpost/test"
 )
 
@@ -14,41 +13,26 @@ func TestTemplates(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	cfg, err := api.NewConfig(cfgMap)
+	cfg, err := NewConfig(cfgMap)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	tmpl, err := New(*cfg)
+	var client Client
+	err = client.Init(cfg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	//tlist, err := tmpl.List()
-	//if err != nil {
-	//	t.Error(err)
-	//	return
-	//}
-
-	//t.Error(fmt.Errorf("%s", tlist))
-	//return
-
-	templ, err := tmpl.Build(map[string]string{
-		"from_email": "a@b.com",
-		"from_name":  "a b",
-	})
+	tlist, _, err := client.Templates()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	templ.SetHeaders(map[string]string{
-		"x-binding": "foo",
-	})
-
-	t.Error(fmt.Errorf("%s", templ))
+	t.Error(fmt.Errorf("%s", tlist))
 	return
 
 	content := Content{
@@ -63,14 +47,14 @@ func TestTemplates(t *testing.T) {
 	}
 	template := &Template{Content: content, Name: "test template"}
 
-	id, _, err := tmpl.Create(template)
+	id, _, err := client.TemplateCreate(template)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	fmt.Printf("Created Template with id=%s\n", id)
 
-	_, err = tmpl.Delete(id)
+	_, err = client.TemplateDelete(id)
 	if err != nil {
 		t.Error(err)
 		return
