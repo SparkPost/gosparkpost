@@ -1,5 +1,3 @@
-// Package recipient_lists interacts with the SparkPost Recipient Lists API.
-// https://www.sparkpost.com/api#/reference/recipient-lists
 package api
 
 import (
@@ -9,7 +7,8 @@ import (
 	"strings"
 )
 
-var RecipientListsPathFormat = "/api/v%d/recipient-lists"
+// https://www.sparkpost.com/api#/reference/recipient-lists
+var recipListsPathFormat = "/api/v%d/recipient-lists"
 
 // RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
 // It's mostly metadata at this level - see Recipients for more detail.
@@ -172,7 +171,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 		return
 	}
 
-	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err = c.HttpPost(url, jsonBytes)
 	if err != nil {
@@ -215,7 +214,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 }
 
 func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
-	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err := c.HttpGet(url)
 	if err != nil {
