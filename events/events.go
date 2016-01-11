@@ -21,6 +21,7 @@ var eventTypes = map[string]bool{
 	"spam_complaint":       true,
 	"relay_delivery":       true,
 	"relay_injection":      true,
+	"relay_message":        true,
 	"relay_permfail":       true,
 	"relay_rejection":      true,
 	"relay_tempfail":       true,
@@ -73,6 +74,8 @@ func EventForName(eventType string) Event {
 		return &RelayDelivery{}
 	case "relay_injection":
 		return &RelayInjection{}
+	case "relay_message":
+		return &RelayMessage{}
 	case "relay_permfail":
 		return &RelayPermfail{}
 	case "relay_rejection":
@@ -611,6 +614,30 @@ type RelayPermfail RelayTempfail
 func (p *RelayPermfail) String() string {
 	return fmt.Sprintf("%d RP %s %s <= %s %s: %s",
 		p.Timestamp, p.RelayID, p.Binding, p.MessageFrom, p.ErrorCode, p.RawReason)
+}
+
+type RelayContent struct {
+	HTML    string              `json:"html"`
+	Text    string              `json:"text"`
+	Subject string              `json:"subject"`
+	To      []string            `json:"to"`
+	Cc      []string            `json:"cc"`
+	Headers []map[string]string `json:"headers"`
+	Email   string              `json:"email_rfc822"`
+	Base64  bool                `json:email_rfc822_is_base64"`
+}
+
+type RelayMessage struct {
+	EventCommon
+	Content      RelayContent `json:"content"`
+	FriendlyFrom string       `json:"friendly_from"`
+	From         string       `json:"msg_from"`
+	To           string       `json:"rcpt_to"`
+	WebhookID    string       `json:"webhook_id"`
+}
+
+func (m *RelayMessage) String() string {
+	return fmt.Sprintf("%s => %s (%s)", m.From, m.To, m.WebhookID)
 }
 
 type SpamComplaint struct {
