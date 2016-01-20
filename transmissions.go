@@ -202,7 +202,7 @@ func (t *Transmission) Validate() error {
 // Create accepts a populated Transmission object, performs basic sanity
 // checks on it, and performs an API call against the configured endpoint.
 // Calling this function can cause email to be sent, if used correctly.
-func (c *Client) TransmissionCreate(t *Transmission) (id string, res *Response, err error) {
+func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 	if t == nil {
 		err = fmt.Errorf("Create called with nil Transmission")
 		return

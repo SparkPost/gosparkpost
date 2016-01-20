@@ -70,12 +70,12 @@ Here at SparkPost, our "send some messages" api is called the `transmissions API
           Subject: "Hello from gosparkpost",
         },
       }
-      id, _, err := client.TransmissionCreate(tx)
+      id, _, err := client.Send(tx)
       if err != nil {
         log.Fatal(err)
       }
 
-      // The second value returned from TransmissionCreate
+      // The second value returned from Send
       // has more info about the HTTP response, in case
       // you'd like to see more than the Transmission id.
       log.Printf("Transmission sent with id [%s]\n", id)

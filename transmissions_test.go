@@ -65,7 +65,7 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
-	id, _, err := client.TransmissionCreate(T)
+	id, _, err := client.Send(T)
 	if err != nil {
 		t.Error(err)
 		return
