@@ -81,6 +81,13 @@ func (e Error) Json() (string, error) {
 // Init pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided API object.
 func (api *Client) Init(cfg *Config) error {
+	// Set default values
+	if cfg.BaseUrl == "" {
+		cfg.BaseUrl = "https://api.sparkpost.com"
+	}
+	if cfg.ApiVersion == 0 {
+		cfg.ApiVersion = 1
+	}
 	api.Config = cfg
 
 	if api.Client == nil {
