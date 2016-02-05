@@ -238,7 +238,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 		var ok bool
 		id, ok = res.Results["id"].(string)
 		if !ok {
-			err = fmt.Errorf("Unexpected response to Template creation")
+			err = fmt.Errorf("Unexpected response to Transmission creation")
 		}
 
 	} else if len(res.Errors) > 0 {
