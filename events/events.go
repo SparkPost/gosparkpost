@@ -152,7 +152,7 @@ type Bounce struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
