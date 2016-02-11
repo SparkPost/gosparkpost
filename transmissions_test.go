@@ -3,8 +3,8 @@ package gosparkpost_test
 import (
 	"testing"
 
-	sp "github.com/SparkPost/gosparkpost"
-	"github.com/SparkPost/gosparkpost/test"
+	sp "."
+	"./test"
 )
 
 func TestTransmissions(t *testing.T) {

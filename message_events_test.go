@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	sp "github.com/SparkPost/gosparkpost"
-	"github.com/SparkPost/gosparkpost/events"
-	"github.com/SparkPost/gosparkpost/test"
+	sp "."
+	"./events"
+	"./test"
 )
 
 func TestMessageEvents(t *testing.T) {
