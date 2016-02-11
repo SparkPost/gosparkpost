@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	sp "github.com/SparkPost/gosparkpost"
-	"github.com/SparkPost/gosparkpost/test"
+	sp "."
+	"./test"
 )
 
 func TestRecipients(t *testing.T) {
