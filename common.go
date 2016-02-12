@@ -22,6 +22,7 @@ type Config struct {
 	BaseUrl    string
 	ApiKey     string
 	ApiVersion int
+	Verbose    bool
 }
 
 // Client contains connection and authentication information.
@@ -116,42 +117,64 @@ func (api *Client) Init(cfg *Config) error {
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", c.Config.ApiKey)
-	res, err := c.Client.Do(req)
-	ares := &Response{HTTP: res}
-	return ares, err
+	return c.DoRequest("POST", url, data)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpGet(url string) (*Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", c.Config.ApiKey)
-	res, err := c.Client.Do(req)
-	ares := &Response{HTTP: res}
-	return ares, err
+	return c.DoRequest("GET", url, nil)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpDelete(url string) (*Response, error) {
-	req, err := http.NewRequest("DELETE", url, nil)
+	return c.DoRequest("DELETE", url, nil)
+}
+
+func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
+	
+	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
+		if c.Config.Verbose {
+			fmt.Println("Error: %s", err)
+		}
 		return nil, err
+	}	
+	if data != nil {
+		req.Header.Set("Content-Type", "application/json")
+
+		if c.Config.Verbose {
+			fmt.Println("Will Post: %s", string(data))
+		}
 	}
-	req.Header.Set("Authorization", c.Config.ApiKey)
+
+	// TODO: set User-Agent based on gosparkpost version and possible git short hash
+	req.Header.Set("User-Agent", "GoSparkPost v0.1")
+	if c.Config.ApiKey != "" {
+		req.Header.Set("Authorization", c.Config.ApiKey)
+	}
+
+	if c.Config.Verbose {
+		fmt.Println("Request: ", req)
+	}
+
 	res, err := c.Client.Do(req)
 	ares := &Response{HTTP: res}
+	
+	if c.Config.Verbose {
+		fmt.Println("Server Response: ", ares.HTTP.Status)
+		bodyBytes, err := ares.ReadBody()
+		if err != nil {
+			fmt.Println("Error: ", err)
+		} else {
+			fmt.Println("Body: ", string(bodyBytes))
+		}
+		
+	}
+
 	return ares, err
 }
 

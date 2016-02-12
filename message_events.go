@@ -65,10 +65,10 @@ type EventItem struct {
 }
 
 type EventsWrapper struct {
-	Results    []*EventItem  `json:"results,omitempty"`
-	TotalCount int           `json:"total_count,omitempty"`
-	Links      []string      `json:"links,omitempty"`
-	Errors     []interface{} `json:"errors,omitempty"`
+	Results    []*EventItem        `json:"results,omitempty"`
+	TotalCount int                 `json:"total_count,omitempty"`
+	Links      []map[string]string `json:"links,omitempty"`
+	Errors     []interface{}       `json:"errors,omitempty"`
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
