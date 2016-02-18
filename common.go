@@ -3,6 +3,7 @@ package gosparkpost
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -21,6 +22,8 @@ import (
 type Config struct {
 	BaseUrl    string
 	ApiKey     string
+	Username   string
+	Password   string
 	ApiVersion int
 	Verbose    bool
 }
@@ -135,26 +138,29 @@ func (c *Client) HttpDelete(url string) (*Response, error) {
 }
 
 func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
-	
+
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
 		if c.Config.Verbose {
 			fmt.Println("Error: %s", err)
 		}
 		return nil, err
-	}	
+	}
 	if data != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", jctype)
 
 		if c.Config.Verbose {
 			fmt.Println("Will Post: %s", string(data))
 		}
 	}
 
-	// TODO: set User-Agent based on gosparkpost version and possible git short hash
+	// TODO: set User-Agent based on gosparkpost version and possibly git's short hash
 	req.Header.Set("User-Agent", "GoSparkPost v0.1")
+
 	if c.Config.ApiKey != "" {
 		req.Header.Set("Authorization", c.Config.ApiKey)
+	} else {
+		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
 	}
 
 	if c.Config.Verbose {
@@ -163,7 +169,7 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 
 	res, err := c.Client.Do(req)
 	ares := &Response{HTTP: res}
-	
+
 	if c.Config.Verbose {
 		fmt.Println("Server Response: ", ares.HTTP.Status)
 		bodyBytes, err := ares.ReadBody()
@@ -172,10 +178,15 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 		} else {
 			fmt.Println("Body: ", string(bodyBytes))
 		}
-		
+
 	}
 
 	return ares, err
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
 // ReadBody is a convenience method that returns the http.Response body.

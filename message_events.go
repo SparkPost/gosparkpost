@@ -12,16 +12,16 @@ var messageEventsPathFormat = "/api/v%d/message-events"
 
 type EventItem struct {
 	Type            string            `json:"type"`
-	CampaignID      string            `json:"campaign_id"`
-	CustomerID      string            `json:"customer_id"`
+	CampaignID      string            `json:"campaign_id,omitempty"`
+	CustomerID      string            `json:"customer_id,omitempty"`
 	DeliveryMethod  string            `json:"delv_method,omitempty"`
 	DeviceToken     string            `json:"device_token,omitempty"`
-	EventID         string            `json:"event_id"`
-	ErrorCode       string            `json:"error_code"`
+	EventID         string            `json:"event_id,omitempty"`
+	ErrorCode       string            `json:"error_code,omitempty"`
 	FriendlyFrom    string            `json:"friendly_from,omitempty"`
 	IPAddress       string            `json:"ip_address,omitempty"`
 	MessageID       string            `json:"message_id,omitempty"`
-	MessageFrom     string            `json:"msg_from"`
+	MessageFrom     string            `json:"msg_from,omitempty"`
 	MessageSize     string            `json:"msg_size,omitempty"`
 	QueueTime       string            `json:"queue_time,omitempty"`
 	RawReason       string            `json:"raw_reason,omitempty"`
@@ -58,10 +58,10 @@ type EventItem struct {
 	From            string            `json:"msg_from,omitempty"`
 	To              string            `json:"rcpt_to,omitempty"`
 	WebhookID       string            `json:"webhook_id,omitempty"`
-	UserString      string            `json:"user_str"`
-	ReportedBy      string            `json:"report_by"`
-	ReportedTo      string            `json:"report_to"`
-	FeedbackType    string            `json:"fbtype"`
+	UserString      string            `json:"user_str,omitempty"`
+	ReportedBy      string            `json:"report_by,omitempty"`
+	ReportedTo      string            `json:"report_to,omitempty"`
+	FeedbackType    string            `json:"fbtype,omitempty"`
 }
 
 type EventsWrapper struct {
