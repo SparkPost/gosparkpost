@@ -152,13 +152,13 @@ type Bounce struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a Bounce event
 func (b *Bounce) String() string {
-	return fmt.Sprintf("%d B %s %s => %s %s: %s",
+	return fmt.Sprintf("%s B %s %s => %s %s: %s",
 		b.Timestamp, b.TransmissionID, b.Binding, b.Recipient,
 		b.BounceClass, b.RawReason)
 }
@@ -166,7 +166,7 @@ func (b *Bounce) String() string {
 // ECLog emits a Bounce in the same format that it would be logged to bouncelog.ec:
 // https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
 func (b *Bounce) ECLog() string {
-	return fmt.Sprintf("%d@%s@@@B@%s@%s@%s@%s@@%s@%s@%s@%s",
+	return fmt.Sprintf("%s@%s@@@B@%s@%s@%s@%s@@%s@%s@%s@%s",
 		b.Timestamp, b.MessageID, b.Recipient, b.MessageFrom,
 		b.Binding, b.BindingGroup, b.BounceClass, b.MessageSize,
 		b.IPAddress, b.RawReason)
@@ -196,14 +196,14 @@ type Click struct {
 	TargetLinkURL   string      `json:"target_link_url"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserAgent       string      `json:"user_agent"`
 }
 
 // String returns a brief summary of a Click event
 func (c *Click) String() string {
-	return fmt.Sprintf("%d C %s %s => %s",
+	return fmt.Sprintf("%s C %s %s => %s",
 		c.Timestamp, c.TransmissionID, c.Recipient, c.TargetLinkURL)
 }
 
@@ -219,13 +219,13 @@ type Creation struct {
 	Submitted       string      `json:"submitted_rcpts"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserID          string      `json:"user_id"`
 }
 
 func (c *Creation) String() string {
-	return fmt.Sprintf("%d CT %s (%s, %s)",
+	return fmt.Sprintf("%s CT %s (%s, %s)",
 		c.Timestamp, c.TransmissionID, c.Submitted, c.Accepted)
 }
 
@@ -255,20 +255,20 @@ type Delay struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a Delay event
 func (d *Delay) String() string {
-	return fmt.Sprintf("%d T %s => %s %s: %s",
+	return fmt.Sprintf("%s T %s => %s %s: %s",
 		d.Timestamp, d.MessageFrom, d.Recipient, d.BounceClass, d.RawReason)
 }
 
 // ECLog emits a Delay in the same format that it would be logged to bouncelog.ec:
 // https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
 func (d *Delay) ECLog() string {
-	return fmt.Sprintf("%d@%s@@@T@%s@%s@%s@%s@@%s@%s@%s@%s",
+	return fmt.Sprintf("%s@%s@@@T@%s@%s@%s@%s@@%s@%s@%s@%s",
 		d.Timestamp, d.MessageID, d.Recipient, d.MessageFrom,
 		d.Binding, d.BindingGroup, d.BounceClass, d.MessageSize,
 		d.IPAddress, d.RawReason)
@@ -296,20 +296,20 @@ type Delivery struct {
 	RoutingDomain   string      `json:"routing_domain"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a Delivery event
 func (d *Delivery) String() string {
-	return fmt.Sprintf("%d D %s %s => %s",
+	return fmt.Sprintf("%s D %s %s => %s",
 		d.Timestamp, d.TransmissionID, d.Binding, d.Recipient)
 }
 
 // ECLog emits a Delivery in the same format that it would be logged to mainlog.ec:
 // https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
 func (d *Delivery) ECLog() string {
-	return fmt.Sprintf("%d@%s@@@D@%s@%s@%s@%s@%s@%s@%s",
+	return fmt.Sprintf("%s@%s@@@D@%s@%s@%s@%s@%s@%s@%s",
 		d.Timestamp, d.MessageID, d.RoutingDomain, d.MessageSize,
 		d.Binding, d.BindingGroup, d.Retries, d.QueueTime, d.IPAddress)
 }
@@ -331,13 +331,13 @@ type GenerationFailure struct {
 	RoutingDomain    string      `json:"routing_domain"`
 	TemplateID       string      `json:"template_id"`
 	TemplateVersion  string      `json:"template_version"`
-	Timestamp        int64       `json:"timestamp"`
+	Timestamp        string      `json:"timestamp"`
 	TransmissionID   string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a GenerationFailure event
 func (g *GenerationFailure) String() string {
-	return fmt.Sprintf("%d GF %s %s => %s %s: %s",
+	return fmt.Sprintf("%s GF %s %s => %s %s: %s",
 		g.Timestamp, g.TransmissionID, g.Binding, g.Recipient,
 		g.ErrorCode, g.RawReason)
 }
@@ -346,7 +346,7 @@ type GenerationRejection GenerationFailure
 
 // String returns a brief summary of a GenerationFailure event
 func (g *GenerationRejection) String() string {
-	return fmt.Sprintf("%d GR %s %s => %s %s: %s",
+	return fmt.Sprintf("%s GR %s %s => %s %s: %s",
 		g.Timestamp, g.TransmissionID, g.Binding, g.Recipient,
 		g.ErrorCode, g.RawReason)
 }
@@ -371,20 +371,20 @@ type Injection struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a GenerationFailure event
 func (i *Injection) String() string {
-	return fmt.Sprintf("%d R %s %s => %s",
+	return fmt.Sprintf("%s R %s %s => %s",
 		i.Timestamp, i.TransmissionID, i.Binding, i.Recipient)
 }
 
 // ECLog emits an Injection in the same format that it would be logged to mainlog.ec:
 // https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
 func (i *Injection) ECLog() string {
-	return fmt.Sprintf("%d@%s@@@R@%s@%s@@%s@%s@%s@%s",
+	return fmt.Sprintf("%s@%s@@@R@%s@%s@@%s@%s@%s@%s",
 		i.Timestamp, i.MessageID, i.Recipient, i.MessageFrom,
 		i.MessageSize, i.ReceiveProtocol,
 		i.Binding, i.BindingGroup)
@@ -402,13 +402,13 @@ type ListUnsubscribe struct {
 	RecipientType   string      `json:"rcpt_type"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a ListUnsubscribe event
 func (l *ListUnsubscribe) String() string {
-	return fmt.Sprintf("%d U %s %s: [%s]",
+	return fmt.Sprintf("%s U %s %s: [%s]",
 		l.Timestamp, l.TransmissionID, l.Recipient, l.CampaignID)
 }
 
@@ -420,7 +420,7 @@ type LinkUnsubscribe struct {
 
 // String returns a brief summary of a ListUnsubscribe event
 func (l *LinkUnsubscribe) String() string {
-	return fmt.Sprintf("%d LU %s %s: [%s]",
+	return fmt.Sprintf("%s LU %s %s: [%s]",
 		l.Timestamp, l.TransmissionID, l.Recipient, l.CampaignID)
 }
 
@@ -438,14 +438,14 @@ type Open struct {
 	RecipientType   string      `json:"rcpt_type"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserAgent       string      `json:"user_agent"`
 }
 
 // String returns a brief summary of an Open event
 func (o *Open) String() string {
-	return fmt.Sprintf("%d O %s %s",
+	return fmt.Sprintf("%s O %s %s",
 		o.Timestamp, o.TransmissionID, o.Recipient)
 }
 
@@ -468,12 +468,12 @@ type OutOfBand struct {
 	RoutingDomain   string `json:"routing_domain"`
 	TemplateID      string `json:"template_id"`
 	TemplateVersion string `json:"template_version"`
-	Timestamp       int64  `json:"timestamp"`
+	Timestamp       string `json:"timestamp"`
 }
 
 // String returns a brief summary of a Bounce event
 func (b *OutOfBand) String() string {
-	return fmt.Sprintf("%d OOB [%s] %s => %s %s: %s",
+	return fmt.Sprintf("%s OOB [%s] %s => %s %s: %s",
 		b.Timestamp, b.CampaignID, b.Binding, b.Recipient,
 		b.BounceClass, b.RawReason)
 }
@@ -481,7 +481,7 @@ func (b *OutOfBand) String() string {
 // ECLog emits an OutOfBand in the same format that it would be logged to bouncelog.ec:
 // https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
 func (b *OutOfBand) ECLog() string {
-	return fmt.Sprintf("%d@%s@@@B@%s@%s@%s@%s@@%s@@@%s",
+	return fmt.Sprintf("%s@%s@@@B@%s@%s@%s@%s@@%s@@@%s",
 		b.Timestamp, b.MessageID, b.Recipient, b.MessageFrom,
 		b.Binding, b.BindingGroup, b.BounceClass, b.RawReason)
 }
@@ -504,13 +504,13 @@ type PolicyRejection struct {
 	ReceiveProtocol string      `json:"recv_method"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
 // String returns a brief summary of a PolicyRejection event
 func (p *PolicyRejection) String() string {
-	return fmt.Sprintf("%d PR %s [%s] => %s %s: %s",
+	return fmt.Sprintf("%s PR %s [%s] => %s %s: %s",
 		p.Timestamp, p.TransmissionID, p.CampaignID, p.Recipient,
 		p.ErrorCode, p.RawReason)
 }
@@ -528,12 +528,12 @@ type RelayInjection struct {
 	ReceiveProtocol string `json:"recv_method"`
 	RelayID         string `json:"relay_id"`
 	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       int64  `json:"timestamp"`
+	Timestamp       string `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayInjection event
 func (i *RelayInjection) String() string {
-	return fmt.Sprintf("%d RI %s %s %s => %s",
+	return fmt.Sprintf("%s RI %s %s %s => %s",
 		i.Timestamp, i.RelayID, i.Binding, i.MessageFrom, i.Recipient)
 }
 
@@ -550,12 +550,12 @@ type RelayRejection struct {
 	ReceiveProtocol string `json:"recv_method"`
 	RelayID         string `json:"relay_id"`
 	RemoteAddress   string `json:"remote_addr"`
-	Timestamp       int64  `json:"timestamp"`
+	Timestamp       string `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayInjection event
 func (r *RelayRejection) String() string {
-	return fmt.Sprintf("%d RR %s %s => %s %s: %s",
+	return fmt.Sprintf("%s RR %s %s => %s %s: %s",
 		r.Timestamp, r.RelayID, r.MessageFrom, r.Recipient, r.ErrorCode, r.RawReason)
 }
 
@@ -573,12 +573,12 @@ type RelayDelivery struct {
 	RelayID         string `json:"relay_id"`
 	Retries         string `json:"num_retries"`
 	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       int64  `json:"timestamp"`
+	Timestamp       string `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayDelivery event
 func (d *RelayDelivery) String() string {
-	return fmt.Sprintf("%d RD %s %s <= %s",
+	return fmt.Sprintf("%s RD %s %s <= %s",
 		d.Timestamp, d.RelayID, d.Binding, d.MessageFrom)
 }
 
@@ -599,12 +599,12 @@ type RelayTempfail struct {
 	ReceiveProtocol string `json:"recv_method"`
 	RelayID         string `json:"relay_id"`
 	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       int64  `json:"timestamp"`
+	Timestamp       string `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayTempfail event
 func (t *RelayTempfail) String() string {
-	return fmt.Sprintf("%d RT %s %s <= %s %s: %s",
+	return fmt.Sprintf("%s RT %s %s <= %s %s: %s",
 		t.Timestamp, t.RelayID, t.Binding, t.MessageFrom, t.ErrorCode, t.RawReason)
 }
 
@@ -612,7 +612,7 @@ type RelayPermfail RelayTempfail
 
 // String returns a brief summary of a RelayInjection event
 func (p *RelayPermfail) String() string {
-	return fmt.Sprintf("%d RP %s %s <= %s %s: %s",
+	return fmt.Sprintf("%s RP %s %s <= %s %s: %s",
 		p.Timestamp, p.RelayID, p.Binding, p.MessageFrom, p.ErrorCode, p.RawReason)
 }
 
@@ -659,13 +659,13 @@ type SpamComplaint struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       int64       `json:"timestamp"`
+	Timestamp       string      `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserString      string      `json:"user_str"`
 }
 
 // String returns a brief summary of a SpamComplaint event
 func (p *SpamComplaint) String() string {
-	return fmt.Sprintf("%d S %s %s %s => %s (%s)",
+	return fmt.Sprintf("%s S %s %s %s => %s (%s)",
 		p.Timestamp, p.TransmissionID, p.Binding, p.ReportedBy, p.ReportedTo, p.Recipient)
 }
