@@ -72,7 +72,7 @@ func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[str
 	log.Printf("Path: %s", path)
 
 	if parameters == nil || len(parameters) == 0 {
-		finalUrl = fmt.Sprintf("%s/%s", c.Config.BaseUrl, path)
+		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
 		params := URL.Values{}
 		for k, v := range parameters {

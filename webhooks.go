@@ -80,7 +80,7 @@ func (c *Client) WebhookStatus(id string, parameters map[string]string) (*Webhoo
 	log.Printf("Path: %s", path)
 
 	if parameters == nil || len(parameters) == 0 {
-		finalUrl = fmt.Sprintf("%s/%s", c.Config.BaseUrl, path)
+		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
 		params := URL.Values{}
 		for k, v := range parameters {
@@ -102,7 +102,7 @@ func (c *Client) QueryWebhook(id string, parameters map[string]string) (*Webhook
 	log.Printf("Path: %s", path)
 
 	if parameters == nil || len(parameters) == 0 {
-		finalUrl = fmt.Sprintf("%s/%s", c.Config.BaseUrl, path)
+		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
 		params := URL.Values{}
 		for k, v := range parameters {
@@ -124,7 +124,7 @@ func (c *Client) ListWebhooks(parameters map[string]string) (*WebhookListWrapper
 	log.Printf("Path: %s", path)
 
 	if parameters == nil || len(parameters) == 0 {
-		finalUrl = fmt.Sprintf("%s/%s", c.Config.BaseUrl, path)
+		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
 		params := URL.Values{}
 		for k, v := range parameters {
@@ -132,6 +132,7 @@ func (c *Client) ListWebhooks(parameters map[string]string) (*WebhookListWrapper
 		}
 
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
+		fmt.Printf("URL: %s", finalUrl)
 	}
 
 	return doWebhooksListRequest(c, finalUrl)
