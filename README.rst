@@ -19,7 +19,7 @@ Install from GitHub using `go get`_:
 
 .. code-block:: bash
 
-    $ go get https://github.com/SparkPost/gosparkpost
+    $ go get github.com/SparkPost/gosparkpost
 
 .. _go get: https://golang.org/cmd/go/#hdr-Download_and_install_packages_and_dependencies
 

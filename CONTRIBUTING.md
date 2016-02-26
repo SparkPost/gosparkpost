@@ -20,11 +20,12 @@ propose changes to this document in a pull request.
 
 * Fork this repository
 * Clone the _original source_  using ``go get https://github.com/SparkPost/gosparkpost``
-* Add a remote pointing to your fork - ``go remote add fork https://github.com/YOUR_ID/gosparkpost``
-* Create a branch - ``go checkout -b fix-or-feature``
+* `cd $GOPATH/src/github.com/SparkPost/gosparkpost`
+* Add a remote pointing to your fork - ``git remote add fork https://github.com/YOUR_ID/gosparkpost``
+* Create a branch - ``git checkout -b fix-or-feature``
 * Write code!
 * Commit code!
-* Push code with - ``go push fork HEAD``
+* Push code with - ``git push fork HEAD``
 
 ## Contribution Steps
 
