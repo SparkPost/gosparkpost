@@ -10,6 +10,10 @@
 SparkPost Go API client
 =======================
 
+.. image:: http://slack.sparkpost.com/badge.svg
+    :target: http://slack.sparkpost.com
+    :alt: Slack Community
+
 The official Go package for using the SparkPost API.
 
 Installation
