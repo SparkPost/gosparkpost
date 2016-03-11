@@ -1,7 +1,11 @@
 // Package events defines a struct for each type of event and provides various other helper functions.
 package events
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+)
 
 // eventTypes contains all of the valid event types
 var eventTypes = map[string]bool{
@@ -93,6 +97,48 @@ type Event interface {
 	EventType() string
 }
 
+// Events is a list of events. Useful for decoding.
+type Events []Event
+
+func (events Events) UnmarshalJSON(data []byte) error {
+	events = []Event{}
+
+	log.Printf("unmarshal :)")
+
+	var eventWrappers []struct {
+		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
+	}
+	if err := json.Unmarshal(data, &eventWrappers); err != nil {
+		return err
+	}
+
+	for i, wrapper := range eventWrappers {
+		for _, eventData := range wrapper.MsysEventWrapper {
+			var typeLookup EventCommon
+			if err := json.Unmarshal(eventData, &typeLookup); err != nil {
+				log.Printf("lookup failed: %v %v", eventData)
+				return err
+			}
+			log.Printf("lookup: %v %v", typeLookup.EventType(), typeLookup)
+
+			var event Event
+			switch typeLookup.EventType() {
+			case "bounce":
+				event = &Bounce{}
+			default:
+				event = &Unknown{RawJSON: eventData}
+			}
+			if err := json.Unmarshal(eventData, &event); err != nil {
+				event = &Unknown{RawJSON: eventData, Error: err}
+			}
+			log.Printf("item[%v]: %T %v", i, event, event.EventType())
+			events = append(events, event)
+		}
+	}
+
+	return nil
+}
+
 func ECLog(e Event) string {
 	// XXX: this feels like the wrong way; can't figure out the right way
 	switch e.(type) {
@@ -125,6 +171,21 @@ type EventCommon struct {
 }
 
 func (e EventCommon) EventType() string { return e.Type }
+
+type Unknown struct {
+	RawJSON json.RawMessage
+	Error   error
+}
+
+func (e *Unknown) EventType() string { return "unknown" }
+
+func (e *Unknown) String() string {
+	return fmt.Sprintf("Unknown event: %v %v", e.Error, e.RawJSON)
+}
+
+func (e *Unknown) UnmarshalJSON(data []byte) error {
+	return nil
+}
 
 type Bounce struct {
 	EventCommon
