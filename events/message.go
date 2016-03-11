@@ -267,3 +267,31 @@ func (d *Delay) ECLog() string {
 		d.Binding, d.BindingGroup, d.BounceClass, d.MessageSize,
 		d.IPAddress, d.RawReason)
 }
+
+type SMSStatus struct {
+	EventCommon
+	CustomerID     string `json:"customer_id"`
+	DeliveryMethod string `json:"delv_method"`
+	// TODO: `json:"dr_latency"`
+	IPAddress      string   `json:"ip_address"`
+	RawReason      string   `json:"raw_reason"`
+	Reason         string   `json:"reason"`
+	RoutingDomain  string   `json:"routing_domain"`
+	Destination    string   `json:"sms_dst"`
+	DestinationNPI string   `json:"sms_dst_npi"`
+	DestinationTON string   `json:"sms_dst_ton"`
+	RemoteIDs      []string `json:"sms_remoteids"`
+	Source         string   `json:"sms_src"`
+	SourceNPI      string   `json:"sms_src_npi"`
+	SourceTON      string   `json:"sms_src_ton"`
+	Text           string   `json:"sms_text"`
+	StatusType     string   `json:"stat_type"`
+	StatusState    string   `json:"stat_state"`
+	// TODO: SubAccountID string `json:"subaccount_id"`
+	Timestamp Timestamp `json:"timestamp"`
+}
+
+// String returns a brief summary of a Delay event
+func (e *SMSStatus) String() string {
+	return fmt.Sprintf("%s SMS", e.Timestamp) // TODO: Improve message.
+}

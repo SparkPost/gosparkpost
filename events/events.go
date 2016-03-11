@@ -81,6 +81,8 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 				event = &RelayRejection{}
 			case "relay_tempfail":
 				event = &RelayTempfail{}
+			case "sms_status":
+				event = &SMSStatus{}
 			default:
 				event = &Unknown{
 					EventCommon: EventCommon{Type: typeLookup.EventType()},
