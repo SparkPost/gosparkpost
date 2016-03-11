@@ -18,7 +18,7 @@ type Click struct {
 	TargetLinkURL   string      `json:"target_link_url"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserAgent       string      `json:"user_agent"`
 }
@@ -43,7 +43,7 @@ type Open struct {
 	RecipientType   string      `json:"rcpt_type"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserAgent       string      `json:"user_agent"`
 }

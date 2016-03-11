@@ -14,7 +14,7 @@ type ListUnsubscribe struct {
 	RecipientType   string      `json:"rcpt_type"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 

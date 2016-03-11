@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 )
 
 // eventTypes contains all of the valid event types
@@ -102,8 +104,6 @@ type Events []Event
 
 func (events Events) UnmarshalJSON(data []byte) error {
 	events = []Event{}
-
-	log.Printf("unmarshal :)")
 
 	var eventWrappers []struct {
 		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
@@ -223,6 +223,21 @@ func (e *Unknown) String() string {
 }
 
 func (e *Unknown) UnmarshalJSON(data []byte) error {
+	return nil
+}
+
+type Timestamp time.Time
+
+func (t *Timestamp) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprint(time.Time(*t).Unix())), nil
+}
+
+func (t *Timestamp) UnmarshalJSON(data []byte) error {
+	unix, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return err
+	}
+	*t = Timestamp(time.Unix(unix, 0))
 	return nil
 }
 

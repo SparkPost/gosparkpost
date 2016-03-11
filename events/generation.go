@@ -19,7 +19,7 @@ type GenerationFailure struct {
 	RoutingDomain    string      `json:"routing_domain"`
 	TemplateID       string      `json:"template_id"`
 	TemplateVersion  string      `json:"template_version"`
-	Timestamp        string      `json:"timestamp"`
+	Timestamp        Timestamp   `json:"timestamp"`
 	TransmissionID   string      `json:"transmission_id"`
 }
 

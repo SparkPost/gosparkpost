@@ -4,18 +4,18 @@ import "fmt"
 
 type RelayInjection struct {
 	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	CustomerID      string `json:"customer_id"`
-	MessageFrom     string `json:"msg_from"`
-	MessageSize     string `json:"msg_size"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	Recipient       string `json:"rcpt_to"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       string `json:"timestamp"`
+	Binding         string    `json:"binding"`
+	BindingGroup    string    `json:"binding_group"`
+	CustomerID      string    `json:"customer_id"`
+	MessageFrom     string    `json:"msg_from"`
+	MessageSize     string    `json:"msg_size"`
+	Pathway         string    `json:"pathway"`
+	PathwayGroup    string    `json:"pathway_group"`
+	Recipient       string    `json:"rcpt_to"`
+	ReceiveProtocol string    `json:"recv_method"`
+	RelayID         string    `json:"relay_id"`
+	RoutingDomain   string    `json:"routing_domain"`
+	Timestamp       Timestamp `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayInjection event
@@ -26,18 +26,18 @@ func (i *RelayInjection) String() string {
 
 type RelayRejection struct {
 	EventCommon
-	CustomerID      string `json:"customer_id"`
-	ErrorCode       string `json:"error_code"`
-	MessageFrom     string `json:"msg_from"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	RawReason       string `json:"raw_reason"`
-	Reason          string `json:"reason"`
-	Recipient       string `json:"rcpt_to"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	RemoteAddress   string `json:"remote_addr"`
-	Timestamp       string `json:"timestamp"`
+	CustomerID      string    `json:"customer_id"`
+	ErrorCode       string    `json:"error_code"`
+	MessageFrom     string    `json:"msg_from"`
+	Pathway         string    `json:"pathway"`
+	PathwayGroup    string    `json:"pathway_group"`
+	RawReason       string    `json:"raw_reason"`
+	Reason          string    `json:"reason"`
+	Recipient       string    `json:"rcpt_to"`
+	ReceiveProtocol string    `json:"recv_method"`
+	RelayID         string    `json:"relay_id"`
+	RemoteAddress   string    `json:"remote_addr"`
+	Timestamp       Timestamp `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayInjection event
@@ -48,19 +48,19 @@ func (r *RelayRejection) String() string {
 
 type RelayDelivery struct {
 	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	CustomerID      string `json:"customer_id"`
-	DeliveryMethod  string `json:"delv_method"`
-	MessageFrom     string `json:"msg_from"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	QueueTime       string `json:"queue_time"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	Retries         string `json:"num_retries"`
-	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       string `json:"timestamp"`
+	Binding         string    `json:"binding"`
+	BindingGroup    string    `json:"binding_group"`
+	CustomerID      string    `json:"customer_id"`
+	DeliveryMethod  string    `json:"delv_method"`
+	MessageFrom     string    `json:"msg_from"`
+	Pathway         string    `json:"pathway"`
+	PathwayGroup    string    `json:"pathway_group"`
+	QueueTime       string    `json:"queue_time"`
+	ReceiveProtocol string    `json:"recv_method"`
+	RelayID         string    `json:"relay_id"`
+	Retries         string    `json:"num_retries"`
+	RoutingDomain   string    `json:"routing_domain"`
+	Timestamp       Timestamp `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayDelivery event
@@ -71,22 +71,22 @@ func (d *RelayDelivery) String() string {
 
 type RelayTempfail struct {
 	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	CustomerID      string `json:"customer_id"`
-	DeliveryMethod  string `json:"delv_method"`
-	ErrorCode       string `json:"error_code"`
-	MessageFrom     string `json:"msg_from"`
-	Retries         string `json:"num_retries"`
-	QueueTime       string `json:"queue_time"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	RawReason       string `json:"raw_reason"`
-	Reason          string `json:"reason"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       string `json:"timestamp"`
+	Binding         string    `json:"binding"`
+	BindingGroup    string    `json:"binding_group"`
+	CustomerID      string    `json:"customer_id"`
+	DeliveryMethod  string    `json:"delv_method"`
+	ErrorCode       string    `json:"error_code"`
+	MessageFrom     string    `json:"msg_from"`
+	Retries         string    `json:"num_retries"`
+	QueueTime       string    `json:"queue_time"`
+	Pathway         string    `json:"pathway"`
+	PathwayGroup    string    `json:"pathway_group"`
+	RawReason       string    `json:"raw_reason"`
+	Reason          string    `json:"reason"`
+	ReceiveProtocol string    `json:"recv_method"`
+	RelayID         string    `json:"relay_id"`
+	RoutingDomain   string    `json:"routing_domain"`
+	Timestamp       Timestamp `json:"timestamp"`
 }
 
 // String returns a brief summary of a RelayTempfail event

@@ -24,7 +24,7 @@ type Delivery struct {
 	RoutingDomain   string      `json:"routing_domain"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
@@ -62,7 +62,7 @@ type Injection struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
@@ -83,32 +83,32 @@ func (i *Injection) ECLog() string {
 
 type Bounce struct {
 	EventCommon
-	Binding         string      `json:"binding"`
-	BindingGroup    string      `json:"binding_group"`
-	BounceClass     string      `json:"bounce_class"`
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	DeviceToken     string      `json:"device_token"`
-	ErrorCode       string      `json:"error_code"`
-	IPAddress       string      `json:"ip_address"`
-	MessageID       string      `json:"message_id"`
-	MessageFrom     string      `json:"msg_from"`
-	MessageSize     string      `json:"msg_size"`
-	Retries         string      `json:"num_retries"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	RawReason       string      `json:"raw_reason"`
-	Reason          string      `json:"reason"`
-	ReceiveProtocol string      `json:"recv_method"`
-	RoutingDomain   string      `json:"routing_domain"`
-	Subject         string      `json:"subject"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
+	Binding         string            `json:"binding"`
+	BindingGroup    string            `json:"binding_group"`
+	BounceClass     string            `json:"bounce_class"`
+	CampaignID      string            `json:"campaign_id"`
+	CustomerID      string            `json:"customer_id"`
+	DeliveryMethod  string            `json:"delv_method"`
+	DeviceToken     string            `json:"device_token"`
+	ErrorCode       string            `json:"error_code"`
+	IPAddress       string            `json:"ip_address"`
+	MessageID       string            `json:"message_id"`
+	MessageFrom     string            `json:"msg_from"`
+	MessageSize     string            `json:"msg_size"`
+	Retries         string            `json:"num_retries"`
+	Metadata        map[string]string `json:"rcpt_meta"`
+	Tags            []string          `json:"rcpt_tags"`
+	Recipient       string            `json:"rcpt_to"`
+	RecipientType   string            `json:"rcpt_type"`
+	RawReason       string            `json:"raw_reason"`
+	Reason          string            `json:"reason"`
+	ReceiveProtocol string            `json:"recv_method"`
+	RoutingDomain   string            `json:"routing_domain"`
+	Subject         string            `json:"subject"`
+	TemplateID      string            `json:"template_id"`
+	TemplateVersion string            `json:"template_version"`
+	Timestamp       Timestamp         `json:"timestamp"`
+	TransmissionID  string            `json:"transmission_id"`
 }
 
 // String returns a brief summary of a Bounce event
@@ -129,24 +129,24 @@ func (b *Bounce) ECLog() string {
 
 type OutOfBand struct {
 	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	BounceClass     string `json:"bounce_class"`
-	CampaignID      string `json:"campaign_id"`
-	CustomerID      string `json:"customer_id"`
-	DeliveryMethod  string `json:"delv_method"`
-	DeviceToken     string `json:"device_token"`
-	ErrorCode       string `json:"error_code"`
-	MessageID       string `json:"message_id"`
-	MessageFrom     string `json:"msg_from"`
-	Recipient       string `json:"rcpt_to"`
-	RawReason       string `json:"raw_reason"`
-	Reason          string `json:"reason"`
-	ReceiveProtocol string `json:"recv_method"`
-	RoutingDomain   string `json:"routing_domain"`
-	TemplateID      string `json:"template_id"`
-	TemplateVersion string `json:"template_version"`
-	Timestamp       string `json:"timestamp"`
+	Binding         string    `json:"binding"`
+	BindingGroup    string    `json:"binding_group"`
+	BounceClass     string    `json:"bounce_class"`
+	CampaignID      string    `json:"campaign_id"`
+	CustomerID      string    `json:"customer_id"`
+	DeliveryMethod  string    `json:"delv_method"`
+	DeviceToken     string    `json:"device_token"`
+	ErrorCode       string    `json:"error_code"`
+	MessageID       string    `json:"message_id"`
+	MessageFrom     string    `json:"msg_from"`
+	Recipient       string    `json:"rcpt_to"`
+	RawReason       string    `json:"raw_reason"`
+	Reason          string    `json:"reason"`
+	ReceiveProtocol string    `json:"recv_method"`
+	RoutingDomain   string    `json:"routing_domain"`
+	TemplateID      string    `json:"template_id"`
+	TemplateVersion string    `json:"template_version"`
+	Timestamp       Timestamp `json:"timestamp"`
 }
 
 // String returns a brief summary of a Bounce event
@@ -183,7 +183,7 @@ type SpamComplaint struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserString      string      `json:"user_str"`
 }
@@ -212,7 +212,7 @@ type PolicyRejection struct {
 	ReceiveProtocol string      `json:"recv_method"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
@@ -249,7 +249,7 @@ type Delay struct {
 	Subject         string      `json:"subject"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 }
 
