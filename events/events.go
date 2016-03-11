@@ -20,14 +20,19 @@ type Events []Event
 func (events *Events) UnmarshalJSON(data []byte) error {
 	*events = []Event{}
 
-	var eventWrappers []struct {
+	var msysEventWrappers []struct {
 		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
 	}
-	if err := json.Unmarshal(data, &eventWrappers); err != nil {
+	if err := json.Unmarshal(data, &msysEventWrappers); err != nil {
 		return err
 	}
 
-	for _, wrapper := range eventWrappers {
+	// Empty "msys" wrapper is used for webhook validation.
+	if len(msysEventWrappers) == 1 && len(msysEventWrappers[0].MsysEventWrapper) == 0 {
+		return ErrWebhookValidation
+	}
+
+	for _, wrapper := range msysEventWrappers {
 		for _, eventData := range wrapper.MsysEventWrapper {
 			var typeLookup EventCommon
 			if err := json.Unmarshal(eventData, &typeLookup); err != nil {
@@ -80,7 +85,7 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 				event = &Unknown{
 					EventCommon: EventCommon{Type: typeLookup.EventType()},
 					RawJSON:     eventData,
-					Error:       errors.New("not implemented"),
+					Error:       ErrNotImplemented,
 				}
 				*events = append(*events, event)
 				continue
@@ -98,6 +103,11 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+var (
+	ErrWebhookValidation = errors.New("webhook validation request")
+	ErrNotImplemented    = errors.New("not implemented")
+)
 
 func ECLog(e Event) string {
 	// XXX: this feels like the wrong way; can't figure out the right way
