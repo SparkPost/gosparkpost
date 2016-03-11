@@ -125,6 +125,44 @@ func (events Events) UnmarshalJSON(data []byte) error {
 			switch typeLookup.EventType() {
 			case "bounce":
 				event = &Bounce{}
+			case "click":
+				event = &Click{}
+			case "creation":
+				event = &Creation{}
+			case "delay":
+				event = &Delay{}
+			case "delivery":
+				event = &Delivery{}
+			case "generation_failure":
+				event = &GenerationFailure{}
+			case "generation_rejection":
+				event = &GenerationRejection{}
+			case "injection":
+				event = &Injection{}
+			case "list_unsubscribe":
+				event = &ListUnsubscribe{}
+			case "link_unsubscribe":
+				event = &LinkUnsubscribe{}
+			case "open":
+				event = &Open{}
+			case "out_of_band":
+				event = &OutOfBand{}
+			case "policy_rejection":
+				event = &PolicyRejection{}
+			case "spam_complaint":
+				event = &SpamComplaint{}
+			case "relay_delivery":
+				event = &RelayDelivery{}
+			case "relay_injection":
+				event = &RelayInjection{}
+			case "relay_message":
+				event = &RelayMessage{}
+			case "relay_permfail":
+				event = &RelayPermfail{}
+			case "relay_rejection":
+				event = &RelayRejection{}
+			case "relay_tempfail":
+				event = &RelayTempfail{}
 			default:
 				event = &Unknown{RawJSON: eventData}
 			}
