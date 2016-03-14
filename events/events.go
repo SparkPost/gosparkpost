@@ -74,48 +74,95 @@ func EventForName(eventType string) Event {
 	return &Unknown{}
 }
 
-func (events *Events) UnmarshalJSON(data []byte) error {
-	*events = []Event{}
+func ParseRawJSONEvents(rawEvents []json.RawMessage) ([]Event, error) {
+	events := []Event{}
 
+	// Each item is event data in raw JSON.
+	for _, rawEvent := range rawEvents {
+		var typeLookup EventCommon
+		if err := json.Unmarshal(rawEvent, &typeLookup); err != nil {
+			typeLookup.Type = "unknown"
+		}
+
+		event := EventForName(typeLookup.EventType())
+		if e, ok := event.(*Unknown); ok {
+			e.EventCommon.Type = typeLookup.EventType()
+			e.RawJSON = rawEvent
+			e.Error = ErrNotImplemented
+			events = append(events, e)
+			continue
+		}
+
+		// Unmarshal into specic event object.
+		if err := json.Unmarshal(rawEvent, &event); err != nil {
+			event = &Unknown{
+				EventCommon: EventCommon{Type: typeLookup.EventType()},
+				RawJSON:     rawEvent,
+				Error:       err,
+			}
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
+func (events *Events) UnmarshalJSON(data []byte) error {
+	// Parse raw events from Event Webhook ("msys"-wrapped array of events).
+	rawEvents, err := parseRawJSONEventsFromWebhook(data)
+	if err != nil {
+		if err == ErrWebhookValidation {
+			return err
+		}
+		// Parse raw events from Event Samples ("results" object with array of events).
+		rawEvents, err = parseRawJSONEventsFromSamples(data)
+		if err != nil {
+			return err
+		}
+	}
+
+	*events, err = ParseRawJSONEvents(rawEvents)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
+	var rawEvents []json.RawMessage
+
+	// These "msys"-wrapped events are being sent on Event Webhooks.
 	var msysEventWrappers []struct {
 		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
 	}
 	if err := json.Unmarshal(data, &msysEventWrappers); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Empty "msys" wrapper is used for webhook validation.
 	if len(msysEventWrappers) == 1 && len(msysEventWrappers[0].MsysEventWrapper) == 0 {
-		return ErrWebhookValidation
+		return nil, ErrWebhookValidation
 	}
 
 	for _, wrapper := range msysEventWrappers {
-		for _, eventData := range wrapper.MsysEventWrapper {
-			var typeLookup EventCommon
-			if err := json.Unmarshal(eventData, &typeLookup); err != nil {
-				return err
-			}
-
-			event := EventForName(typeLookup.EventType())
-			if e, ok := event.(*Unknown); ok {
-				e.EventCommon.Type = typeLookup.EventType()
-				e.RawJSON = eventData
-				e.Error = ErrNotImplemented
-				*events = append(*events, e)
-				continue
-			}
-			if err := json.Unmarshal(eventData, &event); err != nil {
-				event = &Unknown{
-					EventCommon: EventCommon{Type: typeLookup.EventType()},
-					RawJSON:     eventData,
-					Error:       err,
-				}
-			}
-			*events = append(*events, event)
+		for _, rawEvent := range wrapper.MsysEventWrapper {
+			rawEvents = append(rawEvents, rawEvent)
 		}
 	}
 
-	return nil
+	return rawEvents, nil
+}
+
+func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
+	// Object with array of events is being sent on Event Samples.
+	var resultsWrapper struct {
+		RawEvents []json.RawMessage `json:"results"`
+	}
+	if err := json.Unmarshal(data, &resultsWrapper); err != nil {
+		return nil, err
+	}
+
+	return resultsWrapper.RawEvents, nil
 }
 
 var (
