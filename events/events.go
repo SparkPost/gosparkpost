@@ -222,6 +222,10 @@ func (e *Unknown) UnmarshalJSON(data []byte) error {
 
 type Timestamp time.Time
 
+func (t Timestamp) String() string {
+	return time.Time(t).String()
+}
+
 func (t *Timestamp) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprint(time.Time(*t).Unix())), nil
 }
@@ -288,7 +292,7 @@ type Creation struct {
 	Submitted       string      `json:"submitted_rcpts"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserID          string      `json:"user_id"`
 }
