@@ -2,6 +2,7 @@
 package events
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -226,6 +227,9 @@ func (t *Timestamp) MarshalJSON() ([]byte, error) {
 }
 
 func (t *Timestamp) UnmarshalJSON(data []byte) error {
+	// Trim quotes.
+	data = bytes.Trim(data, `"`)
+
 	// Timestamps coming from Webhook Events are Unix timestamps.
 	unix, err := strconv.ParseInt(string(data), 10, 64)
 	if err == nil {
@@ -234,7 +238,7 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	}
 
 	// Timestamps coming from Event Samples are in this RFC 3339-like format.
-	customTime, err := time.Parse("\"2006-01-02T15:04:05.000-07:00\"", string(data))
+	customTime, err := time.Parse("2006-01-02T15:04:05.000-07:00", string(data))
 	if err != nil {
 		return err
 	}
