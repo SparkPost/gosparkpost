@@ -248,11 +248,32 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 }
 
 type GeoIP struct {
-	Country   string `json:"country"`
-	Region    string `json:"region"`
-	City      string `json:"city"`
-	Latitude  string `json:"latitude"`
-	Longitude string `json:"longitude"`
+	Country   string  `json:"country"`
+	Region    string  `json:"region"`
+	City      string  `json:"city"`
+	Latitude  LatLong `json:"latitude"`
+	Longitude LatLong `json:"longitude"`
+}
+
+// The API inconsistently returns float or string. We need a custom unmarshaller.
+type LatLong float32
+
+func (v *LatLong) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprint("%v", v)), nil
+}
+
+func (v *LatLong) UnmarshalJSON(data []byte) error {
+	// Trim quotes if the API returns string.
+	data = bytes.Trim(data, `"`)
+
+	// Parse the actual value.
+	value, err := strconv.ParseFloat(string(data), 32)
+	if err != nil {
+		return err
+	}
+
+	*v = LatLong(value)
+	return nil
 }
 
 type Creation struct {
