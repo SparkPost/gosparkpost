@@ -226,11 +226,20 @@ func (t *Timestamp) MarshalJSON() ([]byte, error) {
 }
 
 func (t *Timestamp) UnmarshalJSON(data []byte) error {
+	// Timestamps coming from Webhook Events are Unix timestamps.
 	unix, err := strconv.ParseInt(string(data), 10, 64)
+	if err == nil {
+		*t = Timestamp(time.Unix(unix, 0))
+		return nil
+	}
+
+	// Timestamps coming from Event Samples are in this RFC 3339-like format.
+	customTime, err := time.Parse("\"2006-01-02T15:04:05.000-07:00\"", string(data))
 	if err != nil {
 		return err
 	}
-	*t = Timestamp(time.Unix(unix, 0))
+
+	*t = Timestamp(customTime)
 	return nil
 }
 
