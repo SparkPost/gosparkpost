@@ -17,6 +17,63 @@ type Event interface {
 // Events is a list of generic events. Useful for decoding events from API webhooks.
 type Events []Event
 
+// ValidEventType returns true if the event name parameter is valid.
+func ValidEventType(eventType string) bool {
+	if _, ok := EventForName(eventType).(*Unknown); ok {
+		return false
+	}
+	return true
+}
+
+// EventForName returns a struct matching the passed-in type.
+func EventForName(eventType string) Event {
+	switch eventType {
+	case "bounce":
+		return &Bounce{}
+	case "click":
+		return &Click{}
+	case "creation":
+		return &Creation{}
+	case "delay":
+		return &Delay{}
+	case "delivery":
+		return &Delivery{}
+	case "generation_failure":
+		return &GenerationFailure{}
+	case "generation_rejection":
+		return &GenerationRejection{}
+	case "injection":
+		return &Injection{}
+	case "list_unsubscribe":
+		return &ListUnsubscribe{}
+	case "link_unsubscribe":
+		return &LinkUnsubscribe{}
+	case "open":
+		return &Open{}
+	case "out_of_band":
+		return &OutOfBand{}
+	case "policy_rejection":
+		return &PolicyRejection{}
+	case "spam_complaint":
+		return &SpamComplaint{}
+	case "relay_delivery":
+		return &RelayDelivery{}
+	case "relay_injection":
+		return &RelayInjection{}
+	case "relay_message":
+		return &RelayMessage{}
+	case "relay_permfail":
+		return &RelayPermfail{}
+	case "relay_rejection":
+		return &RelayRejection{}
+	case "relay_tempfail":
+		return &RelayTempfail{}
+	case "sms_status":
+		return &SMSStatus{}
+	}
+	return &Unknown{}
+}
+
 func (events *Events) UnmarshalJSON(data []byte) error {
 	*events = []Event{}
 
@@ -39,57 +96,12 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 				return err
 			}
 
-			var event Event
-			switch typeLookup.EventType() {
-			case "bounce":
-				event = &Bounce{}
-			case "click":
-				event = &Click{}
-			case "creation":
-				event = &Creation{}
-			case "delay":
-				event = &Delay{}
-			case "delivery":
-				event = &Delivery{}
-			case "generation_failure":
-				event = &GenerationFailure{}
-			case "generation_rejection":
-				event = &GenerationRejection{}
-			case "injection":
-				event = &Injection{}
-			case "list_unsubscribe":
-				event = &ListUnsubscribe{}
-			case "link_unsubscribe":
-				event = &LinkUnsubscribe{}
-			case "open":
-				event = &Open{}
-			case "out_of_band":
-				event = &OutOfBand{}
-			case "policy_rejection":
-				event = &PolicyRejection{}
-			case "spam_complaint":
-				event = &SpamComplaint{}
-			case "relay_delivery":
-				event = &RelayDelivery{}
-			case "relay_injection":
-				event = &RelayInjection{}
-			case "relay_message":
-				event = &RelayMessage{}
-			case "relay_permfail":
-				event = &RelayPermfail{}
-			case "relay_rejection":
-				event = &RelayRejection{}
-			case "relay_tempfail":
-				event = &RelayTempfail{}
-			case "sms_status":
-				event = &SMSStatus{}
-			default:
-				event = &Unknown{
-					EventCommon: EventCommon{Type: typeLookup.EventType()},
-					RawJSON:     eventData,
-					Error:       ErrNotImplemented,
-				}
-				*events = append(*events, event)
+			event := EventForName(typeLookup.EventType())
+			if e, ok := event.(*Unknown); ok {
+				e.EventCommon.Type = typeLookup.EventType()
+				e.RawJSON = eventData
+				e.Error = ErrNotImplemented
+				*events = append(*events, e)
 				continue
 			}
 			if err := json.Unmarshal(eventData, &event); err != nil {
