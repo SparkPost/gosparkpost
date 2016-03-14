@@ -2,7 +2,6 @@ package gosparkpost_test
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -45,19 +44,25 @@ func TestMessageAllEvents(t *testing.T) {
 	}
 
 	for _, ev := range *e {
-		t.Error(fmt.Errorf("%s", ev))
 		switch event := ev.(type) {
 		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
 			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
 			*events.RelayInjection, *events.RelayRejection, *events.RelayDelivery,
-			*events.RelayTempfail, *events.RelayPermfail, *events.SpamComplaint:
-			t.Error(fmt.Errorf("%s", event))
+			*events.RelayTempfail, *events.RelayPermfail, *events.SpamComplaint, *events.SMSStatus:
+			if len(fmt.Sprintf("%v", event)) == 0 {
+				t.Errorf("Empty output of %T.String()", event)
+			}
 
 		case *events.Bounce, *events.Delay, *events.Delivery, *events.Injection, *events.OutOfBand:
-			t.Error(fmt.Errorf("%s", events.ECLog(event)))
+			if len(events.ECLog(event)) == 0 {
+				t.Errorf("Empty output of %T.ECLog()", event)
+			}
+
+		case *events.Unknown:
+			t.Errorf("Uknown type: %v", event)
 
 		default:
-			t.Errorf("Unsupported type [%s]", reflect.TypeOf(ev))
+			t.Errorf("Uknown type: %T", event)
 		}
 	}
 }
@@ -98,7 +103,6 @@ func TestMessageFilteredEvents(t *testing.T) {
 	}
 
 	for _, ev := range *e {
-		t.Error(fmt.Errorf("%s", ev))
 		switch event := ev.(type) {
 		case *events.Click, *events.Open, *events.Bounce:
 			// Expected, ok.
