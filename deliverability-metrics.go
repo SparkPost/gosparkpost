@@ -3,7 +3,6 @@ package gosparkpost
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	URL "net/url"
 )
@@ -69,7 +68,7 @@ func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[str
 		path = fmt.Sprintf("%s/%s", path, extraPath)
 	}
 
-	log.Printf("Path: %s", path)
+	//log.Printf("Path: %s", path)
 
 	if parameters == nil || len(parameters) == 0 {
 		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
@@ -82,7 +81,7 @@ func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[str
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return DoMetricsRequest(c, finalUrl)
+	return doMetricsRequest(c, finalUrl)
 }
 
 func (c *Client) MetricEventAsString(e *DeliverabilityMetricItem) string {
@@ -90,7 +89,7 @@ func (c *Client) MetricEventAsString(e *DeliverabilityMetricItem) string {
 	return fmt.Sprintf("domain: %s, [%v]", e.Domain, e)
 }
 
-func DoMetricsRequest(c *Client, finalUrl string) (*DeliverabilityMetricEventsWrapper, error) {
+func doMetricsRequest(c *Client, finalUrl string) (*DeliverabilityMetricEventsWrapper, error) {
 	// Send off our request
 	res, err := c.HttpGet(finalUrl)
 	if err != nil {
