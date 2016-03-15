@@ -21,7 +21,7 @@ type EventsPage struct {
 	client *Client
 
 	Events     events.Events
-	totalCount int
+	TotalCount int
 	nextPage   string
 	prevPage   string
 	firstPage  string
