@@ -127,7 +127,7 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	ep.totalCount = resultsWrapper.TotalCount
+	ep.TotalCount = resultsWrapper.TotalCount
 
 	for _, link := range resultsWrapper.Links {
 		switch link.Rel {
