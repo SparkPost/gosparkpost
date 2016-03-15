@@ -2,7 +2,6 @@ package gosparkpost_test
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -34,20 +33,20 @@ func TestMessageEvents(t *testing.T) {
 		return
 	}
 
-	eventPage, err := client.SearchMessageEvents(nil)
+	params := map[string]string{
+		"per_page": "10",
+	}
+	eventsPage, err := client.MessageEvents(params)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	log.Printf("%+v\n", eventPage)
-
-	if len(eventPage.Events) == 0 {
+	if len(eventsPage.Events) == 0 {
 		t.Error("expected non-empty result")
 	}
 
-	for _, ev := range eventPage.Events {
-		log.Printf("%T: %v\n", ev, ev)
+	for _, ev := range eventsPage.Events {
 		switch event := ev.(type) {
 		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
 			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
@@ -67,6 +66,15 @@ func TestMessageEvents(t *testing.T) {
 
 		default:
 			t.Errorf("Uknown type: %T", event)
+		}
+	}
+
+	eventsPage, err = eventsPage.Next()
+	if err != nil && err != sp.ErrEmptyPage {
+		t.Error(err)
+	} else {
+		if len(eventsPage.Events) == 0 {
+			t.Error("expected non-empty result")
 		}
 	}
 }

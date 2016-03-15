@@ -18,19 +18,10 @@ type Event interface {
 // Events is a list of generic events. Useful for decoding events from API webhooks.
 type Events []Event
 
-type EventsPage struct {
-	Events     Events
-	totalCount int
-	nextPage   string
-	prevPage   string
-	firstPage  string
-	lastPage   string
-}
-
-//
-// func (events *EventsPage) Next() (Events, error) {
-//
-// }
+var (
+	ErrWebhookValidation = errors.New("webhook validation request")
+	ErrNotImplemented    = errors.New("not implemented")
+)
 
 // ValidEventType returns true if the event name parameter is valid.
 func ValidEventType(eventType string) bool {
@@ -179,52 +170,6 @@ func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
 
 	return resultsWrapper.RawEvents, nil
 }
-
-func (events *EventsPage) UnmarshalJSON(data []byte) error {
-	// Clear object.
-	*events = EventsPage{}
-
-	// Object with array of events and cursors is being sent on Message Events.
-	var resultsWrapper struct {
-		RawEvents  []json.RawMessage `json:"results"`
-		TotalCount int               `json:"total_count,omitempty"`
-		Links      []struct {
-			Href string `json:"href"`
-			Rel  string `json:"rel"`
-		} `json:"links,omitempty"`
-	}
-	err := json.Unmarshal(data, &resultsWrapper)
-	if err != nil {
-		return err
-	}
-
-	events.Events, err = ParseRawJSONEvents(resultsWrapper.RawEvents)
-	if err != nil {
-		return err
-	}
-
-	events.totalCount = resultsWrapper.TotalCount
-
-	for _, link := range resultsWrapper.Links {
-		switch link.Rel {
-		case "next":
-			events.nextPage = link.Href
-		case "previous":
-			events.prevPage = link.Href
-		case "first":
-			events.firstPage = link.Href
-		case "last":
-			events.lastPage = link.Href
-		}
-	}
-
-	return nil
-}
-
-var (
-	ErrWebhookValidation = errors.New("webhook validation request")
-	ErrNotImplemented    = errors.New("not implemented")
-)
 
 func ECLog(e Event) string {
 	// XXX: this feels like the wrong way; can't figure out the right way
