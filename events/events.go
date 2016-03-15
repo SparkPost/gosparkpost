@@ -18,6 +18,20 @@ type Event interface {
 // Events is a list of generic events. Useful for decoding events from API webhooks.
 type Events []Event
 
+type EventsPage struct {
+	Events     Events
+	totalCount int
+	nextPage   string
+	prevPage   string
+	firstPage  string
+	lastPage   string
+}
+
+//
+// func (events *EventsPage) Next() (Events, error) {
+//
+// }
+
 // ValidEventType returns true if the event name parameter is valid.
 func ValidEventType(eventType string) bool {
 	if _, ok := EventForName(eventType).(*Unknown); ok {
@@ -132,7 +146,7 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
 	var rawEvents []json.RawMessage
 
-	// These "msys"-wrapped events are being sent on Event Webhooks.
+	// These "msys"-wrapped events are being sent on Webhooks.
 	var msysEventWrappers []struct {
 		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
 	}
@@ -155,7 +169,7 @@ func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
 }
 
 func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
-	// Object with array of events is being sent on Event Samples.
+	// Object with array of events is being sent on Events Samples.
 	var resultsWrapper struct {
 		RawEvents []json.RawMessage `json:"results"`
 	}
@@ -164,6 +178,47 @@ func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
 	}
 
 	return resultsWrapper.RawEvents, nil
+}
+
+func (events *EventsPage) UnmarshalJSON(data []byte) error {
+	// Clear object.
+	*events = EventsPage{}
+
+	// Object with array of events and cursors is being sent on Message Events.
+	var resultsWrapper struct {
+		RawEvents  []json.RawMessage `json:"results"`
+		TotalCount int               `json:"total_count,omitempty"`
+		Links      []struct {
+			Href string `json:"href"`
+			Rel  string `json:"rel"`
+		} `json:"links,omitempty"`
+	}
+	err := json.Unmarshal(data, &resultsWrapper)
+	if err != nil {
+		return err
+	}
+
+	events.Events, err = ParseRawJSONEvents(resultsWrapper.RawEvents)
+	if err != nil {
+		return err
+	}
+
+	events.totalCount = resultsWrapper.TotalCount
+
+	for _, link := range resultsWrapper.Links {
+		switch link.Rel {
+		case "next":
+			events.nextPage = link.Href
+		case "previous":
+			events.prevPage = link.Href
+		case "first":
+			events.firstPage = link.Href
+		case "last":
+			events.lastPage = link.Href
+		}
+	}
+
+	return nil
 }
 
 var (

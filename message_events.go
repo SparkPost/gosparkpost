@@ -10,11 +10,55 @@ import (
 )
 
 // https://www.sparkpost.com/api#/reference/message-events
-var messageEventsPathFormat = "%s/api/v%d/message-events/events/samples"
+var (
+	messageEventsPathFormat        = "%s/api/v%d/message-events"
+	messageEventsSamplesPathFormat = "%s/api/v%d/message-events/events/samples"
+)
+
+// https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
+func (c *Client) SearchMessageEvents(params map[string]string) (*events.EventsPage, error) {
+	url, err := url.Parse(fmt.Sprintf(messageEventsPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(params) > 0 {
+		q := url.Query()
+		for k, v := range params {
+			q.Add(k, v)
+		}
+		url.RawQuery = q.Encode()
+	}
+
+	// Send off our request
+	res, err := c.HttpGet(url.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// Assert that we got a JSON Content-Type back
+	if err = res.AssertJson(); err != nil {
+		return nil, err
+	}
+
+	// Get the Content
+	bodyBytes, err := res.ReadBody()
+	if err != nil {
+		return nil, err
+	}
+
+	var eventsPage events.EventsPage
+	err = json.Unmarshal(bodyBytes, &eventsPage)
+	if err != nil {
+		return nil, err
+	}
+
+	return &eventsPage, nil
+}
 
 // Samples requests a list of example event data.
 func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
-	url, err := url.Parse(fmt.Sprintf(messageEventsPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
+	url, err := url.Parse(fmt.Sprintf(messageEventsSamplesPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +101,6 @@ func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//TODO: Filter out types..
 
 	return &events, nil
 }

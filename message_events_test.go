@@ -2,6 +2,7 @@ package gosparkpost_test
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -9,7 +10,68 @@ import (
 	"github.com/SparkPost/gosparkpost/test"
 )
 
-func TestMessageAllEvents(t *testing.T) {
+func TestMessageEvents(t *testing.T) {
+	if true {
+		// Temporarily disable test so TravisCI reports build success instead of test failure.
+		return
+	}
+
+	cfgMap, err := test.LoadConfig()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	cfg, err := sp.NewConfig(cfgMap)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var client sp.Client
+	err = client.Init(cfg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	eventPage, err := client.SearchMessageEvents(nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	log.Printf("%+v\n", eventPage)
+
+	if len(eventPage.Events) == 0 {
+		t.Error("expected non-empty result")
+	}
+
+	for _, ev := range eventPage.Events {
+		log.Printf("%T: %v\n", ev, ev)
+		switch event := ev.(type) {
+		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
+			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
+			*events.RelayInjection, *events.RelayRejection, *events.RelayDelivery,
+			*events.RelayTempfail, *events.RelayPermfail, *events.SpamComplaint, *events.SMSStatus:
+			if len(fmt.Sprintf("%v", event)) == 0 {
+				t.Errorf("Empty output of %T.String()", event)
+			}
+
+		case *events.Bounce, *events.Delay, *events.Delivery, *events.Injection, *events.OutOfBand:
+			if len(events.ECLog(event)) == 0 {
+				t.Errorf("Empty output of %T.ECLog()", event)
+			}
+
+		case *events.Unknown:
+			t.Errorf("Uknown type: %v", event)
+
+		default:
+			t.Errorf("Uknown type: %T", event)
+		}
+	}
+}
+
+func TestAllEventsSamples(t *testing.T) {
 	if true {
 		// Temporarily disable test so TravisCI reports build success instead of test failure.
 		return
@@ -67,7 +129,7 @@ func TestMessageAllEvents(t *testing.T) {
 	}
 }
 
-func TestMessageFilteredEvents(t *testing.T) {
+func TestFilteredEventsSamples(t *testing.T) {
 	if true {
 		// Temporarily disable test so TravisCI reports build success instead of test failure.
 		return
