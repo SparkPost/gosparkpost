@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	re "regexp"
+	"regexp"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
@@ -31,7 +31,7 @@ type Client struct {
 	Client *http.Client
 }
 
-var nonDigit *re.Regexp = re.MustCompile(`\D`)
+var nonDigit *regexp.Regexp = regexp.MustCompile(`\D`)
 
 // NewConfig builds a Config object using the provided map.
 func NewConfig(m map[string]string) (*Config, error) {
@@ -211,16 +211,14 @@ func AssertObject(obj interface{}, label string) error {
 	return nil
 }
 
-var jctype string = "application/json"
-
 // AssertJson returns an error if the provided HTTP response isn't JSON.
 func (r *Response) AssertJson() error {
 	if r.HTTP == nil {
 		return fmt.Errorf("AssertJson got nil http.Response")
 	}
-	ctype := r.HTTP.Header.Get("Content-Type")
+	ctype := strings.ToLower(r.HTTP.Header.Get("Content-Type"))
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
-	if !(strings.EqualFold(ctype, jctype) || strings.HasPrefix(ctype, jctype)) {
+	if !strings.HasPrefix(ctype, "application/json") {
 		return fmt.Errorf("Expected json, got [%s] with code %d", ctype, r.HTTP.StatusCode)
 	}
 	return nil

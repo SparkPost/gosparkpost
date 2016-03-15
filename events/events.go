@@ -1,46 +1,33 @@
 // Package events defines a struct for each type of event and provides various other helper functions.
 package events
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+)
 
-// eventTypes contains all of the valid event types
-var eventTypes = map[string]bool{
-	"bounce":               true,
-	"click":                true,
-	"creation":             false,
-	"delay":                true,
-	"delivery":             true,
-	"generation_failure":   true,
-	"generation_rejection": true,
-	"injection":            true,
-	"list_unsubscribe":     true,
-	"link_unsubscribe":     true,
-	"open":                 true,
-	"out_of_band":          true,
-	"policy_rejection":     true,
-	"spam_complaint":       true,
-	"relay_delivery":       true,
-	"relay_injection":      true,
-	"relay_message":        true,
-	"relay_permfail":       true,
-	"relay_rejection":      true,
-	"relay_tempfail":       true,
+// Event is a generic event.
+type Event interface {
+	EventType() string
 }
+
+// Events is a list of generic events. Useful for decoding events from API webhooks.
+type Events []Event
 
 // ValidEventType returns true if the event name parameter is valid.
 func ValidEventType(eventType string) bool {
-	if _, ok := eventTypes[eventType]; ok {
-		return true
+	if _, ok := EventForName(eventType).(*Unknown); ok {
+		return false
 	}
-	return false
+	return true
 }
 
 // EventForName returns a struct matching the passed-in type.
 func EventForName(eventType string) Event {
-	if !ValidEventType(eventType) {
-		return nil
-	}
-
 	switch eventType {
 	case "bounce":
 		return &Bounce{}
@@ -82,16 +69,107 @@ func EventForName(eventType string) Event {
 		return &RelayRejection{}
 	case "relay_tempfail":
 		return &RelayTempfail{}
-
-	default:
-		return nil
+	case "sms_status":
+		return &SMSStatus{}
 	}
+	return &Unknown{}
 }
 
-// Event allows 2+ types of event in a data structure.
-type Event interface {
-	EventType() string
+func ParseRawJSONEvents(rawEvents []json.RawMessage) ([]Event, error) {
+	events := []Event{}
+
+	// Each item is event data in raw JSON.
+	for _, rawEvent := range rawEvents {
+		var typeLookup EventCommon
+		if err := json.Unmarshal(rawEvent, &typeLookup); err != nil {
+			typeLookup.Type = "unknown"
+		}
+
+		event := EventForName(typeLookup.EventType())
+		if e, ok := event.(*Unknown); ok {
+			e.EventCommon.Type = typeLookup.EventType()
+			e.RawJSON = rawEvent
+			e.Error = ErrNotImplemented
+			events = append(events, e)
+			continue
+		}
+
+		// Unmarshal into specic event object.
+		if err := json.Unmarshal(rawEvent, &event); err != nil {
+			event = &Unknown{
+				EventCommon: EventCommon{Type: typeLookup.EventType()},
+				RawJSON:     rawEvent,
+				Error:       err,
+			}
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
 }
+
+func (events *Events) UnmarshalJSON(data []byte) error {
+	// Parse raw events from Event Webhook ("msys"-wrapped array of events).
+	rawEvents, err := parseRawJSONEventsFromWebhook(data)
+	if err != nil {
+		if err == ErrWebhookValidation {
+			return err
+		}
+		// Parse raw events from Event Samples ("results" object with array of events).
+		rawEvents, err = parseRawJSONEventsFromSamples(data)
+		if err != nil {
+			return err
+		}
+	}
+
+	*events, err = ParseRawJSONEvents(rawEvents)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
+	var rawEvents []json.RawMessage
+
+	// These "msys"-wrapped events are being sent on Event Webhooks.
+	var msysEventWrappers []struct {
+		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
+	}
+	if err := json.Unmarshal(data, &msysEventWrappers); err != nil {
+		return nil, err
+	}
+
+	// Empty "msys" wrapper is used for webhook validation.
+	if len(msysEventWrappers) == 1 && len(msysEventWrappers[0].MsysEventWrapper) == 0 {
+		return nil, ErrWebhookValidation
+	}
+
+	for _, wrapper := range msysEventWrappers {
+		for _, rawEvent := range wrapper.MsysEventWrapper {
+			rawEvents = append(rawEvents, rawEvent)
+		}
+	}
+
+	return rawEvents, nil
+}
+
+func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
+	// Object with array of events is being sent on Event Samples.
+	var resultsWrapper struct {
+		RawEvents []json.RawMessage `json:"results"`
+	}
+	if err := json.Unmarshal(data, &resultsWrapper); err != nil {
+		return nil, err
+	}
+
+	return resultsWrapper.RawEvents, nil
+}
+
+var (
+	ErrWebhookValidation = errors.New("webhook validation request")
+	ErrNotImplemented    = errors.New("not implemented")
+)
 
 func ECLog(e Event) string {
 	// XXX: this feels like the wrong way; can't figure out the right way
@@ -126,85 +204,80 @@ type EventCommon struct {
 
 func (e EventCommon) EventType() string { return e.Type }
 
-type Bounce struct {
+type Unknown struct {
 	EventCommon
-	Binding         string      `json:"binding"`
-	BindingGroup    string      `json:"binding_group"`
-	BounceClass     string      `json:"bounce_class"`
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	DeviceToken     string      `json:"device_token"`
-	ErrorCode       string      `json:"error_code"`
-	IPAddress       string      `json:"ip_address"`
-	MessageID       string      `json:"message_id"`
-	MessageFrom     string      `json:"msg_from"`
-	MessageSize     string      `json:"msg_size"`
-	Retries         string      `json:"num_retries"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	RawReason       string      `json:"raw_reason"`
-	Reason          string      `json:"reason"`
-	ReceiveProtocol string      `json:"recv_method"`
-	RoutingDomain   string      `json:"routing_domain"`
-	Subject         string      `json:"subject"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
+	RawJSON json.RawMessage
+	Error   error
 }
 
-// String returns a brief summary of a Bounce event
-func (b *Bounce) String() string {
-	return fmt.Sprintf("%s B %s %s => %s %s: %s",
-		b.Timestamp, b.TransmissionID, b.Binding, b.Recipient,
-		b.BounceClass, b.RawReason)
+func (e *Unknown) EventType() string { return "unknown" }
+
+func (e *Unknown) String() string {
+	return fmt.Sprintf("Unknown event (type %q): %v\n%s", e.EventCommon.EventType(), e.Error, e.RawJSON)
 }
 
-// ECLog emits a Bounce in the same format that it would be logged to bouncelog.ec:
-// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
-func (b *Bounce) ECLog() string {
-	return fmt.Sprintf("%s@%s@@@B@%s@%s@%s@%s@@%s@%s@%s@%s",
-		b.Timestamp, b.MessageID, b.Recipient, b.MessageFrom,
-		b.Binding, b.BindingGroup, b.BounceClass, b.MessageSize,
-		b.IPAddress, b.RawReason)
+func (e *Unknown) UnmarshalJSON(data []byte) error {
+	return nil
+}
+
+type Timestamp time.Time
+
+func (t Timestamp) String() string {
+	return time.Time(t).String()
+}
+
+func (t *Timestamp) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprint(time.Time(*t).Unix())), nil
+}
+
+func (t *Timestamp) UnmarshalJSON(data []byte) error {
+	// Trim quotes.
+	data = bytes.Trim(data, `"`)
+
+	// Timestamps coming from Webhook Events are Unix timestamps.
+	unix, err := strconv.ParseInt(string(data), 10, 64)
+	if err == nil {
+		*t = Timestamp(time.Unix(unix, 0))
+		return nil
+	}
+
+	// Timestamps coming from Event Samples are in this RFC 3339-like format.
+	customTime, err := time.Parse("2006-01-02T15:04:05.000-07:00", string(data))
+	if err != nil {
+		return err
+	}
+
+	*t = Timestamp(customTime)
+	return nil
 }
 
 type GeoIP struct {
-	Country   string `json:"country"`
-	Region    string `json:"region"`
-	City      string `json:"city"`
-	Latitude  string `json:"latitude"`
-	Longitude string `json:"longitude"`
+	Country   string  `json:"country"`
+	Region    string  `json:"region"`
+	City      string  `json:"city"`
+	Latitude  LatLong `json:"latitude"`
+	Longitude LatLong `json:"longitude"`
 }
 
-type Click struct {
-	EventCommon
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	GeoIP           *GeoIP      `json:"geo_ip"`
-	IPAddress       string      `json:"ip_address"`
-	MessageID       string      `json:"message_id"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	TargetLinkName  string      `json:"target_link_name"`
-	TargetLinkURL   string      `json:"target_link_url"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-	UserAgent       string      `json:"user_agent"`
+// The API inconsistently returns float or string. We need a custom unmarshaller.
+type LatLong float32
+
+func (v *LatLong) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprint("%v", v)), nil
 }
 
-// String returns a brief summary of a Click event
-func (c *Click) String() string {
-	return fmt.Sprintf("%s C %s %s => %s",
-		c.Timestamp, c.TransmissionID, c.Recipient, c.TargetLinkURL)
+func (v *LatLong) UnmarshalJSON(data []byte) error {
+	// Trim quotes if the API returns string.
+	data = bytes.Trim(data, `"`)
+
+	// Parse the actual value.
+	value, err := strconv.ParseFloat(string(data), 32)
+	if err != nil {
+		return err
+	}
+
+	*v = LatLong(value)
+	return nil
 }
 
 type Creation struct {
@@ -219,7 +292,7 @@ type Creation struct {
 	Submitted       string      `json:"submitted_rcpts"`
 	TemplateID      string      `json:"template_id"`
 	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
+	Timestamp       Timestamp   `json:"timestamp"`
 	TransmissionID  string      `json:"transmission_id"`
 	UserID          string      `json:"user_id"`
 }
@@ -227,445 +300,4 @@ type Creation struct {
 func (c *Creation) String() string {
 	return fmt.Sprintf("%s CT %s (%s, %s)",
 		c.Timestamp, c.TransmissionID, c.Submitted, c.Accepted)
-}
-
-type Delay struct {
-	EventCommon
-	Binding         string      `json:"binding"`
-	BindingGroup    string      `json:"binding_group"`
-	BounceClass     string      `json:"bounce_class"`
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	DeviceToken     string      `json:"device_token"`
-	ErrorCode       string      `json:"error_code"`
-	IPAddress       string      `json:"ip_address"`
-	MessageID       string      `json:"message_id"`
-	MessageFrom     string      `json:"msg_from"`
-	MessageSize     string      `json:"msg_size"`
-	Retries         string      `json:"num_retries"`
-	QueueTime       string      `json:"queue_time"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	RawReason       string      `json:"raw_reason"`
-	Reason          string      `json:"reason"`
-	RoutingDomain   string      `json:"routing_domain"`
-	Subject         string      `json:"subject"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-}
-
-// String returns a brief summary of a Delay event
-func (d *Delay) String() string {
-	return fmt.Sprintf("%s T %s => %s %s: %s",
-		d.Timestamp, d.MessageFrom, d.Recipient, d.BounceClass, d.RawReason)
-}
-
-// ECLog emits a Delay in the same format that it would be logged to bouncelog.ec:
-// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
-func (d *Delay) ECLog() string {
-	return fmt.Sprintf("%s@%s@@@T@%s@%s@%s@%s@@%s@%s@%s@%s",
-		d.Timestamp, d.MessageID, d.Recipient, d.MessageFrom,
-		d.Binding, d.BindingGroup, d.BounceClass, d.MessageSize,
-		d.IPAddress, d.RawReason)
-}
-
-type Delivery struct {
-	EventCommon
-	Binding         string      `json:"binding"`
-	BindingGroup    string      `json:"binding_group"`
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	DeviceToken     string      `json:"device_token"`
-	IPAddress       string      `json:"ip_address"`
-	MessageID       string      `json:"message_id"`
-	MessageFrom     string      `json:"msg_from"`
-	MessageSize     string      `json:"msg_size"`
-	Retries         string      `json:"num_retries"`
-	QueueTime       string      `json:"queue_time"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	ReceiveProtocol string      `json:"recv_method"`
-	RoutingDomain   string      `json:"routing_domain"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-}
-
-// String returns a brief summary of a Delivery event
-func (d *Delivery) String() string {
-	return fmt.Sprintf("%s D %s %s => %s",
-		d.Timestamp, d.TransmissionID, d.Binding, d.Recipient)
-}
-
-// ECLog emits a Delivery in the same format that it would be logged to mainlog.ec:
-// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
-func (d *Delivery) ECLog() string {
-	return fmt.Sprintf("%s@%s@@@D@%s@%s@%s@%s@%s@%s@%s",
-		d.Timestamp, d.MessageID, d.RoutingDomain, d.MessageSize,
-		d.Binding, d.BindingGroup, d.Retries, d.QueueTime, d.IPAddress)
-}
-
-type GenerationFailure struct {
-	EventCommon
-	Binding          string      `json:"binding"`
-	BindingGroup     string      `json:"binding_group"`
-	CampaignID       string      `json:"campaign_id"`
-	CustomerID       string      `json:"customer_id"`
-	ErrorCode        string      `json:"error_code"`
-	Metadata         interface{} `json:"rcpt_meta"`
-	SubstitutionData interface{} `json:"rcpt_subs"`
-	Tags             []string    `json:"rcpt_tags"`
-	Recipient        string      `json:"rcpt_to"`
-	RawReason        string      `json:"raw_reason"`
-	Reason           string      `json:"reason"`
-	ReceiveProtocol  string      `json:"recv_method"`
-	RoutingDomain    string      `json:"routing_domain"`
-	TemplateID       string      `json:"template_id"`
-	TemplateVersion  string      `json:"template_version"`
-	Timestamp        string      `json:"timestamp"`
-	TransmissionID   string      `json:"transmission_id"`
-}
-
-// String returns a brief summary of a GenerationFailure event
-func (g *GenerationFailure) String() string {
-	return fmt.Sprintf("%s GF %s %s => %s %s: %s",
-		g.Timestamp, g.TransmissionID, g.Binding, g.Recipient,
-		g.ErrorCode, g.RawReason)
-}
-
-type GenerationRejection GenerationFailure
-
-// String returns a brief summary of a GenerationFailure event
-func (g *GenerationRejection) String() string {
-	return fmt.Sprintf("%s GR %s %s => %s %s: %s",
-		g.Timestamp, g.TransmissionID, g.Binding, g.Recipient,
-		g.ErrorCode, g.RawReason)
-}
-
-type Injection struct {
-	EventCommon
-	Binding         string      `json:"binding"`
-	BindingGroup    string      `json:"binding_group"`
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	MessageID       string      `json:"message_id"`
-	MessageFrom     string      `json:"msg_from"`
-	MessageSize     string      `json:"msg_size"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Pathway         string      `json:"pathway"`
-	PathwayGroup    string      `json:"pathway_group"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	ReceiveProtocol string      `json:"recv_method"`
-	RoutingDomain   string      `json:"routing_domain"`
-	Subject         string      `json:"subject"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-}
-
-// String returns a brief summary of a GenerationFailure event
-func (i *Injection) String() string {
-	return fmt.Sprintf("%s R %s %s => %s",
-		i.Timestamp, i.TransmissionID, i.Binding, i.Recipient)
-}
-
-// ECLog emits an Injection in the same format that it would be logged to mainlog.ec:
-// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
-func (i *Injection) ECLog() string {
-	return fmt.Sprintf("%s@%s@@@R@%s@%s@@%s@%s@%s@%s",
-		i.Timestamp, i.MessageID, i.Recipient, i.MessageFrom,
-		i.MessageSize, i.ReceiveProtocol,
-		i.Binding, i.BindingGroup)
-}
-
-type ListUnsubscribe struct {
-	EventCommon
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	MessageFrom     string      `json:"mailfrom"`
-	MessageID       string      `json:"message_id"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-}
-
-// String returns a brief summary of a ListUnsubscribe event
-func (l *ListUnsubscribe) String() string {
-	return fmt.Sprintf("%s U %s %s: [%s]",
-		l.Timestamp, l.TransmissionID, l.Recipient, l.CampaignID)
-}
-
-type LinkUnsubscribe struct {
-	EventCommon
-	ListUnsubscribe
-	UserAgent string `json:"user_agent"`
-}
-
-// String returns a brief summary of a ListUnsubscribe event
-func (l *LinkUnsubscribe) String() string {
-	return fmt.Sprintf("%s LU %s %s: [%s]",
-		l.Timestamp, l.TransmissionID, l.Recipient, l.CampaignID)
-}
-
-type Open struct {
-	EventCommon
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	GeoIP           *GeoIP      `json:"geo_ip"`
-	IPAddress       string      `json:"ip_address"`
-	MessageID       string      `json:"message_id"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-	UserAgent       string      `json:"user_agent"`
-}
-
-// String returns a brief summary of an Open event
-func (o *Open) String() string {
-	return fmt.Sprintf("%s O %s %s",
-		o.Timestamp, o.TransmissionID, o.Recipient)
-}
-
-type OutOfBand struct {
-	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	BounceClass     string `json:"bounce_class"`
-	CampaignID      string `json:"campaign_id"`
-	CustomerID      string `json:"customer_id"`
-	DeliveryMethod  string `json:"delv_method"`
-	DeviceToken     string `json:"device_token"`
-	ErrorCode       string `json:"error_code"`
-	MessageID       string `json:"message_id"`
-	MessageFrom     string `json:"msg_from"`
-	Recipient       string `json:"rcpt_to"`
-	RawReason       string `json:"raw_reason"`
-	Reason          string `json:"reason"`
-	ReceiveProtocol string `json:"recv_method"`
-	RoutingDomain   string `json:"routing_domain"`
-	TemplateID      string `json:"template_id"`
-	TemplateVersion string `json:"template_version"`
-	Timestamp       string `json:"timestamp"`
-}
-
-// String returns a brief summary of a Bounce event
-func (b *OutOfBand) String() string {
-	return fmt.Sprintf("%s OOB [%s] %s => %s %s: %s",
-		b.Timestamp, b.CampaignID, b.Binding, b.Recipient,
-		b.BounceClass, b.RawReason)
-}
-
-// ECLog emits an OutOfBand in the same format that it would be logged to bouncelog.ec:
-// https://support.messagesystems.com/docs/web-ref/log_formats.version_3.php
-func (b *OutOfBand) ECLog() string {
-	return fmt.Sprintf("%s@%s@@@B@%s@%s@%s@%s@@%s@@@%s",
-		b.Timestamp, b.MessageID, b.Recipient, b.MessageFrom,
-		b.Binding, b.BindingGroup, b.BounceClass, b.RawReason)
-}
-
-type PolicyRejection struct {
-	EventCommon
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	ErrorCode       string      `json:"error_code"`
-	MessageID       string      `json:"message_id"`
-	MessageFrom     string      `json:"msg_from"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Pathway         string      `json:"pathway"`
-	PathwayGroup    string      `json:"pathway_group"`
-	Tags            []string    `json:"rcpt_tags"`
-	RawReason       string      `json:"raw_reason"`
-	Reason          string      `json:"reason"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	ReceiveProtocol string      `json:"recv_method"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-}
-
-// String returns a brief summary of a PolicyRejection event
-func (p *PolicyRejection) String() string {
-	return fmt.Sprintf("%s PR %s [%s] => %s %s: %s",
-		p.Timestamp, p.TransmissionID, p.CampaignID, p.Recipient,
-		p.ErrorCode, p.RawReason)
-}
-
-type RelayInjection struct {
-	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	CustomerID      string `json:"customer_id"`
-	MessageFrom     string `json:"msg_from"`
-	MessageSize     string `json:"msg_size"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	Recipient       string `json:"rcpt_to"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       string `json:"timestamp"`
-}
-
-// String returns a brief summary of a RelayInjection event
-func (i *RelayInjection) String() string {
-	return fmt.Sprintf("%s RI %s %s %s => %s",
-		i.Timestamp, i.RelayID, i.Binding, i.MessageFrom, i.Recipient)
-}
-
-type RelayRejection struct {
-	EventCommon
-	CustomerID      string `json:"customer_id"`
-	ErrorCode       string `json:"error_code"`
-	MessageFrom     string `json:"msg_from"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	RawReason       string `json:"raw_reason"`
-	Reason          string `json:"reason"`
-	Recipient       string `json:"rcpt_to"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	RemoteAddress   string `json:"remote_addr"`
-	Timestamp       string `json:"timestamp"`
-}
-
-// String returns a brief summary of a RelayInjection event
-func (r *RelayRejection) String() string {
-	return fmt.Sprintf("%s RR %s %s => %s %s: %s",
-		r.Timestamp, r.RelayID, r.MessageFrom, r.Recipient, r.ErrorCode, r.RawReason)
-}
-
-type RelayDelivery struct {
-	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	CustomerID      string `json:"customer_id"`
-	DeliveryMethod  string `json:"delv_method"`
-	MessageFrom     string `json:"msg_from"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	QueueTime       string `json:"queue_time"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	Retries         string `json:"num_retries"`
-	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       string `json:"timestamp"`
-}
-
-// String returns a brief summary of a RelayDelivery event
-func (d *RelayDelivery) String() string {
-	return fmt.Sprintf("%s RD %s %s <= %s",
-		d.Timestamp, d.RelayID, d.Binding, d.MessageFrom)
-}
-
-type RelayTempfail struct {
-	EventCommon
-	Binding         string `json:"binding"`
-	BindingGroup    string `json:"binding_group"`
-	CustomerID      string `json:"customer_id"`
-	DeliveryMethod  string `json:"delv_method"`
-	ErrorCode       string `json:"error_code"`
-	MessageFrom     string `json:"msg_from"`
-	Retries         string `json:"num_retries"`
-	QueueTime       string `json:"queue_time"`
-	Pathway         string `json:"pathway"`
-	PathwayGroup    string `json:"pathway_group"`
-	RawReason       string `json:"raw_reason"`
-	Reason          string `json:"reason"`
-	ReceiveProtocol string `json:"recv_method"`
-	RelayID         string `json:"relay_id"`
-	RoutingDomain   string `json:"routing_domain"`
-	Timestamp       string `json:"timestamp"`
-}
-
-// String returns a brief summary of a RelayTempfail event
-func (t *RelayTempfail) String() string {
-	return fmt.Sprintf("%s RT %s %s <= %s %s: %s",
-		t.Timestamp, t.RelayID, t.Binding, t.MessageFrom, t.ErrorCode, t.RawReason)
-}
-
-type RelayPermfail RelayTempfail
-
-// String returns a brief summary of a RelayInjection event
-func (p *RelayPermfail) String() string {
-	return fmt.Sprintf("%s RP %s %s <= %s %s: %s",
-		p.Timestamp, p.RelayID, p.Binding, p.MessageFrom, p.ErrorCode, p.RawReason)
-}
-
-type RelayContent struct {
-	HTML    string              `json:"html"`
-	Text    string              `json:"text"`
-	Subject string              `json:"subject"`
-	To      []string            `json:"to"`
-	Cc      []string            `json:"cc"`
-	Headers []map[string]string `json:"headers"`
-	Email   string              `json:"email_rfc822"`
-	Base64  bool                `json:email_rfc822_is_base64"`
-}
-
-type RelayMessage struct {
-	EventCommon
-	Content      RelayContent `json:"content"`
-	FriendlyFrom string       `json:"friendly_from"`
-	From         string       `json:"msg_from"`
-	To           string       `json:"rcpt_to"`
-	WebhookID    string       `json:"webhook_id"`
-}
-
-func (m *RelayMessage) String() string {
-	return fmt.Sprintf("%s => %s (%s)", m.From, m.To, m.WebhookID)
-}
-
-type SpamComplaint struct {
-	EventCommon
-	Binding         string      `json:"binding"`
-	BindingGroup    string      `json:"binding_group"`
-	CampaignID      string      `json:"campaign_id"`
-	CustomerID      string      `json:"customer_id"`
-	DeliveryMethod  string      `json:"delv_method"`
-	FeedbackType    string      `json:"fbtype"`
-	FriendlyFrom    string      `json:"friendly_from"`
-	MessageID       string      `json:"message_id"`
-	Metadata        interface{} `json:"rcpt_meta"`
-	Tags            []string    `json:"rcpt_tags"`
-	Recipient       string      `json:"rcpt_to"`
-	RecipientType   string      `json:"rcpt_type"`
-	ReportedBy      string      `json:"report_by"`
-	ReportedTo      string      `json:"report_to"`
-	Subject         string      `json:"subject"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion string      `json:"template_version"`
-	Timestamp       string      `json:"timestamp"`
-	TransmissionID  string      `json:"transmission_id"`
-	UserString      string      `json:"user_str"`
-}
-
-// String returns a brief summary of a SpamComplaint event
-func (p *SpamComplaint) String() string {
-	return fmt.Sprintf("%s S %s %s %s => %s (%s)",
-		p.Timestamp, p.TransmissionID, p.Binding, p.ReportedBy, p.ReportedTo, p.Recipient)
 }
