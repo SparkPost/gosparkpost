@@ -30,6 +30,7 @@ type Template struct {
 type Content struct {
 	HTML         string            `json:"html,omitempty"`
 	Text         string            `json:"text,omitempty"`
+	TemplateID   string            `json:"template_id,omitempty"`
 	Subject      string            `json:"subject,omitempty"`
 	From         interface{}       `json:"from,omitempty"`
 	ReplyTo      string            `json:"reply_to,omitempty"`
@@ -125,8 +126,8 @@ func (t *Template) Validate() error {
 	// enforce required parameters
 	if t.Content.Subject == "" {
 		return fmt.Errorf("Template requires a non-empty Content.Subject")
-	} else if t.Content.HTML == "" && t.Content.Text == "" {
-		return fmt.Errorf("Template requires either Content.HTML or Content.Text")
+	} else if t.Content.HTML == "" && t.Content.Text == "" && t.Content.TemplateID == "" {
+		return fmt.Errorf("Template requires either Content.HTML or Content.Text or Content.TemplateID")
 	}
 	_, err := ParseFrom(t.Content.From)
 	if err != nil {
