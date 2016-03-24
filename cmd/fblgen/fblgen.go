@@ -17,6 +17,7 @@ import (
 var filename = flag.String("file", "", "path to email with a text/html part")
 var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
 var send = flag.Bool("send", false, "send fbl report")
+var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
 var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
 
 var cidPattern *regexp.Regexp = regexp.MustCompile(`"customer_id"\s*:\s*"(\d+)"`)
@@ -80,10 +81,13 @@ func main() {
 	}
 
 	if verbose == true {
-		log.Printf("Decoded (%d):\n%s\n", cid, string(dec))
+		log.Printf("Decoded FBL (cid=%d): %s\n", cid, string(dec))
 	}
 
 	returnPath := msg.Header.Get("Return-Path")
+	if fblAddress != nil && *fblAddress != "" {
+		returnPath = *fblAddress
+	}
 	fblAddr, err := mail.ParseAddress(returnPath)
 	if err != nil {
 		log.Fatal(err)
@@ -96,7 +100,11 @@ func main() {
 	fblDomain := fblAddr.Address[atIdx:]
 	fblTo := fmt.Sprintf("fbl@%s", fblDomain)
 	if verbose == true {
-		log.Printf("Got domain [%s] from Return-Path header\n", fblDomain)
+		if fblAddress != nil && *fblAddress != "" {
+			log.Printf("Got domain [%s] from --fblto\n", fblDomain)
+		} else {
+			log.Printf("Got domain [%s] from Return-Path header\n", fblDomain)
+		}
 	}
 
 	// from/to are opposite here, since we're simulating a reply
@@ -117,15 +125,20 @@ func main() {
 	if verbose == true {
 		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
 	}
+	smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
 
 	if send != nil && *send == true {
-		smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
-		log.Printf("Simulating FBL for [%s] to [%s] via [%s]...\n",
+		log.Printf("Sending FBL from [%s] to [%s] via [%s]...\n",
 			fblFrom, fblTo, smtpHost)
 		err = smtp.SendMail(smtpHost, nil, fblFrom, []string{fblTo}, []byte(arf))
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.Printf("Sent.\n")
+	} else {
+		if verbose == true {
+			log.Printf("Would send FBL from [%s] to [%s] via [%s]...\n",
+				fblFrom, fblTo, smtpHost)
+		}
 	}
 }
