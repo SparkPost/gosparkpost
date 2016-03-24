@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/mail"
+	"net/smtp"
 	"os"
 	"regexp"
 	"strconv"
@@ -14,11 +16,10 @@ import (
 
 var filename = flag.String("file", "", "path to email with a text/html part")
 var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
-var send = flag.String("send", "", "send the fbl report to host[:port]")
+var send = flag.Bool("send", false, "send fbl report")
 var verbose = flag.Bool("verbose", false, "print out lots of messages")
 
 var cidPattern *regexp.Regexp = regexp.MustCompile(`"customer_id"\s*:\s*"(\d+)"`)
-var fromPattern *regexp.Regexp = regexp.MustCompile(`"friendly_from"\s*:\s*"([^"\s]+)"`)
 var toPattern *regexp.Regexp = regexp.MustCompile(`"r"\s*:\s*"([^"\s]+)"`)
 
 func main() {
@@ -69,11 +70,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fromMatches := fromPattern.FindSubmatch(dec)
-	if fromMatches == nil || len(fromMatches) < 2 {
-		log.Fatalf("No key \"friendly_from\" in X-MSFBL header:\n%s\n", string(dec))
-	}
-
 	toMatches := toPattern.FindSubmatch(dec)
 	if toMatches == nil || len(toMatches) < 2 {
 		log.Fatalf("No key \"r\" (recipient) in X-MSFBL header:\n%s\n", string(dec))
@@ -83,14 +79,34 @@ func main() {
 		log.Printf("Decoded (%d):\n%s\n", cid, string(dec))
 	}
 
+	returnPath := msg.Header.Get("Return-Path")
+	fblDomain := returnPath[strings.Index(returnPath, "@")+1 : strings.LastIndex(returnPath, ">")]
+	fblTo := fmt.Sprintf("fbl@%s", fblDomain)
+
 	// from/to are opposite here, since we're simulating a reply
-	to := string(fromMatches[1])
-	from := string(toMatches[1])
-	arf := BuildArf(from, to, b64hdr, cid)
+	fblFrom := string(toMatches[1])
+	arf := BuildArf(fblFrom, fblTo, b64hdr, cid)
 
 	if dumpArf != nil && *dumpArf == true {
 		fmt.Fprintf(os.Stdout, "%s", arf)
 	}
 
-	// TODO: send
+	if send != nil && *send == true {
+		mxs, err := net.LookupMX(fblDomain)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if mxs == nil || len(mxs) <= 0 {
+			log.Fatal("No MXs for [%s]\n", fblDomain)
+		}
+
+		smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
+		log.Printf("Simulating FBL for [%s] to [%s] via [%s]...\n",
+			fblFrom, fblTo, smtpHost)
+		err = smtp.SendMail(smtpHost, nil, fblFrom, []string{fblTo}, []byte(arf))
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Sent.\n")
+	}
 }

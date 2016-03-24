@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-var ArfFormat string = `
-From: <%s>
+var ArfFormat string = `From: <%s>
 Date: Thu, 8 Mar 2005 17:40:36 EDT
 Subject: FW: Earn money
 To: <%s>
