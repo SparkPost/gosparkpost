@@ -17,13 +17,17 @@ import (
 var filename = flag.String("file", "", "path to email with a text/html part")
 var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
 var send = flag.Bool("send", false, "send fbl report")
-var verbose = flag.Bool("verbose", false, "print out lots of messages")
+var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
 
 var cidPattern *regexp.Regexp = regexp.MustCompile(`"customer_id"\s*:\s*"(\d+)"`)
 var toPattern *regexp.Regexp = regexp.MustCompile(`"r"\s*:\s*"([^"\s]+)"`)
 
 func main() {
 	flag.Parse()
+	var verbose bool
+	if verboseOpt != nil && *verboseOpt == true {
+		verbose = true
+	}
 
 	if filename == nil || strings.TrimSpace(*filename) == "" {
 		log.Fatal("--file is required")
@@ -40,7 +44,7 @@ func main() {
 	}
 
 	b64hdr := strings.Replace(msg.Header.Get("X-MSFBL"), " ", "", -1)
-	if verbose != nil && *verbose == true {
+	if verbose == true {
 		log.Printf("X-MSFBL: %s\n", b64hdr)
 	}
 
@@ -75,13 +79,25 @@ func main() {
 		log.Fatalf("No key \"r\" (recipient) in X-MSFBL header:\n%s\n", string(dec))
 	}
 
-	if verbose != nil && *verbose == true {
+	if verbose == true {
 		log.Printf("Decoded (%d):\n%s\n", cid, string(dec))
 	}
 
 	returnPath := msg.Header.Get("Return-Path")
-	fblDomain := returnPath[strings.Index(returnPath, "@")+1 : strings.LastIndex(returnPath, ">")]
+	fblAddr, err := mail.ParseAddress(returnPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	atIdx := strings.Index(fblAddr.Address, "@") + 1
+	if atIdx < 0 {
+		log.Fatalf("Unsupported Return-Path header [%s]\n", returnPath)
+	}
+	fblDomain := fblAddr.Address[atIdx:]
 	fblTo := fmt.Sprintf("fbl@%s", fblDomain)
+	if verbose == true {
+		log.Printf("Got domain [%s] from Return-Path header\n", fblDomain)
+	}
 
 	// from/to are opposite here, since we're simulating a reply
 	fblFrom := string(toMatches[1])
@@ -91,15 +107,18 @@ func main() {
 		fmt.Fprintf(os.Stdout, "%s", arf)
 	}
 
-	if send != nil && *send == true {
-		mxs, err := net.LookupMX(fblDomain)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if mxs == nil || len(mxs) <= 0 {
-			log.Fatal("No MXs for [%s]\n", fblDomain)
-		}
+	mxs, err := net.LookupMX(fblDomain)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if mxs == nil || len(mxs) <= 0 {
+		log.Fatal("No MXs for [%s]\n", fblDomain)
+	}
+	if verbose == true {
+		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
+	}
 
+	if send != nil && *send == true {
 		smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
 		log.Printf("Simulating FBL for [%s] to [%s] via [%s]...\n",
 			fblFrom, fblTo, smtpHost)
