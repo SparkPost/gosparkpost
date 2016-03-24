@@ -18,6 +18,11 @@ type Event interface {
 // Events is a list of generic events. Useful for decoding events from API webhooks.
 type Events []Event
 
+var (
+	ErrWebhookValidation = errors.New("webhook validation request")
+	ErrNotImplemented    = errors.New("not implemented")
+)
+
 // ValidEventType returns true if the event name parameter is valid.
 func ValidEventType(eventType string) bool {
 	if _, ok := EventForName(eventType).(*Unknown); ok {
@@ -132,7 +137,7 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
 	var rawEvents []json.RawMessage
 
-	// These "msys"-wrapped events are being sent on Event Webhooks.
+	// These "msys"-wrapped events are being sent on Webhooks.
 	var msysEventWrappers []struct {
 		MsysEventWrapper map[string]json.RawMessage `json:"msys"`
 	}
@@ -155,7 +160,7 @@ func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
 }
 
 func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
-	// Object with array of events is being sent on Event Samples.
+	// Object with array of events is being sent on Events Samples.
 	var resultsWrapper struct {
 		RawEvents []json.RawMessage `json:"results"`
 	}
@@ -165,11 +170,6 @@ func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
 
 	return resultsWrapper.RawEvents, nil
 }
-
-var (
-	ErrWebhookValidation = errors.New("webhook validation request")
-	ErrNotImplemented    = errors.New("not implemented")
-)
 
 func ECLog(e Event) string {
 	// XXX: this feels like the wrong way; can't figure out the right way
