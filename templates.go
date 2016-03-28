@@ -64,6 +64,12 @@ type TmplOptions struct {
 	Transactional string `json:"transactional,omitempty"`
 }
 
+// Preview options contains the required subsitution_data object to
+// preview a template
+type PreviewOptions struct {
+	SubstitutionData map[string]interface{} `json:"substitution_data"`
+}
+
 // ParseFrom parses the various allowable Content.From values.
 func ParseFrom(from interface{}) (f From, err error) {
 	// handle the allowed types
@@ -313,6 +319,55 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 		// handle template-specific ones
 		if res.HTTP.StatusCode == 409 {
 			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
+		} else { // everything else
+			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		}
+	}
+
+	return
+}
+
+func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Response, err error) {
+	if id == "" {
+		err = fmt.Errorf("Preview called with blank id")
+		return
+	}
+
+	if payload == nil {
+		payload = &PreviewOptions{}
+	}
+
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s/%s/preview", c.Config.BaseUrl, path, id)
+	res, err = c.HttpPost(url, jsonBytes)
+	if err != nil {
+		return
+	}
+
+	if err = res.AssertJson(); err != nil {
+		return
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return
+	}
+
+	if len(res.Errors) > 0 {
+		// handle common errors
+		err = res.PrettyError("Template", "preview")
+		if err != nil {
+			return
+		}
+
+		if res.HTTP.StatusCode == 422 { // preview payload error
+			eobj := res.Errors[0]
+			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
 		} else { // everything else
 			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 		}
