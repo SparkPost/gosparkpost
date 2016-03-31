@@ -279,6 +279,64 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 	return nil, res, err
 }
 
+// Update updates a draft/published template with the specified id
+func (c *Client) TemplateUpdate(id string, t *Template, updatePublished bool) (res *Response, err error) {
+	if id == "" {
+		err = fmt.Errorf("Delete called with blank id")
+		return
+	}
+	if nonDigit.MatchString(id) {
+		err = fmt.Errorf("id may only contain digits")
+		return
+	}
+
+	err = t.Validate()
+	if err != nil {
+		return
+	}
+
+	jsonBytes, err := json.Marshal(t)
+	if err != nil {
+		return
+	}
+
+	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, id, updatePublished)
+	res, err = c.HttpPut(url, jsonBytes)
+	if err != nil {
+		return
+	}
+
+	if err = res.AssertJson(); err != nil {
+		return
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return
+	}
+
+	if res.HTTP.StatusCode == 200 {
+		return
+
+	} else if len(res.Errors) > 0 {
+		// handle common errors
+		err = res.PrettyError("Template", "update")
+		if err != nil {
+			return
+		}
+
+		// handle template-specific ones
+		if res.HTTP.StatusCode == 409 {
+			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
+		} else { // everything else
+			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		}
+	}
+
+	return
+}
+
 // Delete removes the Template with the specified id.
 func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 	if id == "" {
