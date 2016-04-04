@@ -59,9 +59,9 @@ type From struct {
 // Options specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
 type TmplOptions struct {
-	OpenTracking  string `json:"open_tracking,omitempty"`
-	ClickTracking string `json:"click_tracking,omitempty"`
-	Transactional string `json:"transactional,omitempty"`
+	OpenTracking  bool `json:"open_tracking,omitempty"`
+	ClickTracking bool `json:"click_tracking,omitempty"`
+	Transactional bool `json:"transactional,omitempty"`
 }
 
 // ParseFrom parses the various allowable Content.From values.
@@ -277,10 +277,6 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
-		return
-	}
-	if nonDigit.MatchString(id) {
-		err = fmt.Errorf("id may only contain digits")
 		return
 	}
 
