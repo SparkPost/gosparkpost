@@ -229,6 +229,61 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 	return
 }
 
+// Update updates a draft/published template with the specified id
+func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
+	if t.ID == "" {
+		err = fmt.Errorf("Update called with blank id")
+		return
+	}
+
+	err = t.Validate()
+	if err != nil {
+		return
+	}
+
+	jsonBytes, err := json.Marshal(t)
+	if err != nil {
+		return
+	}
+
+	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
+
+	res, err = c.HttpPut(url, jsonBytes)
+	if err != nil {
+		return
+	}
+
+	if err = res.AssertJson(); err != nil {
+		return
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return
+	}
+
+	if res.HTTP.StatusCode == 200 {
+		return
+
+	} else if len(res.Errors) > 0 {
+		// handle common errors
+		err = res.PrettyError("Template", "update")
+		if err != nil {
+			return
+		}
+
+		// handle template-specific ones
+		if res.HTTP.StatusCode == 409 {
+			err = fmt.Errorf("Template with id [%s] is in use by msg generation", t.ID)
+		} else { // everything else
+			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		}
+	}
+
+	return
+}
+
 // List returns metadata for all Templates in the system.
 func (c *Client) Templates() ([]Template, *Response, error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
