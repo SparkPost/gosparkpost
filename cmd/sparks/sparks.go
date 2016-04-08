@@ -20,6 +20,7 @@ var htmlFile = flag.String("html", "", "file containing html content")
 var textFile = flag.String("text", "", "file containing text content")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
+var url = flag.String("url", "", "base url for api requests (optional)")
 
 func main() {
 	apiKey := os.Getenv("SPARKPOST_API_KEY")
@@ -41,6 +42,13 @@ func main() {
 	}
 
 	cfg := &sparkpost.Config{ApiKey: apiKey}
+	if url != nil && *url != "" {
+		if !strings.HasPrefix(*url, "https://") {
+			log.Fatal("FATAL: base url must be https!\n")
+		}
+		cfg.BaseUrl = *url
+	}
+
 	var sparky sparkpost.Client
 	err := sparky.Init(cfg)
 	if err != nil {
