@@ -7,9 +7,9 @@ import (
 )
 
 // https://developers.sparkpost.com/api/#/reference/suppression-list
-var supressionListsPathFormat = "/api/v%d/suppression-list"
+var suppressionListsPathFormat = "/api/v%d/suppression-list"
 
-type SupressionEntry struct {
+type SuppressionEntry struct {
 	Recipient        string `json:"recipient,omitempty"`
 	Transactional    bool   `json:"transactional,omitempty"`
 	NonTransactional bool   `json:"non_transactional,omitempty"`
@@ -19,27 +19,27 @@ type SupressionEntry struct {
 	Created          string `json:"created,omitempty"`
 }
 
-type SupressionListWrapper struct {
-	Results []*SupressionEntry `json:"results,omitempty"`
+type SuppressionListWrapper struct {
+	Results []*SuppressionEntry `json:"results,omitempty"`
 }
 
-func (c *Client) SupressionList() (*SupressionListWrapper, error) {
-	path := fmt.Sprintf(supressionListsPathFormat, c.Config.ApiVersion)
+func (c *Client) SuppressionList() (*SuppressionListWrapper, error) {
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 
-	return doSupressionRequest(c, finalUrl)
+	return doSuppressionRequest(c, finalUrl)
 }
 
-func (c *Client) SupressionRetrieve(recipientEmail string) (*SupressionListWrapper, error) {
-	path := fmt.Sprintf(supressionListsPathFormat, c.Config.ApiVersion)
+func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWrapper, error) {
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
 
-	return doSupressionRequest(c, finalUrl)
+	return doSuppressionRequest(c, finalUrl)
 }
 
-func (c *Client) SupressionSearch(parameters map[string]string) (*SupressionListWrapper, error) {
+func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionListWrapper, error) {
 	var finalUrl string
-	path := fmt.Sprintf(supressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 
 	if parameters == nil || len(parameters) == 0 {
 		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
@@ -52,11 +52,11 @@ func (c *Client) SupressionSearch(parameters map[string]string) (*SupressionList
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return doSupressionRequest(c, finalUrl)
+	return doSuppressionRequest(c, finalUrl)
 }
 
-func (c *Client) SupressionDelete(recipientEmail string) (res *Response, err error) {
-	path := fmt.Sprintf(supressionListsPathFormat, c.Config.ApiVersion)
+func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err error) {
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
 
 	res, err = c.HttpDelete(finalUrl)
@@ -69,7 +69,7 @@ func (c *Client) SupressionDelete(recipientEmail string) (res *Response, err err
 
 	} else if len(res.Errors) > 0 {
 		// handle common errors
-		err = res.PrettyError("SupressionEntry", "delete")
+		err = res.PrettyError("SuppressionEntry", "delete")
 		if err != nil {
 			return
 		}
@@ -80,7 +80,7 @@ func (c *Client) SupressionDelete(recipientEmail string) (res *Response, err err
 	return
 }
 
-func doSupressionRequest(c *Client, finalUrl string) (*SupressionListWrapper, error) {
+func doSuppressionRequest(c *Client, finalUrl string) (*SuppressionListWrapper, error) {
 	// Send off our request
 	res, err := c.HttpGet(finalUrl)
 	if err != nil {
@@ -99,14 +99,14 @@ func doSupressionRequest(c *Client, finalUrl string) (*SupressionListWrapper, er
 	}
 
 	/*// DEBUG
-	err = iou.WriteFile("./supressionlist.json", bodyBytes, 0644)
+	err = iou.WriteFile("./suppressionlist.json", bodyBytes, 0644)
 	if err != nil {
 		return nil, err
 	}
 	*/
 
 	// Parse expected response structure
-	var resMap SupressionListWrapper
+	var resMap SuppressionListWrapper
 	err = json.Unmarshal(bodyBytes, &resMap)
 
 	if err != nil {
