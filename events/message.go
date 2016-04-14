@@ -111,10 +111,6 @@ type Bounce struct {
 	TransmissionID  string            `json:"transmission_id"`
 }
 
-func (b *Bounce) EventType() string {
-	return `bounce`
-}
-
 // String returns a brief summary of a Bounce event
 func (b *Bounce) String() string {
 	return fmt.Sprintf("%s B %s %s => %s %s: %s",
