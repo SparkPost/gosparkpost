@@ -88,6 +88,8 @@ func (api *Client) Init(cfg *Config) error {
 	// Set default values
 	if cfg.BaseUrl == "" {
 		cfg.BaseUrl = "https://api.sparkpost.com"
+	} else if !strings.HasPrefix(cfg.BaseUrl, "https://") {
+		return fmt.Errorf("API base url must be https!")
 	}
 	if cfg.ApiVersion == 0 {
 		cfg.ApiVersion = 1
