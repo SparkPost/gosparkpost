@@ -132,6 +132,13 @@ func (c *Client) HttpGet(url string) (*Response, error) {
 	return c.DoRequest("GET", url, nil)
 }
 
+// HttpPut sends a Put request with the provided JSON payload to the specified url.
+// Query params are supported via net/url - roll your own and stringify it.
+// Authenticate using the configured API key.
+func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
+	return c.DoRequest("PUT", url, data)
+}
+
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
