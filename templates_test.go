@@ -11,6 +11,7 @@ import (
 func TestTemplates(t *testing.T) {
 	if true {
 		// Temporarily disable test so TravisCI reports build success instead of test failure.
+		// NOTE: need travis to set sparkpost base urls etc, or mock http request
 		return
 	}
 
@@ -37,9 +38,7 @@ func TestTemplates(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
-	t.Error(fmt.Errorf("%s", tlist))
-	return
+	t.Logf("templates listed: %+v", tlist)
 
 	content := sp.Content{
 		Subject: "this is a test template",
@@ -59,6 +58,14 @@ func TestTemplates(t *testing.T) {
 		return
 	}
 	fmt.Printf("Created Template with id=%s\n", id)
+
+	d := map[string]interface{}{}
+	res, err := client.TemplatePreview(id, &sp.PreviewOptions{d})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Printf("Preview Template with id=%s and response %+v\n", id, res)
 
 	_, err = client.TemplateDelete(id)
 	if err != nil {

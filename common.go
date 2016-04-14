@@ -88,6 +88,8 @@ func (api *Client) Init(cfg *Config) error {
 	// Set default values
 	if cfg.BaseUrl == "" {
 		cfg.BaseUrl = "https://api.sparkpost.com"
+	} else if !strings.HasPrefix(cfg.BaseUrl, "https://") {
+		return fmt.Errorf("API base url must be https!")
 	}
 	if cfg.ApiVersion == 0 {
 		cfg.ApiVersion = 1
@@ -128,6 +130,13 @@ func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
 // Authenticate using the configured API key.
 func (c *Client) HttpGet(url string) (*Response, error) {
 	return c.DoRequest("GET", url, nil)
+}
+
+// HttpPut sends a Put request with the provided JSON payload to the specified url.
+// Query params are supported via net/url - roll your own and stringify it.
+// Authenticate using the configured API key.
+func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
+	return c.DoRequest("PUT", url, data)
 }
 
 // HttpDelete sends a Delete request to the provided url.
