@@ -139,7 +139,7 @@ func ParseContent(content interface{}) (err error) {
 		return te.Validate()
 
 	default:
-		return fmt.Errorf("Unsupported Transmission.Recipient type [%s]", reflect.TypeOf(rVal))
+		return fmt.Errorf("Unsupported Transmission.Content type [%s]", reflect.TypeOf(rVal))
 	}
 
 	return
