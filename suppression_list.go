@@ -10,7 +10,12 @@ import (
 var suppressionListsPathFormat = "/api/v%d/suppression-list"
 
 type SuppressionEntry struct {
+	// Email is used when list is stored
+	Email        string `json:"email,omitempty"`
+
+	// Recipient is used when a list is returned
 	Recipient        string `json:"recipient,omitempty"`
+
 	Transactional    bool   `json:"transactional,omitempty"`
 	NonTransactional bool   `json:"non_transactional,omitempty"`
 	Source           string `json:"source,omitempty"`
@@ -21,6 +26,7 @@ type SuppressionEntry struct {
 
 type SuppressionListWrapper struct {
 	Results []*SuppressionEntry `json:"results,omitempty"`
+	Recipients []SuppressionEntry `json:"recipients,omitempty"`
 }
 
 func (c *Client) SuppressionList() (*SuppressionListWrapper, error) {
@@ -61,7 +67,7 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 
 	res, err = c.HttpDelete(finalUrl)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if res.HTTP.StatusCode >= 200 && res.HTTP.StatusCode <= 299 {
@@ -70,6 +76,57 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 	} else if len(res.Errors) > 0 {
 		// handle common errors
 		err = res.PrettyError("SuppressionEntry", "delete")
+		if err != nil {
+			return nil, err
+		}
+
+		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+	}
+
+	return
+}
+
+func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (err error) {
+	if entries == nil {
+		err = fmt.Errorf("send `entries` cannot be nil here")
+		return
+	}
+
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	finalUrl := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+
+	list := SuppressionListWrapper{nil, entries}
+
+	return c.send(finalUrl, list)
+
+}
+
+func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err error) {
+	jsonBytes, err := json.Marshal(recipients)
+	if err != nil {
+		return
+	}
+
+	res, err := c.HttpPut(finalUrl, jsonBytes)
+	if err != nil {
+		return
+	}
+
+	if err = res.AssertJson(); err != nil {
+		return
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return
+	}
+
+	if res.HTTP.StatusCode == 200 {
+		
+
+	} else if len(res.Errors) > 0 {
+		// handle common errors
+		err = res.PrettyError("Transmission", "create")
 		if err != nil {
 			return
 		}
