@@ -11,10 +11,10 @@ var suppressionListsPathFormat = "/api/v%d/suppression-list"
 
 type SuppressionEntry struct {
 	// Email is used when list is stored
-	Email        string `json:"email,omitempty"`
+	Email string `json:"email,omitempty"`
 
 	// Recipient is used when a list is returned
-	Recipient        string `json:"recipient,omitempty"`
+	Recipient string `json:"recipient,omitempty"`
 
 	Transactional    bool   `json:"transactional,omitempty"`
 	NonTransactional bool   `json:"non_transactional,omitempty"`
@@ -25,8 +25,8 @@ type SuppressionEntry struct {
 }
 
 type SuppressionListWrapper struct {
-	Results []*SuppressionEntry `json:"results,omitempty"`
-	Recipients []SuppressionEntry `json:"recipients,omitempty"`
+	Results    []*SuppressionEntry `json:"results,omitempty"`
+	Recipients []SuppressionEntry  `json:"recipients,omitempty"`
 }
 
 func (c *Client) SuppressionList() (*SuppressionListWrapper, error) {
@@ -122,7 +122,6 @@ func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err e
 	}
 
 	if res.HTTP.StatusCode == 200 {
-		
 
 	} else if len(res.Errors) > 0 {
 		// handle common errors
@@ -154,13 +153,6 @@ func doSuppressionRequest(c *Client, finalUrl string) (*SuppressionListWrapper, 
 	if err != nil {
 		return nil, err
 	}
-
-	/*// DEBUG
-	err = iou.WriteFile("./suppressionlist.json", bodyBytes, 0644)
-	if err != nil {
-		return nil, err
-	}
-	*/
 
 	// Parse expected response structure
 	var resMap SuppressionListWrapper
