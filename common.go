@@ -159,7 +159,8 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 		req.Header.Set("Content-Type", "application/json")
 
 		if c.Config.Verbose {
-			fmt.Println("Will Post: %s", string(data))
+			fmt.Printf("URL: %s %s\n", method, urlStr)
+			fmt.Printf("Will Post: %s\n", string(data))
 		}
 	}
 
