@@ -81,7 +81,11 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 
 	if res.HTTP.StatusCode == 200 {
 		var ok bool
-		s.ID, ok = res.Results["subaccount_id"].(int)
+		f, ok := res.Results["subaccount_id"].(float64)
+		if !ok {
+			err = fmt.Errorf("Unexpected response to Subaccount creation")
+		}
+		s.ID = int(f)
 		s.ShortKey, ok = res.Results["short_key"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Subaccount creation")
@@ -223,7 +227,7 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 
 func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
+	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
 	res, err = c.HttpGet(u)
 	if err != nil {
 		return
