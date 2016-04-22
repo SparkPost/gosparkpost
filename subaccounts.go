@@ -3,9 +3,6 @@ package gosparkpost
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"strings"
-	"time"
 )
 
 // https://www.sparkpost.com/api#/reference/subaccounts
