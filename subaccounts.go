@@ -105,7 +105,7 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 	return
 }
 
-// Update updates a draft/published template with the specified id
+// Update updates a subaccount with the specified id
 func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	if s.ID == "" {
 		err = fmt.Errorf("Subaccount Update called with blank id")
@@ -113,7 +113,7 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 		err = fmt.Errorf("Subaccount name may not be longer than 1024 bytes")
 	} else if s.Status != "" {
 		found := false
-		for _, v := range availableGrants {
+		for _, v := range validStatuses {
 			if s.Status == v {
 				found = true
 			}
