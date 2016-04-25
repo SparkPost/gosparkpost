@@ -31,8 +31,9 @@ type Config struct {
 // Client contains connection and authentication information.
 // Specifying your own http.Client gives you lots of control over how connections are made.
 type Client struct {
-	Config *Config
-	Client *http.Client
+	Config  *Config
+	Client  *http.Client
+	headers map[string]string
 }
 
 var nonDigit *regexp.Regexp = regexp.MustCompile(`\D`)
@@ -95,6 +96,7 @@ func (api *Client) Init(cfg *Config) error {
 		cfg.ApiVersion = 1
 	}
 	api.Config = cfg
+	api.headers = make(map[string]string)
 
 	if api.Client == nil {
 		// Ran into an issue where USERTrust was not recognized on OSX.
@@ -116,6 +118,17 @@ func (api *Client) Init(cfg *Config) error {
 	}
 
 	return nil
+}
+
+// SetHeader adds additional HTTP headers for every API request made from client.
+// Usefull to set subaccount X-MSYS-SUBACCOUNT header and etc.
+func (c *Client) SetHeader(header string, value string) {
+	c.headers[header] = value
+}
+
+// Removes header set in SetHeader function
+func (c *Client) RemoveHeader(header string) {
+	delete(c.headers, header)
 }
 
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
@@ -166,6 +179,11 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 
 	// TODO: set User-Agent based on gosparkpost version and possibly git's short hash
 	req.Header.Set("User-Agent", "GoSparkPost v0.1")
+
+	// Forward additional headers set in client to request
+	for header, value := range c.headers {
+		req.Header.Set(header, value)
+	}
 
 	if c.Config.ApiKey != "" {
 		req.Header.Set("Authorization", c.Config.ApiKey)
