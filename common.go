@@ -180,15 +180,15 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	// TODO: set User-Agent based on gosparkpost version and possibly git's short hash
 	req.Header.Set("User-Agent", "GoSparkPost v0.1")
 
-	// Forward additional headers set in client to request
-	for header, value := range c.headers {
-		req.Header.Set(header, value)
-	}
-
 	if c.Config.ApiKey != "" {
 		req.Header.Set("Authorization", c.Config.ApiKey)
 	} else {
 		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
+	}
+
+	// Forward additional headers set in client to request
+	for header, value := range c.headers {
+		req.Header.Set(header, value)
 	}
 
 	if c.Config.Verbose {
