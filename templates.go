@@ -13,6 +13,8 @@ var templatesPathFormat = "/api/v%d/templates"
 
 // Template is the JSON structure accepted by and returned from the SparkPost Templates API.
 // It's mostly metadata at this level - see Content and Options for more detail.
+// Headers may contain extra HTTP header data to be passed through to the API.
+// This will overwrite any headers specified on your Client.
 type Template struct {
 	ID          string       `json:"id,omitempty"`
 	Content     Content      `json:"content,omitempty"`
@@ -22,6 +24,8 @@ type Template struct {
 	LastUse     time.Time    `json:"last_use,omitempty"`
 	LastUpdate  time.Time    `json:"last_update_time,omitempty"`
 	Options     *TmplOptions `json:"options,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
 // Content is what you'll send to your Recipients.
@@ -176,8 +180,7 @@ func (t *Template) SetHeaders(headers map[string]string) {
 	t.Content.Headers = headers
 }
 
-// Create accepts a populated Template object, validates its Contents,
-// and performs an API call against the configured endpoint.
+// TemplateCreate validates a populated Template object, and then creates it.
 func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err error) {
 	if t == nil {
 		err = fmt.Errorf("Create called with nil Template")
@@ -196,7 +199,7 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, t.Headers)
 	if err != nil {
 		return
 	}
@@ -235,7 +238,7 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 	return
 }
 
-// Update updates a draft/published template with the specified id
+// TemplateUpdate updates a draft/published template having the specified id
 func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	if t.ID == "" {
 		err = fmt.Errorf("Update called with blank id")
@@ -255,7 +258,7 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
 
-	res, err = c.HttpPut(url, jsonBytes)
+	res, err = c.HttpPut(url, jsonBytes, t.Headers)
 	if err != nil {
 		return
 	}
@@ -290,11 +293,16 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	return
 }
 
-// List returns metadata for all Templates in the system.
+// Templates returns metadata for all Templates in the system, passing in no extra HTTP headers.
 func (c *Client) Templates() ([]Template, *Response, error) {
+	return c.TemplatesWithHeaders(nil)
+}
+
+// TemplatesWithHeaders returns metadata for all Templates in the system, and allows passing in extra HTTP headers.
+func (c *Client) TemplatesWithHeaders(headers map[string]string) ([]Template, *Response, error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url)
+	res, err := c.HttpGet(url, headers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -334,8 +342,13 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 	return nil, res, err
 }
 
-// Delete removes the Template with the specified id.
+// TemplateDelete removes the Template with the specified id, passing in no extra HTTP headers.
 func (c *Client) TemplateDelete(id string) (res *Response, err error) {
+	return c.TemplateDeleteWithHeaders(id, nil)
+}
+
+// TemplateDeleteWithHeaders removes the Template with the specified id, and allows passing in extra HTTP headers.
+func (c *Client) TemplateDeleteWithHeaders(id string, headers map[string]string) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
 		return
@@ -343,7 +356,7 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err = c.HttpDelete(url)
+	res, err = c.HttpDelete(url, headers)
 	if err != nil {
 		return
 	}
@@ -378,7 +391,13 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 	return
 }
 
+// TemplatePreview returns an http.Request containing a rendered Template, passing in no extra HTTP headers.
 func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Response, err error) {
+	return c.TemplatePreviewWithHeaders(id, payload, nil)
+}
+
+// TemplatePreview returns an http.Request containing a rendered Template, and allows passing in extra HTTP headers.
+func (c *Client) TemplatePreviewWithHeaders(id string, payload *PreviewOptions, headers map[string]string) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Preview called with blank id")
 		return
@@ -395,7 +414,7 @@ func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Respo
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s/preview", c.Config.BaseUrl, path, id)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, headers)
 	if err != nil {
 		return
 	}

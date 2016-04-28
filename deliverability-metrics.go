@@ -10,6 +10,7 @@ import (
 // https://www.sparkpost.com/api#/reference/message-events
 var deliverabilityMetricPathFormat = "/api/v%d/metrics/deliverability"
 
+// DeliverabilityMetricItem contains all of the metrics returned from the Metrics endpoint.
 type DeliverabilityMetricItem struct {
 	CountInjected               int    `json:"count_injected"`
 	CountBounce                 int    `json:"count_bounce,omitempty"`
@@ -50,6 +51,7 @@ type DeliverabilityMetricItem struct {
 	BindingGroup                string `json:"binding_group,omitempty"`
 }
 
+// DeliverabilityMetricEventsWrapper is a pagination container for DeliverabilityMetricItem.
 type DeliverabilityMetricEventsWrapper struct {
 	Results    []*DeliverabilityMetricItem `json:"results,omitempty"`
 	TotalCount int                         `json:"total_count,omitempty"`
