@@ -4,7 +4,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -92,7 +91,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Fprintf(os.Stdout, string(jsonBytes))
+		os.Stdout.Write(jsonBytes)
 		os.Exit(0)
 	}
 
