@@ -18,7 +18,8 @@ var (
 )
 
 type EventsPage struct {
-	client *Client
+	headers map[string]string
+	client  *Client
 
 	Events     events.Events
 	TotalCount int
@@ -30,6 +31,11 @@ type EventsPage struct {
 
 // https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
 func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
+	return c.MessageEventsWithHeaders(params, nil)
+}
+
+// https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
+func (c *Client) MessageEventsWithHeaders(params, headers map[string]string) (*EventsPage, error) {
 	url, err := url.Parse(fmt.Sprintf(messageEventsPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
 	if err != nil {
 		return nil, err
@@ -44,7 +50,7 @@ func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(url.String())
+	res, err := c.HttpGet(url.String(), headers)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +73,7 @@ func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
 	}
 
 	eventsPage.client = c
+	eventsPage.headers = headers
 
 	return &eventsPage, nil
 }
@@ -77,7 +84,7 @@ func (events *EventsPage) Next() (*EventsPage, error) {
 	}
 
 	// Send off our request
-	res, err := events.client.HttpGet(events.client.Config.BaseUrl + events.nextPage)
+	res, err := events.client.HttpGet(events.client.Config.BaseUrl+events.nextPage, events.headers)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +107,7 @@ func (events *EventsPage) Next() (*EventsPage, error) {
 	}
 
 	eventsPage.client = events.client
+	eventsPage.headers = events.headers
 
 	return &eventsPage, nil
 }
@@ -145,8 +153,13 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Samples requests a list of example event data.
+// Samples requests a list of example event data, passing in no extra HTTP headers.
 func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
+	return c.EventSamplesWithHeaders(types, nil)
+}
+
+// Samples requests a list of example event data, and allows passing in extra HTTP headers.
+func (c *Client) EventSamplesWithHeaders(types *[]string, headers map[string]string) (*events.Events, error) {
 	url, err := url.Parse(fmt.Sprintf(messageEventsSamplesPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
 	if err != nil {
 		return nil, err
@@ -169,7 +182,7 @@ func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(url.String())
+	res, err := c.HttpGet(url.String(), headers)
 	if err != nil {
 		return nil, err
 	}

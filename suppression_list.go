@@ -30,20 +30,32 @@ type SuppressionListWrapper struct {
 }
 
 func (c *Client) SuppressionList() (*SuppressionListWrapper, error) {
+	return c.SuppressionListWithHeaders(nil)
+}
+
+func (c *Client) SuppressionListWithHeaders(headers map[string]string) (*SuppressionListWrapper, error) {
 	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 
-	return doSuppressionRequest(c, finalUrl)
+	return doSuppressionRequest(c, finalUrl, headers)
 }
 
-func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWrapper, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
+func (c *Client) SuppressionRetrieve(email string) (*SuppressionListWrapper, error) {
+	return c.SuppressionRetrieveWithHeaders(email, nil)
+}
 
-	return doSuppressionRequest(c, finalUrl)
+func (c *Client) SuppressionRetrieveWithHeaders(email string, headers map[string]string) (*SuppressionListWrapper, error) {
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
+
+	return doSuppressionRequest(c, finalUrl, headers)
 }
 
 func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionListWrapper, error) {
+	return c.SuppressionSearchWithHeaders(parameters, nil)
+}
+
+func (c *Client) SuppressionSearchWithHeaders(parameters, headers map[string]string) (*SuppressionListWrapper, error) {
 	var finalUrl string
 	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 
@@ -58,14 +70,18 @@ func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionLi
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return doSuppressionRequest(c, finalUrl)
+	return doSuppressionRequest(c, finalUrl, headers)
 }
 
-func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
+func (c *Client) SuppressionDelete(email string) (res *Response, err error) {
+	return c.SuppressionDeleteWithHeaders(email, nil)
+}
 
-	res, err = c.HttpDelete(finalUrl)
+func (c *Client) SuppressionDeleteWithHeaders(email string, headers map[string]string) (res *Response, err error) {
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
+
+	res, err = c.HttpDelete(finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +102,11 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 	return
 }
 
-func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (err error) {
+func (c *Client) SuppressionUpsert(entries []SuppressionEntry) (err error) {
+	return c.SuppressionUpsertWithHeaders(entries, nil)
+}
+
+func (c *Client) SuppressionUpsertWithHeaders(entries []SuppressionEntry, headers map[string]string) (err error) {
 	if entries == nil {
 		err = fmt.Errorf("send `entries` cannot be nil here")
 		return
@@ -97,17 +117,17 @@ func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (err erro
 
 	list := SuppressionListWrapper{nil, entries}
 
-	return c.send(finalUrl, list)
+	return c.send(finalUrl, list, headers)
 
 }
 
-func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err error) {
+func (c *Client) send(finalUrl string, recipients SuppressionListWrapper, headers map[string]string) (err error) {
 	jsonBytes, err := json.Marshal(recipients)
 	if err != nil {
 		return
 	}
 
-	res, err := c.HttpPut(finalUrl, jsonBytes)
+	res, err := c.HttpPut(finalUrl, jsonBytes, headers)
 	if err != nil {
 		return
 	}
@@ -136,9 +156,9 @@ func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err e
 	return
 }
 
-func doSuppressionRequest(c *Client, finalUrl string) (*SuppressionListWrapper, error) {
+func doSuppressionRequest(c *Client, finalUrl string, headers map[string]string) (*SuppressionListWrapper, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}

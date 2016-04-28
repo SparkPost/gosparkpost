@@ -60,6 +60,11 @@ type DeliverabilityMetricEventsWrapper struct {
 
 // https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
 func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[string]string) (*DeliverabilityMetricEventsWrapper, error) {
+	return c.QueryDeliverabilityMetricsWithHeaders(extraPath, parameters, nil)
+}
+
+// https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
+func (c *Client) QueryDeliverabilityMetricsWithHeaders(extraPath string, parameters, headers map[string]string) (*DeliverabilityMetricEventsWrapper, error) {
 
 	var finalUrl string
 	path := fmt.Sprintf(deliverabilityMetricPathFormat, c.Config.ApiVersion)
@@ -81,7 +86,7 @@ func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[str
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return doMetricsRequest(c, finalUrl)
+	return doMetricsRequest(c, finalUrl, headers)
 }
 
 func (c *Client) MetricEventAsString(e *DeliverabilityMetricItem) string {
@@ -89,9 +94,9 @@ func (c *Client) MetricEventAsString(e *DeliverabilityMetricItem) string {
 	return fmt.Sprintf("domain: %s, [%v]", e.Domain, e)
 }
 
-func doMetricsRequest(c *Client, finalUrl string) (*DeliverabilityMetricEventsWrapper, error) {
+func doMetricsRequest(c *Client, finalUrl string, headers map[string]string) (*DeliverabilityMetricEventsWrapper, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}

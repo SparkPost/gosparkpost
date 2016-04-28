@@ -31,6 +31,8 @@ type Subaccount struct {
 	ShortKey         string   `json:"short_key,omitempty"`
 	Status           string   `json:"status,omitempty"`
 	ComplianceStatus string   `json:"compliance_status,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
 // Create accepts a populated Subaccount object, validates it,
@@ -65,7 +67,7 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, s.Headers)
 	if err != nil {
 		return
 	}
@@ -141,7 +143,7 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, s.ID)
 
-	res, err = c.HttpPut(url, jsonBytes)
+	res, err = c.HttpPut(url, jsonBytes, s.Headers)
 	if err != nil {
 		return
 	}
@@ -176,11 +178,16 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	return
 }
 
-// List returns metadata for all Templates in the system.
+// Subaccounts returns metadata for all Subaccounts in the system, passing in no extra HTTP headers.
 func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err error) {
+	return c.SubaccountsWithHeaders(nil)
+}
+
+// Subaccounts returns metadata for all Subaccounts in the system, and allows passing in extra HTTP headers.
+func (c *Client) SubaccountsWithHeaders(headers map[string]string) (subaccounts []Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpGet(url)
+	res, err = c.HttpGet(url, headers)
 	if err != nil {
 		return
 	}
@@ -225,10 +232,15 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 	return
 }
 
+// Subaccount returns metadata about the specified Subaccount, without passing in any extra HTTP headers.
 func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err error) {
+	return c.SubaccountWithHeaders(id, nil)
+}
+
+func (c *Client) SubaccountWithHeaders(id int, headers map[string]string) (subaccount *Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
-	res, err = c.HttpGet(u)
+	res, err = c.HttpGet(u, headers)
 	if err != nil {
 		return
 	}

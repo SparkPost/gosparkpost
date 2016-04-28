@@ -134,32 +134,32 @@ func (c *Client) RemoveHeader(header string) {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
-	return c.DoRequest("POST", url, data, nil)
+func (c *Client) HttpPost(url string, data []byte, headers map[string]string) (*Response, error) {
+	return c.DoRequest("POST", url, data, headers)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpGet(url string) (*Response, error) {
-	return c.DoRequest("GET", url, nil, nil)
+func (c *Client) HttpGet(url string, headers map[string]string) (*Response, error) {
+	return c.DoRequest("GET", url, nil, headers)
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
-	return c.DoRequest("PUT", url, data, nil)
+func (c *Client) HttpPut(url string, data []byte, headers map[string]string) (*Response, error) {
+	return c.DoRequest("PUT", url, data, headers)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpDelete(url string) (*Response, error) {
-	return c.DoRequest("DELETE", url, nil, nil)
+func (c *Client) HttpDelete(url string, headers map[string]string) (*Response, error) {
+	return c.DoRequest("DELETE", url, nil, headers)
 }
 
-func (c *Client) DoRequest(method, urlStr string, data []byte, headers *map[string]string) (*Response, error) {
+func (c *Client) DoRequest(method, urlStr string, data []byte, headers map[string]string) (*Response, error) {
 
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
@@ -192,7 +192,7 @@ func (c *Client) DoRequest(method, urlStr string, data []byte, headers *map[stri
 	}
 
 	if headers != nil {
-		for header, value := range *headers {
+		for header, value := range headers {
 			req.Header.Set(header, value)
 		}
 	}

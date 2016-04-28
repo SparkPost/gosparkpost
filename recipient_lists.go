@@ -20,6 +20,8 @@ type RecipientList struct {
 	Recipients  *[]Recipient `json:"recipients"`
 
 	Accepted *int `json:"total_accepted_recipients,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
 func (rl *RecipientList) String() string {
@@ -173,7 +175,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, rl.Headers)
 	if err != nil {
 		return
 	}
@@ -213,10 +215,10 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 	return
 }
 
-func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
+func (c *Client) RecipientLists(headers map[string]string) (*[]RecipientList, *Response, error) {
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url)
+	res, err := c.HttpGet(url, headers)
 	if err != nil {
 		return nil, nil, err
 	}
