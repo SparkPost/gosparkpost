@@ -135,31 +135,31 @@ func (c *Client) RemoveHeader(header string) {
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
-	return c.DoRequest("POST", url, data)
+	return c.DoRequest("POST", url, data, nil)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpGet(url string) (*Response, error) {
-	return c.DoRequest("GET", url, nil)
+	return c.DoRequest("GET", url, nil, nil)
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
-	return c.DoRequest("PUT", url, data)
+	return c.DoRequest("PUT", url, data, nil)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpDelete(url string) (*Response, error) {
-	return c.DoRequest("DELETE", url, nil)
+	return c.DoRequest("DELETE", url, nil, nil)
 }
 
-func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
+func (c *Client) DoRequest(method, urlStr string, data []byte, headers *map[string]string) (*Response, error) {
 
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
@@ -189,6 +189,12 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	// Forward additional headers set in client to request
 	for header, value := range c.headers {
 		req.Header.Set(header, value)
+	}
+
+	if headers != nil {
+		for header, value := range *headers {
+			req.Header.Set(header, value)
+		}
 	}
 
 	if c.Config.Verbose {
