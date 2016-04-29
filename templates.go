@@ -293,7 +293,7 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	return
 }
 
-// Templates returns metadata for all Templates in the system, passing in no extra HTTP headers.
+// Templates returns metadata for all Templates in the system.
 func (c *Client) Templates() ([]Template, *Response, error) {
 	return c.TemplatesWithHeaders(nil)
 }
@@ -342,7 +342,7 @@ func (c *Client) TemplatesWithHeaders(headers map[string]string) ([]Template, *R
 	return nil, res, err
 }
 
-// TemplateDelete removes the Template with the specified id, passing in no extra HTTP headers.
+// TemplateDelete removes the Template with the specified id.
 func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 	return c.TemplateDeleteWithHeaders(id, nil)
 }
@@ -391,12 +391,12 @@ func (c *Client) TemplateDeleteWithHeaders(id string, headers map[string]string)
 	return
 }
 
-// TemplatePreview returns an http.Request containing a rendered Template, passing in no extra HTTP headers.
+// TemplatePreview returns an http.Request containing a rendered Template.
 func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Response, err error) {
 	return c.TemplatePreviewWithHeaders(id, payload, nil)
 }
 
-// TemplatePreview returns an http.Request containing a rendered Template, and allows passing in extra HTTP headers.
+// TemplatePreviewWithHeaders returns an http.Request containing a rendered Template, and allows passing in extra HTTP headers.
 func (c *Client) TemplatePreviewWithHeaders(id string, payload *PreviewOptions, headers map[string]string) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Preview called with blank id")

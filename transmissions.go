@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-// https://www.sparkpost.com/api#/reference/transmissions
 var transmissionsPathFormat = "/api/v%d/transmissions"
 
 // Transmission is the JSON structure accepted by and returned from the SparkPost Transmissions API.
+// https://developers.sparkpost.com/api/#/reference/transmissions
 type Transmission struct {
 	ID               string      `json:"id,omitempty"`
 	State            string      `json:"state,omitempty"`
@@ -33,7 +33,7 @@ type Transmission struct {
 	Headers map[string]string `json:"-"`
 }
 
-// Options specifies settings to apply to this Transmission.
+// TxOptions specifies settings to apply to this Transmission.
 // If not specified, and present in TmplOptions, those values will be used.
 type TxOptions struct {
 	TmplOptions
@@ -42,6 +42,7 @@ type TxOptions struct {
 	Sandbox         string     `json:"sandbox,omitempty"`
 	SkipSuppression string     `json:"skip_suppression,omitempty"`
 	InlineCSS       bool       `json:"inline_css,omitempty"`
+	// TODO: support the rest of the new options, like ip_pool
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
@@ -202,7 +203,7 @@ func (t *Transmission) Validate() error {
 	return nil
 }
 
-// Create accepts a populated Transmission object, performs basic sanity
+// Send accepts a populated Transmission object, runs basic sanity
 // checks on it, and performs an API call against the configured endpoint.
 // Calling this function can cause email to be sent, if used correctly.
 func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
@@ -257,11 +258,14 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 	return
 }
 
-// Retrieve accepts a Transmission.ID and retrieves the corresponding object.
+// Transmission returns metadata for the Transmission with the specified id.
+// Refer to the API documentation for details on which Transmissions can be retrieved this way.
 func (c *Client) Transmission(id string) (*Transmission, *Response, error) {
 	return c.TransmissionWithHeaders(id, nil)
 }
 
+// TransmissionWithHeaders returns metadata for the Transmission with the specified id, and allows passing in extra HTTP headers.
+// Refer to the API documentation for details on which Transmissions can be retrieved this way.
 func (c *Client) TransmissionWithHeaders(id string, headers map[string]string) (*Transmission, *Response, error) {
 	if nonDigit.MatchString(id) {
 		return nil, nil, fmt.Errorf("id may only contain digits")
@@ -314,12 +318,14 @@ func (c *Client) TransmissionWithHeaders(id string, headers map[string]string) (
 	return nil, res, err
 }
 
-// Delete attempts to remove the Transmission with the specified id.
+// TransmissionDelete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
 func (c *Client) TransmissionDelete(id string) (*Response, error) {
 	return c.TransmissionDeleteWithHeaders(id, nil)
 }
 
+// TransmissionDeleteWithHeaders attempts to remove the Transmission with the specified id, and allows passing in extra HTTP headers.
+// Only Transmissions which are scheduled for future generation may be deleted.
 func (c *Client) TransmissionDeleteWithHeaders(id string, headers map[string]string) (*Response, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Delete called with blank id")
@@ -361,10 +367,14 @@ func (c *Client) TransmissionDeleteWithHeaders(id string, headers map[string]str
 
 // Transmissions returns Transmission summary information for matching Transmissions.
 // To skip filtering by campaign or template id, use a nil param.
+// Refer to the API documentation for details on which Transmissions can be retrieved this way.
 func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, *Response, error) {
 	return c.TransmissionsWithHeaders(campaignID, templateID, nil)
 }
 
+// TransmissionsWithHeaders returns Transmission summary information for matching Transmissions, and allows passing in extra HTTP headers.
+// To skip filtering by campaign or template id, use a nil param.
+// Refer to the API documentation for details on which Transmissions can be retrieved this way.
 func (c *Client) TransmissionsWithHeaders(campaignID, templateID *string, headers map[string]string) ([]Transmission, *Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.

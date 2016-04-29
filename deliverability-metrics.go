@@ -7,10 +7,10 @@ import (
 	URL "net/url"
 )
 
-// https://www.sparkpost.com/api#/reference/message-events
 var deliverabilityMetricPathFormat = "/api/v%d/metrics/deliverability"
 
 // DeliverabilityMetricItem contains all of the metrics returned from the Metrics endpoint.
+// https://www.sparkpost.com/api#/reference/metrics
 type DeliverabilityMetricItem struct {
 	CountInjected               int    `json:"count_injected"`
 	CountBounce                 int    `json:"count_bounce,omitempty"`
@@ -60,12 +60,12 @@ type DeliverabilityMetricEventsWrapper struct {
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
-// https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
+// QueryDeliverabilityMetrics returns the requested metrics in a DeliverabilityMetricEventsWrapper.
 func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[string]string) (*DeliverabilityMetricEventsWrapper, error) {
 	return c.QueryDeliverabilityMetricsWithHeaders(extraPath, parameters, nil)
 }
 
-// https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
+// QueryDeliverabilityMetricsWithHeaders returns the requested metrics in a DeliverabilityMetricEventsWrapper, and allows passing in extra HTTP headers.
 func (c *Client) QueryDeliverabilityMetricsWithHeaders(extraPath string, parameters, headers map[string]string) (*DeliverabilityMetricEventsWrapper, error) {
 
 	var finalUrl string
