@@ -29,6 +29,8 @@ type Transmission struct {
 	NumGenerated         *int `json:"num_generated,omitempty"`
 	NumFailedGeneration  *int `json:"num_failed_generation,omitempty"`
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
 // Options specifies settings to apply to this Transmission.
@@ -221,7 +223,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(u, jsonBytes)
+	res, err = c.HttpPost(u, jsonBytes, t.Headers)
 	if err != nil {
 		return
 	}
@@ -257,12 +259,16 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 // Retrieve accepts a Transmission.ID and retrieves the corresponding object.
 func (c *Client) Transmission(id string) (*Transmission, *Response, error) {
+	return c.TransmissionWithHeaders(id, nil)
+}
+
+func (c *Client) TransmissionWithHeaders(id string, headers map[string]string) (*Transmission, *Response, error) {
 	if nonDigit.MatchString(id) {
 		return nil, nil, fmt.Errorf("id may only contain digits")
 	}
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err := c.HttpGet(u)
+	res, err := c.HttpGet(u, headers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -311,6 +317,10 @@ func (c *Client) Transmission(id string) (*Transmission, *Response, error) {
 // Delete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
 func (c *Client) TransmissionDelete(id string) (*Response, error) {
+	return c.TransmissionDeleteWithHeaders(id, nil)
+}
+
+func (c *Client) TransmissionDeleteWithHeaders(id string, headers map[string]string) (*Response, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Delete called with blank id")
 	}
@@ -320,7 +330,7 @@ func (c *Client) TransmissionDelete(id string) (*Response, error) {
 
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err := c.HttpDelete(u)
+	res, err := c.HttpDelete(u, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -349,9 +359,13 @@ func (c *Client) TransmissionDelete(id string) (*Response, error) {
 	return res, nil
 }
 
-// List returns Transmission summary information for matching Transmissions.
+// Transmissions returns Transmission summary information for matching Transmissions.
 // To skip filtering by campaign or template id, use a nil param.
 func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, *Response, error) {
+	return c.TransmissionsWithHeaders(campaignID, templateID, nil)
+}
+
+func (c *Client) TransmissionsWithHeaders(campaignID, templateID *string, headers map[string]string) ([]Transmission, *Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
@@ -369,7 +383,7 @@ func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, 
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := c.HttpGet(u)
+	res, err := c.HttpGet(u, headers)
 	if err != nil {
 		return nil, nil, err
 	}
