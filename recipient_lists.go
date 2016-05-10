@@ -133,23 +133,6 @@ func (r Recipient) Validate() error {
 	if err != nil {
 		return err
 	}
-
-	// Metadata must be an object, not an array or bool etc.
-	if r.Metadata != nil {
-		err := AssertObject(r.Metadata, "metadata")
-		if err != nil {
-			return err
-		}
-	}
-
-	// SubstitutionData must be an object, not an array or bool etc.
-	if r.SubstitutionData != nil {
-		err := AssertObject(r.SubstitutionData, "substitution_data")
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
