@@ -6,9 +6,10 @@ import (
 	URL "net/url"
 )
 
-// https://developers.sparkpost.com/api/#/reference/suppression-list
 var suppressionListsPathFormat = "/api/v%d/suppression-list"
 
+// SuppressionEntry represents the JSON accepted by and returned from the Suppression List endpoint.
+// https://developers.sparkpost.com/api/#/reference/suppression-list
 type SuppressionEntry struct {
 	// Email is used when list is stored
 	Email string `json:"email,omitempty"`
@@ -29,21 +30,39 @@ type SuppressionListWrapper struct {
 	Recipients []SuppressionEntry  `json:"recipients,omitempty"`
 }
 
+// SuppressionList returns all entries in the Suppression List.
 func (c *Client) SuppressionList() (*SuppressionListWrapper, error) {
+	return c.SuppressionListWithHeaders(nil)
+}
+
+// SuppressionListWithHeaders returns all entries in the Suppression List, and allows passing in extra HTTP headers.
+func (c *Client) SuppressionListWithHeaders(headers map[string]string) (*SuppressionListWrapper, error) {
 	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 
-	return doSuppressionRequest(c, finalUrl)
+	return doSuppressionGet(c, finalUrl, headers)
 }
 
-func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWrapper, error) {
+// SuppressionRetrieve returns the entry for the specified email address.
+func (c *Client) SuppressionRetrieve(email string) (*SuppressionListWrapper, error) {
+	return c.SuppressionRetrieveWithHeaders(email, nil)
+}
+
+// SuppressionRetrieveWithHeaders returns the entry for the specified email address, and allows passing in extra HTTP headers.
+func (c *Client) SuppressionRetrieveWithHeaders(email string, headers map[string]string) (*SuppressionListWrapper, error) {
 	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
+	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
 
-	return doSuppressionRequest(c, finalUrl)
+	return doSuppressionGet(c, finalUrl, headers)
 }
 
+// SuppressionSearch returns list entries matching the specified parameters.
 func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionListWrapper, error) {
+	return c.SuppressionSearchWithHeaders(parameters, nil)
+}
+
+// SuppressionSearch returns list entries matching the specified parameters, and allows passing in extra HTTP headers.
+func (c *Client) SuppressionSearchWithHeaders(parameters, headers map[string]string) (*SuppressionListWrapper, error) {
 	var finalUrl string
 	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 
@@ -58,14 +77,21 @@ func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionLi
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return doSuppressionRequest(c, finalUrl)
+	return doSuppressionGet(c, finalUrl, headers)
 }
 
-func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
+// SuppressionDelete attempts to remove the specified email address from the list.
+func (c *Client) SuppressionDelete(email string) (res *Response, err error) {
+	// FIXME: need a way to specify which list (transactional, non-transactional)
+	return c.SuppressionDeleteWithHeaders(email, nil)
+}
 
-	res, err = c.HttpDelete(finalUrl)
+// SuppressionDelete attempts to remove the specified email address from the list, and allows passing in extra HTTP headers.
+func (c *Client) SuppressionDeleteWithHeaders(email string, headers map[string]string) (res *Response, err error) {
+	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
+
+	res, err = c.HttpDelete(finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +112,15 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 	return
 }
 
-func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (err error) {
+// SuppressionUpsert adds the provided addresses to the list if they don't exist, and updates them if they do.
+func (c *Client) SuppressionUpsert(entries []SuppressionEntry) (err error) {
+	return c.SuppressionUpsertWithHeaders(entries, nil)
+}
+
+// SuppressionUpsertWithHeaders adds the provided addresses to the list if they don't exist, updates them if they do, and allows passing in extra HTTP headers.
+func (c *Client) SuppressionUpsertWithHeaders(entries []SuppressionEntry, headers map[string]string) (err error) {
 	if entries == nil {
-		err = fmt.Errorf("send `entries` cannot be nil here")
+		err = fmt.Errorf("`entries` cannot be nil")
 		return
 	}
 
@@ -97,17 +129,17 @@ func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (err erro
 
 	list := SuppressionListWrapper{nil, entries}
 
-	return c.send(finalUrl, list)
+	return c.doSuppressionPut(finalUrl, list, headers)
 
 }
 
-func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err error) {
+func (c *Client) doSuppressionPut(finalUrl string, recipients SuppressionListWrapper, headers map[string]string) (err error) {
 	jsonBytes, err := json.Marshal(recipients)
 	if err != nil {
 		return
 	}
 
-	res, err := c.HttpPut(finalUrl, jsonBytes)
+	res, err := c.HttpPut(finalUrl, jsonBytes, headers)
 	if err != nil {
 		return
 	}
@@ -136,9 +168,9 @@ func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err e
 	return
 }
 
-func doSuppressionRequest(c *Client, finalUrl string) (*SuppressionListWrapper, error) {
+func doSuppressionGet(c *Client, finalUrl string, headers map[string]string) (*SuppressionListWrapper, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}

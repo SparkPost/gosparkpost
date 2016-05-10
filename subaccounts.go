@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-// https://www.sparkpost.com/api#/reference/subaccounts
 var subaccountsPathFormat = "/api/v%d/subaccounts"
 var availableGrants = []string{
 	"smtp/inject",
@@ -21,7 +20,8 @@ var validStatuses = []string{
 	"terminated",
 }
 
-// Subaccount is the JSON structure accepted by and returned from the SparkPost Subaccounts API.
+// Subaccount is the JSON structure accepted by and returned from the SparkPost Subaccounts endpoint.
+// https://developers.sparkpost.com/api/#/reference/subaccounts
 type Subaccount struct {
 	ID               int      `json:"subaccount_id,omitempty"`
 	Name             string   `json:"name,omitempty"`
@@ -31,10 +31,11 @@ type Subaccount struct {
 	ShortKey         string   `json:"short_key,omitempty"`
 	Status           string   `json:"status,omitempty"`
 	ComplianceStatus string   `json:"compliance_status,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
-// Create accepts a populated Subaccount object, validates it,
-// and performs an API call against the configured endpoint.
+// SubaccountCreate validates a populated Subaccount object, and attempts to create it.
 func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 	// enforce required parameters
 	if s == nil {
@@ -65,7 +66,7 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, s.Headers)
 	if err != nil {
 		return
 	}
@@ -109,9 +110,7 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 	return
 }
 
-// Update updates a subaccount with the specified id.
-// Actually it will marshal and send all the subaccount fields, but that must not be a problem,
-// as fields not supposed for update will be omitted
+// SubaccountUpdate updates a subaccount with the specified id.
 func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	if s.ID == 0 {
 		err = fmt.Errorf("Subaccount Update called with zero id")
@@ -133,6 +132,8 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 		return
 	}
 
+	// Here we marshal and send all the subaccount fields.
+	// Read-only fields will be ignored
 	jsonBytes, err := json.Marshal(s)
 	if err != nil {
 		return
@@ -141,7 +142,7 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, s.ID)
 
-	res, err = c.HttpPut(url, jsonBytes)
+	res, err = c.HttpPut(url, jsonBytes, s.Headers)
 	if err != nil {
 		return
 	}
@@ -176,11 +177,16 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	return
 }
 
-// List returns metadata for all Templates in the system.
+// Subaccounts returns metadata for all Subaccounts in the system.
 func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err error) {
+	return c.SubaccountsWithHeaders(nil)
+}
+
+// SubaccountsWithHeaders returns metadata for all Subaccounts in the system, and allows passing in extra HTTP headers.
+func (c *Client) SubaccountsWithHeaders(headers map[string]string) (subaccounts []Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpGet(url)
+	res, err = c.HttpGet(url, headers)
 	if err != nil {
 		return
 	}
@@ -225,10 +231,16 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 	return
 }
 
+// Subaccount returns metadata about the specified Subaccount.
 func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err error) {
+	return c.SubaccountWithHeaders(id, nil)
+}
+
+// SubaccountWithHeaders returns metadata about the specified Subaccount, and allows passing in extra HTTP headers.
+func (c *Client) SubaccountWithHeaders(id int, headers map[string]string) (subaccount *Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
-	res, err = c.HttpGet(u)
+	res, err = c.HttpGet(u, headers)
 	if err != nil {
 		return
 	}

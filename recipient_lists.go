@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-// https://www.sparkpost.com/api#/reference/recipient-lists
 var recipListsPathFormat = "/api/v%d/recipient-lists"
 
-// RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
+// RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists endpoint.
 // It's mostly metadata at this level - see Recipients for more detail.
+// https://developers.sparkpost.com/api/#/reference/recipient-lists
 type RecipientList struct {
 	ID          string       `json:"id,omitempty"`
 	Name        string       `json:"name,omitempty"`
@@ -20,8 +20,11 @@ type RecipientList struct {
 	Recipients  *[]Recipient `json:"recipients"`
 
 	Accepted *int `json:"total_accepted_recipients,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
+// String summarizes a RecipientList
 func (rl *RecipientList) String() string {
 	n := 0
 	if rl.Recipients != nil {
@@ -136,8 +139,7 @@ func (r Recipient) Validate() error {
 	return nil
 }
 
-// Create accepts a populated RecipientList object, validates it,
-// and performs an API call against the configured endpoint.
+// RecipientListCreate validates a populated RecipientList object, and then creates it.
 func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Response, err error) {
 	if rl == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
@@ -156,7 +158,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, rl.Headers)
 	if err != nil {
 		return
 	}
@@ -196,10 +198,16 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 	return
 }
 
+// RecipientLists returns metadata for all RecipientLists in the system.
 func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
+	return c.RecipientListsWithHeaders(nil)
+}
+
+// RecipientListsWithHeaders returns metadata for all RecipientLists in the system, and allows passing in extra HTTP headers.
+func (c *Client) RecipientListsWithHeaders(headers map[string]string) (*[]RecipientList, *Response, error) {
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url)
+	res, err := c.HttpGet(url, headers)
 	if err != nil {
 		return nil, nil, err
 	}

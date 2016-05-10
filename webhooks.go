@@ -7,11 +7,12 @@ import (
 	URL "net/url"
 )
 
-// https://www.sparkpost.com/api#/reference/message-events
 var webhookListPathFormat = "/api/v%d/webhooks"
 var webhookQueryPathFormat = "/api/v%d/webhooks/%s"
 var webhookStatusPathFormat = "/api/v%d/webhooks/%s/batch-status"
 
+// WebhookItem represents a configured Webhook receiver.
+// https://developers.sparkpost.com/api/#/reference/message-events
 type WebhookItem struct {
 	ID       string   `json:"id,omitempty"`
 	Name     string   `json:"name,omitempty"`
@@ -45,6 +46,7 @@ type WebhookItem struct {
 	} `json:"links,omitempty"`
 }
 
+// WebhookStatus contains information about attempts to deliver one batch of events.
 type WebhookStatus struct {
 	BatchID      string `json:"batch_id,omitempty"`
 	Ts           string `json:"ts,omitempty"`
@@ -52,18 +54,21 @@ type WebhookStatus struct {
 	ResponseCode string `json:"response_code,omitempty"`
 }
 
+// WebhookListWrapper contains a list of WebhookItem objects.
 type WebhookListWrapper struct {
 	Results []*WebhookItem `json:"results,omitempty"`
 	Errors  []interface{}  `json:"errors,omitempty"`
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
+// WebhookQueryWrapper contains one WebhookItem object.
 type WebhookQueryWrapper struct {
 	Results *WebhookItem  `json:"results,omitempty"`
 	Errors  []interface{} `json:"errors,omitempty"`
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
+// WebhookStatusWrapper contains a list of WebhookStatus objects.
 type WebhookStatusWrapper struct {
 	Results []*WebhookStatus `json:"results,omitempty"`
 	Errors  []interface{}    `json:"errors,omitempty"`
@@ -86,42 +91,57 @@ func buildUrl(c *Client, url string, parameters map[string]string) string {
 	return url
 }
 
-// https://developers.sparkpost.com/api/#/reference/webhooks/batch-status/retrieve-status-information
+// WebhookStatus returns status information for recently-attempted batches of events.
 func (c *Client) WebhookStatus(id string, parameters map[string]string) (*WebhookStatusWrapper, error) {
+	return c.WebhookStatusWithHeaders(id, parameters, nil)
+}
+
+// WebhookStatusWithHeaders returns status information for recently-attempted batches of events, and allows passing in extra HTTP headers.
+func (c *Client) WebhookStatusWithHeaders(id string, parameters, headers map[string]string) (*WebhookStatusWrapper, error) {
 
 	var finalUrl string
 	path := fmt.Sprintf(webhookStatusPathFormat, c.Config.ApiVersion, id)
 
 	finalUrl = buildUrl(c, path, parameters)
 
-	return doWebhookStatusRequest(c, finalUrl)
+	return doWebhookStatusRequest(c, finalUrl, headers)
 }
 
-// https://developers.sparkpost.com/api/#/reference/webhooks/retrieve/retrieve-webhook-details
-func (c *Client) QueryWebhook(id string, parameters map[string]string) (*WebhookQueryWrapper, error) {
+// WebhookQuery returns metadata for the webhook with the specified id.
+func (c *Client) WebhookQuery(id string, parameters map[string]string) (*WebhookQueryWrapper, error) {
+	return c.WebhookQueryWithHeaders(id, parameters, nil)
+}
+
+// WebhookQueryWithHeaders returns metadata for the webhook with the specified id, and allows passing in extra HTTP headers.
+func (c *Client) WebhookQueryWithHeaders(id string, parameters, headers map[string]string) (*WebhookQueryWrapper, error) {
 
 	var finalUrl string
 	path := fmt.Sprintf(webhookQueryPathFormat, c.Config.ApiVersion, id)
 
 	finalUrl = buildUrl(c, path, parameters)
 
-	return doWebhooksQueryRequest(c, finalUrl)
+	return doWebhooksQueryRequest(c, finalUrl, headers)
 }
 
-// https://developers.sparkpost.com/api/#/reference/webhooks/list/list-all-webhooks
-func (c *Client) ListWebhooks(parameters map[string]string) (*WebhookListWrapper, error) {
+// WebhooksList returns metadata for all configured webhooks.
+func (c *Client) WebhooksList(parameters map[string]string) (*WebhookListWrapper, error) {
+	return c.WebhooksListWithHeaders(parameters, nil)
+}
+
+// WebhooksList returns metadata for all configured webhooks, and allows passing in extra HTTP headers.
+func (c *Client) WebhooksListWithHeaders(parameters, headers map[string]string) (*WebhookListWrapper, error) {
 
 	var finalUrl string
 	path := fmt.Sprintf(webhookListPathFormat, c.Config.ApiVersion)
 
 	finalUrl = buildUrl(c, path, parameters)
 
-	return doWebhooksListRequest(c, finalUrl)
+	return doWebhooksListRequest(c, finalUrl, headers)
 }
 
-func doWebhooksListRequest(c *Client, finalUrl string) (*WebhookListWrapper, error) {
+func doWebhooksListRequest(c *Client, finalUrl string, headers map[string]string) (*WebhookListWrapper, error) {
 
-	bodyBytes, err := doRequest(c, finalUrl)
+	bodyBytes, err := doRequest(c, finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +157,8 @@ func doWebhooksListRequest(c *Client, finalUrl string) (*WebhookListWrapper, err
 	return &resMap, err
 }
 
-func doWebhooksQueryRequest(c *Client, finalUrl string) (*WebhookQueryWrapper, error) {
-	bodyBytes, err := doRequest(c, finalUrl)
+func doWebhooksQueryRequest(c *Client, finalUrl string, headers map[string]string) (*WebhookQueryWrapper, error) {
+	bodyBytes, err := doRequest(c, finalUrl, headers)
 
 	// Parse expected response structure
 	var resMap WebhookQueryWrapper
@@ -151,8 +171,8 @@ func doWebhooksQueryRequest(c *Client, finalUrl string) (*WebhookQueryWrapper, e
 	return &resMap, err
 }
 
-func doWebhookStatusRequest(c *Client, finalUrl string) (*WebhookStatusWrapper, error) {
-	bodyBytes, err := doRequest(c, finalUrl)
+func doWebhookStatusRequest(c *Client, finalUrl string, headers map[string]string) (*WebhookStatusWrapper, error) {
+	bodyBytes, err := doRequest(c, finalUrl, headers)
 
 	// Parse expected response structure
 	var resMap WebhookStatusWrapper
@@ -165,9 +185,9 @@ func doWebhookStatusRequest(c *Client, finalUrl string) (*WebhookStatusWrapper, 
 	return &resMap, err
 }
 
-func doRequest(c *Client, finalUrl string) ([]byte, error) {
+func doRequest(c *Client, finalUrl string, headers map[string]string) ([]byte, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, headers)
 	if err != nil {
 		return nil, err
 	}

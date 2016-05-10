@@ -10,15 +10,17 @@ import (
 	"github.com/SparkPost/gosparkpost/events"
 )
 
-// https://www.sparkpost.com/api#/reference/message-events
 var (
 	ErrEmptyPage                   = errors.New("empty page")
 	messageEventsPathFormat        = "%s/api/v%d/message-events"
 	messageEventsSamplesPathFormat = "%s/api/v%d/message-events/events/samples"
 )
 
+// EventsPage contains a list of events, with links to any additional pages of results.
+// https://developers.sparkpost.com/api/#/reference/message-events
 type EventsPage struct {
-	client *Client
+	headers map[string]string
+	client  *Client
 
 	Events     events.Events
 	TotalCount int
@@ -28,8 +30,13 @@ type EventsPage struct {
 	lastPage   string
 }
 
-// https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
+// MessageEvents searches for event data matching the specified params.
 func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
+	return c.MessageEventsWithHeaders(params, nil)
+}
+
+// MessageEventsWithHeaders searches for event data matching the specified params, and allows passing in extra HTTP headers.
+func (c *Client) MessageEventsWithHeaders(params, headers map[string]string) (*EventsPage, error) {
 	url, err := url.Parse(fmt.Sprintf(messageEventsPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
 	if err != nil {
 		return nil, err
@@ -44,7 +51,7 @@ func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(url.String())
+	res, err := c.HttpGet(url.String(), headers)
 	if err != nil {
 		return nil, err
 	}
@@ -67,17 +74,19 @@ func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
 	}
 
 	eventsPage.client = c
+	eventsPage.headers = headers
 
 	return &eventsPage, nil
 }
 
+// Next fetches the next page of events for the current query, resending any HTTP headers specified with the original request.
 func (events *EventsPage) Next() (*EventsPage, error) {
 	if events.nextPage == "" {
 		return nil, ErrEmptyPage
 	}
 
 	// Send off our request
-	res, err := events.client.HttpGet(events.client.Config.BaseUrl + events.nextPage)
+	res, err := events.client.HttpGet(events.client.Config.BaseUrl+events.nextPage, events.headers)
 	if err != nil {
 		return nil, err
 	}
@@ -100,36 +109,40 @@ func (events *EventsPage) Next() (*EventsPage, error) {
 	}
 
 	eventsPage.client = events.client
+	eventsPage.headers = events.headers
 
 	return &eventsPage, nil
 }
 
+type resultsWrapper struct {
+	RawEvents  []json.RawMessage `json:"results"`
+	TotalCount int               `json:"total_count,omitempty"`
+	Links      []struct {
+		Href string `json:"href"`
+		Rel  string `json:"rel"`
+	} `json:"links,omitempty"`
+}
+
+// UnmarshalJSON parses the provided []byte, extracting event data into ep.
 func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 	// Clear object.
 	*ep = EventsPage{}
 
+	var resWrapper resultsWrapper
 	// Object with array of events and cursors is being sent on Message Events.
-	var resultsWrapper struct {
-		RawEvents  []json.RawMessage `json:"results"`
-		TotalCount int               `json:"total_count,omitempty"`
-		Links      []struct {
-			Href string `json:"href"`
-			Rel  string `json:"rel"`
-		} `json:"links,omitempty"`
-	}
-	err := json.Unmarshal(data, &resultsWrapper)
+	err := json.Unmarshal(data, &resWrapper)
 	if err != nil {
 		return err
 	}
 
-	ep.Events, err = events.ParseRawJSONEvents(resultsWrapper.RawEvents)
+	ep.Events, err = events.ParseRawJSONEvents(resWrapper.RawEvents)
 	if err != nil {
 		return err
 	}
 
-	ep.TotalCount = resultsWrapper.TotalCount
+	ep.TotalCount = resWrapper.TotalCount
 
-	for _, link := range resultsWrapper.Links {
+	for _, link := range resWrapper.Links {
 		switch link.Rel {
 		case "next":
 			ep.nextPage = link.Href
@@ -145,8 +158,13 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Samples requests a list of example event data.
+// EventSamples requests a list of example event data.
 func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
+	return c.EventSamplesWithHeaders(types, nil)
+}
+
+// EventSamplesWithHeaders requests a list of example event data, and allows passing in extra HTTP headers.
+func (c *Client) EventSamplesWithHeaders(types *[]string, headers map[string]string) (*events.Events, error) {
 	url, err := url.Parse(fmt.Sprintf(messageEventsSamplesPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
 	if err != nil {
 		return nil, err
@@ -169,7 +187,7 @@ func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(url.String())
+	res, err := c.HttpGet(url.String(), headers)
 	if err != nil {
 		return nil, err
 	}
@@ -191,19 +209,5 @@ func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
 		return nil, err
 	}
 
-	return &events, nil
-}
-
-// ParseEvents function is left only for backward-compatibility. Events are parsed by events pkg.
-func ParseEvents(rawEventsPtr []*json.RawMessage) (*[]events.Event, error) {
-	rawEvents := make([]json.RawMessage, len(rawEventsPtr))
-	for i, ptr := range rawEventsPtr {
-		rawEvents[i] = *ptr
-	}
-
-	events, err := events.ParseRawJSONEvents(rawEvents)
-	if err != nil {
-		return nil, err
-	}
 	return &events, nil
 }
