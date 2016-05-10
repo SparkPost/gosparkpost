@@ -8,15 +8,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
 )
-
-// TODO: define paths statically in each endpoint's file, move version to Config
-// TODO: rename e.g. Transmissions.Create to Client.SendTransmission
 
 // Config includes all information necessary to make an API request.
 type Config struct {
@@ -246,30 +242,6 @@ func (r *Response) ParseResponse() error {
 		return fmt.Errorf("Failed to parse API response: [%s]\n%s", err, string(body))
 	}
 
-	return nil
-}
-
-// AssertObject asserts that the provided variable is a map[string]something.
-// The string parameter is used to customize the generated error message.
-func AssertObject(obj interface{}, label string) error {
-	// List of handled types from here:
-	// http://golang.org/pkg/encoding/json/#Unmarshal
-	switch objVal := obj.(type) {
-	case map[string]interface{}:
-		// auto-parsed nested json object
-	case map[string]bool:
-		// user-provided json literal (convenience)
-	case map[string]float64:
-		// user-provided json literal (convenience)
-	case map[string]string:
-		// user-provided json literal (convenience)
-	case map[string][]interface{}:
-		// user-provided json literal (convenience)
-	case map[string]map[string]interface{}:
-		// user-provided json literal (convenience)
-	default:
-		return fmt.Errorf("expected key/val pairs for %s, got [%s]", label, reflect.TypeOf(objVal))
-	}
 	return nil
 }
 

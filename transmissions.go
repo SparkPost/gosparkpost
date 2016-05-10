@@ -181,22 +181,6 @@ func (t *Transmission) Validate() error {
 		return err
 	}
 
-	// Metadata must be an object, not an array or bool etc.
-	if t.Metadata != nil {
-		err := AssertObject(t.Metadata, "metadata")
-		if err != nil {
-			return err
-		}
-	}
-
-	// SubstitutionData must be an object, not an array or bool etc.
-	if t.SubstitutionData != nil {
-		err := AssertObject(t.SubstitutionData, "substitution_data")
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
