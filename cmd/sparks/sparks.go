@@ -17,6 +17,7 @@ var to = flag.String("to", "", "where the mail goes to")
 var subject = flag.String("subject", "", "email subject")
 var htmlFile = flag.String("html", "", "file containing html content")
 var textFile = flag.String("text", "", "file containing text content")
+var subsFile = flag.String("subs", "", "file containing substitution data (json object)")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
 var url = flag.String("url", "", "base url for api requests (optional)")
@@ -35,6 +36,7 @@ func main() {
 
 	hasHtml := !(htmlFile == nil || strings.TrimSpace(*htmlFile) == "")
 	hasText := !(textFile == nil || strings.TrimSpace(*textFile) == "")
+	hasSubs := !(subsFile == nil || strings.TrimSpace(*subsFile) == "")
 
 	if !hasHtml && !hasText {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
@@ -77,6 +79,19 @@ func main() {
 	tx := &sparkpost.Transmission{
 		Recipients: []string{*to},
 		Content:    content,
+	}
+
+	if hasSubs {
+		subsBytes, err := ioutil.ReadFile(*subsFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		recip := sparkpost.Recipient{Address: *to, SubstitutionData: json.RawMessage{}}
+		err = json.Unmarshal(subsBytes, &recip.SubstitutionData)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tx.Recipients = []sparkpost.Recipient{recip}
 	}
 
 	if inline != nil && *inline {
