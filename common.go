@@ -8,15 +8,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
 )
-
-// TODO: define paths statically in each endpoint's file, move version to Config
-// TODO: rename e.g. Transmissions.Create to Client.SendTransmission
 
 // Config includes all information necessary to make an API request.
 type Config struct {
