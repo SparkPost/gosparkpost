@@ -195,14 +195,17 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	ares := &Response{HTTP: res}
 
 	if c.Config.Verbose {
-		fmt.Println("Server Response: ", ares.HTTP.Status)
-		bodyBytes, err := ares.ReadBody()
 		if err != nil {
 			fmt.Println("Error: ", err)
 		} else {
-			fmt.Println("Body: ", string(bodyBytes))
+			fmt.Println("Server Response: ", ares.HTTP.Status)
+			bodyBytes, err := ares.ReadBody()
+			if err != nil {
+				fmt.Println("Error: ", err)
+			} else {
+				fmt.Println("Body: ", string(bodyBytes))
+			}
 		}
-
 	}
 
 	return ares, err
