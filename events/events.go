@@ -19,8 +19,7 @@ type Event interface {
 type Events []Event
 
 var (
-	ErrWebhookValidation = errors.New("webhook validation request")
-	ErrNotImplemented    = errors.New("not implemented")
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 // ValidEventType returns true if the event name parameter is valid.
@@ -117,9 +116,6 @@ func (events *Events) UnmarshalJSON(data []byte) error {
 	// Parse raw events from Event Webhook ("msys"-wrapped array of events).
 	rawEvents, err := parseRawJSONEventsFromWebhook(data)
 	if err != nil {
-		if err == ErrWebhookValidation {
-			return err
-		}
 		// Parse raw events from Event Samples ("results" object with array of events).
 		rawEvents, err = parseRawJSONEventsFromSamples(data)
 		if err != nil {
@@ -143,11 +139,6 @@ func parseRawJSONEventsFromWebhook(data []byte) ([]json.RawMessage, error) {
 	}
 	if err := json.Unmarshal(data, &msysEventWrappers); err != nil {
 		return nil, err
-	}
-
-	// Empty "msys" wrapper is used for webhook validation.
-	if len(msysEventWrappers) == 1 && len(msysEventWrappers[0].MsysEventWrapper) == 0 {
-		return nil, ErrWebhookValidation
 	}
 
 	for _, wrapper := range msysEventWrappers {
