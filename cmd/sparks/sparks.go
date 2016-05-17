@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	sparkpost "github.com/SparkPost/gosparkpost"
 )
@@ -18,6 +19,7 @@ var subject = flag.String("subject", "", "email subject")
 var htmlFile = flag.String("html", "", "file containing html content")
 var textFile = flag.String("text", "", "file containing text content")
 var subsFile = flag.String("subs", "", "file containing substitution data (json object)")
+var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
 var url = flag.String("url", "", "base url for api requests (optional)")
@@ -92,6 +94,18 @@ func main() {
 			log.Fatal(err)
 		}
 		tx.Recipients = []sparkpost.Recipient{recip}
+	}
+
+	if sendDelay != nil && strings.TrimSpace(*sendDelay) != "" {
+		if tx.Options == nil {
+			tx.Options = &sparkpost.TxOptions{}
+		}
+		dur, err := time.ParseDuration(*sendDelay)
+		if err != nil {
+			log.Fatal(err)
+		}
+		start := sparkpost.RFC3339(time.Now().Add(dur))
+		tx.Options.StartTime = &start
 	}
 
 	if inline != nil && *inline {
