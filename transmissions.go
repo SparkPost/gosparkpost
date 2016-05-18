@@ -31,15 +31,24 @@ type Transmission struct {
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
 }
 
+type RFC3339 time.Time
+
+func (r *RFC3339) MarshalJSON() ([]byte, error) {
+	if r == nil {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(time.Time(*r).Format(time.RFC3339))
+}
+
 // Options specifies settings to apply to this Transmission.
 // If not specified, and present in TmplOptions, those values will be used.
 type TxOptions struct {
 	TmplOptions
 
-	StartTime       *time.Time `json:"start_time,omitempty"`
-	Sandbox         string     `json:"sandbox,omitempty"`
-	SkipSuppression string     `json:"skip_suppression,omitempty"`
-	InlineCSS       bool       `json:"inline_css,omitempty"`
+	StartTime       *RFC3339 `json:"start_time,omitempty"`
+	Sandbox         string   `json:"sandbox,omitempty"`
+	SkipSuppression string   `json:"skip_suppression,omitempty"`
+	InlineCSS       bool     `json:"inline_css,omitempty"`
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
@@ -179,22 +188,6 @@ func (t *Transmission) Validate() error {
 	err = ParseContent(t.Content)
 	if err != nil {
 		return err
-	}
-
-	// Metadata must be an object, not an array or bool etc.
-	if t.Metadata != nil {
-		err := AssertObject(t.Metadata, "metadata")
-		if err != nil {
-			return err
-		}
-	}
-
-	// SubstitutionData must be an object, not an array or bool etc.
-	if t.SubstitutionData != nil {
-		err := AssertObject(t.SubstitutionData, "substitution_data")
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
