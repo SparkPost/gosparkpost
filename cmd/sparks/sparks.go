@@ -34,21 +34,21 @@ func main() {
 
 	flag.Parse()
 
-	if to == nil || strings.TrimSpace(*to) == "" {
+	if strings.TrimSpace(*to) == "" {
 		log.Fatal("SUCCESS: send mail to nobody!\n")
 	}
 
-	hasHtml := !(htmlFile == nil || strings.TrimSpace(*htmlFile) == "")
-	hasText := !(textFile == nil || strings.TrimSpace(*textFile) == "")
-	hasSubs := !(subsFile == nil || strings.TrimSpace(*subsFile) == "")
-	hasImg := !(imgFile == nil || strings.TrimSpace(*imgFile) == "")
+	hasHtml := strings.TrimSpace(*htmlFile) != ""
+	hasText := strings.TrimSpace(*textFile) != ""
+	hasSubs := strings.TrimSpace(*subsFile) != ""
+	hasImg := strings.TrimSpace(*imgFile) != ""
 
 	if !hasHtml && !hasText {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
 	}
 
 	cfg := &sparkpost.Config{ApiKey: apiKey}
-	if url != nil && *url != "" {
+	if strings.TrimSpace(*url) != "" {
 		if !strings.HasPrefix(*url, "https://") {
 			log.Fatal("FATAL: base url must be https!\n")
 		}
