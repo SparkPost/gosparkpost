@@ -44,7 +44,10 @@ func TestSampleWebhookValidationRequest(t *testing.T) {
 
 	var events Events
 	err = json.Unmarshal(payload, &events)
-	if err != ErrWebhookValidation {
-		t.Fatalf("expected ErrWebhookValidation error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("expected zero events, got %d: %v", len(events), events)
 	}
 }
