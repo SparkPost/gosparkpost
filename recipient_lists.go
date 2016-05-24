@@ -61,6 +61,9 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 			a.Email = addrVal
 		}
 
+	case Address:
+		a = addr.(Address)
+
 	case map[string]interface{}:
 		// auto-parsed nested json object
 		for k, v := range addrVal {
