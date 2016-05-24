@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -19,6 +20,7 @@ var subject = flag.String("subject", "", "email subject")
 var htmlFile = flag.String("html", "", "file containing html content")
 var textFile = flag.String("text", "", "file containing text content")
 var subsFile = flag.String("subs", "", "file containing substitution data (json object)")
+var imgFile = flag.String("img", "", "mimetype:cid:path for image to include")
 var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
@@ -39,6 +41,7 @@ func main() {
 	hasHtml := !(htmlFile == nil || strings.TrimSpace(*htmlFile) == "")
 	hasText := !(textFile == nil || strings.TrimSpace(*textFile) == "")
 	hasSubs := !(subsFile == nil || strings.TrimSpace(*subsFile) == "")
+	hasImg := !(imgFile == nil || strings.TrimSpace(*imgFile) == "")
 
 	if !hasHtml && !hasText {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
@@ -76,6 +79,23 @@ func main() {
 			log.Fatal(err)
 		}
 		content.Text = string(textBytes)
+	}
+
+	if hasImg {
+		imgra := strings.SplitN(*imgFile, ":", 3)
+		if len(imgra) != 3 {
+			log.Fatalf("--img format is mimetype:cid:path")
+		}
+		imgBytes, err := ioutil.ReadFile(imgra[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+		img := sparkpost.InlineImage{
+			MIMEType: imgra[0],
+			Filename: imgra[1],
+			B64Data:  base64.StdEncoding.EncodeToString(imgBytes),
+		}
+		content.InlineImages = append(content.InlineImages, img)
 	}
 
 	tx := &sparkpost.Transmission{
