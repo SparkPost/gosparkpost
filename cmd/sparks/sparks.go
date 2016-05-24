@@ -16,6 +16,8 @@ import (
 
 var from = flag.String("from", "default@sparkpostbox.com", "where the mail came from")
 var to = flag.String("to", "", "where the mail goes to")
+var cc = flag.String("cc", "", "carbon copy this address")
+var bcc = flag.String("bcc", "", "blind carbon copy this address")
 var subject = flag.String("subject", "", "email subject")
 var htmlFile = flag.String("html", "", "file containing html content")
 var textFile = flag.String("text", "", "file containing text content")
@@ -98,10 +100,31 @@ func main() {
 		content.InlineImages = append(content.InlineImages, img)
 	}
 
-	tx := &sparkpost.Transmission{
-		Recipients: []string{*to},
-		Content:    content,
+	tx := &sparkpost.Transmission{}
+
+	hasCc := strings.TrimSpace(*cc) != ""
+	hasBcc := strings.TrimSpace(*bcc) != ""
+
+	if hasCc {
+		// need to set `header_to`; can't do that with string recipients
+		tx.Recipients = []sparkpost.Recipient{
+			{Address: sparkpost.Address{Email: *to}},
+			{Address: sparkpost.Address{Email: *cc, HeaderTo: *to}},
+		}
+		if content.Headers == nil {
+			content.Headers = map[string]string{}
+		}
+		content.Headers["cc"] = *cc
+		if hasBcc {
+			tx.Recipients = append(tx.Recipients.([]sparkpost.Recipient), sparkpost.Recipient{
+				Address: sparkpost.Address{Email: *bcc}})
+		}
+	} else if hasBcc {
+		tx.Recipients = []string{*to, *bcc}
+	} else {
+		tx.Recipients = []string{*to}
 	}
+	tx.Content = content
 
 	if hasSubs {
 		subsBytes, err := ioutil.ReadFile(*subsFile)
