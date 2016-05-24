@@ -116,11 +116,15 @@ func main() {
 		}
 		content.Headers["cc"] = *cc
 		if hasBcc {
-			tx.Recipients = append(tx.Recipients.([]sparkpost.Recipient), sparkpost.Recipient{
-				Address: sparkpost.Address{Email: *bcc}})
+			tx.Recipients = append(tx.Recipients.([]sparkpost.Recipient),
+				sparkpost.Recipient{
+					Address: sparkpost.Address{Email: *bcc, HeaderTo: *to}})
 		}
 	} else if hasBcc {
-		tx.Recipients = []string{*to, *bcc}
+		tx.Recipients = []sparkpost.Recipient{
+			{Address: sparkpost.Address{Email: *to}},
+			{Address: sparkpost.Address{Email: *bcc, HeaderTo: *to}},
+		}
 	} else {
 		tx.Recipients = []string{*to}
 	}
