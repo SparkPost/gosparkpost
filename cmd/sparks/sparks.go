@@ -140,10 +140,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		// FIXME: this clobbers any cc/bcc recipients
 		tx.Recipients = []sparkpost.Recipient{recip}
 	}
 
-	if sendDelay != nil && strings.TrimSpace(*sendDelay) != "" {
+	if strings.TrimSpace(*sendDelay) != "" {
 		if tx.Options == nil {
 			tx.Options = &sparkpost.TxOptions{}
 		}
@@ -155,14 +156,14 @@ func main() {
 		tx.Options.StartTime = &start
 	}
 
-	if inline != nil && *inline {
+	if *inline != false {
 		if tx.Options == nil {
 			tx.Options = &sparkpost.TxOptions{}
 		}
 		tx.Options.InlineCSS = true
 	}
 
-	if dryrun != nil && *dryrun {
+	if *dryrun != false {
 		jsonBytes, err := json.Marshal(tx)
 		if err != nil {
 			log.Fatal(err)
