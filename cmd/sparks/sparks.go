@@ -31,12 +31,16 @@ var to Strings
 var cc Strings
 var bcc Strings
 var headers Strings
+var images Strings
+var attachments Strings
 
 func init() {
 	flag.Var(&to, "to", "where the mail goes to")
 	flag.Var(&cc, "cc", "carbon copy this address")
 	flag.Var(&bcc, "bcc", "blind carbon copy this address")
 	flag.Var(&headers, "header", "custom header for your content")
+	flag.Var(&images, "img", "mimetype:cid:path for image to include")
+	flag.Var(&attachments, "attach", "mimetype:name:path for file to attach")
 }
 
 var from = flag.String("from", "default@sparkpostbox.com", "where the mail came from")
@@ -44,8 +48,6 @@ var subject = flag.String("subject", "", "email subject")
 var htmlFlag = flag.String("html", "", "string/filename containing html content")
 var textFlag = flag.String("text", "", "string/filename containing text content")
 var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
-var imgFile = flag.String("img", "", "mimetype:cid:path for image to include")
-var attFile = flag.String("attach", "", "mimetype:name:path for file to attach")
 var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
@@ -72,8 +74,6 @@ func main() {
 	hasHtml := strings.TrimSpace(*htmlFlag) != ""
 	hasText := strings.TrimSpace(*textFlag) != ""
 	hasSubs := strings.TrimSpace(*subsFlag) != ""
-	hasImg := strings.TrimSpace(*imgFile) != ""
-	hasAtt := strings.TrimSpace(*attFile) != ""
 
 	if !hasHtml && !hasText {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
@@ -126,38 +126,42 @@ func main() {
 		}
 	}
 
-	if hasImg {
-		imgra := strings.SplitN(*imgFile, ":", 3)
-		if len(imgra) != 3 {
-			log.Fatalf("--img format is mimetype:cid:path")
+	if len(images) > 0 {
+		for _, imgStr := range images {
+			img := strings.SplitN(imgStr, ":", 3)
+			if len(img) != 3 {
+				log.Fatalf("--img format is mimetype:cid:path")
+			}
+			imgBytes, err := ioutil.ReadFile(img[2])
+			if err != nil {
+				log.Fatal(err)
+			}
+			iimg := sp.InlineImage{
+				MIMEType: img[0],
+				Filename: img[1],
+				B64Data:  base64.StdEncoding.EncodeToString(imgBytes),
+			}
+			content.InlineImages = append(content.InlineImages, iimg)
 		}
-		imgBytes, err := ioutil.ReadFile(imgra[2])
-		if err != nil {
-			log.Fatal(err)
-		}
-		img := sp.InlineImage{
-			MIMEType: imgra[0],
-			Filename: imgra[1],
-			B64Data:  base64.StdEncoding.EncodeToString(imgBytes),
-		}
-		content.InlineImages = append(content.InlineImages, img)
 	}
 
-	if hasAtt {
-		attra := strings.SplitN(*attFile, ":", 3)
-		if len(attra) != 3 {
-			log.Fatalf("--attach format is mimetype:name:path")
+	if len(attachments) > 0 {
+		for _, attStr := range attachments {
+			att := strings.SplitN(attStr, ":", 3)
+			if len(att) != 3 {
+				log.Fatalf("--attach format is mimetype:name:path")
+			}
+			attBytes, err := ioutil.ReadFile(att[2])
+			if err != nil {
+				log.Fatal(err)
+			}
+			attach := sp.Attachment{
+				MIMEType: att[0],
+				Filename: att[1],
+				B64Data:  base64.StdEncoding.EncodeToString(attBytes),
+			}
+			content.Attachments = append(content.Attachments, attach)
 		}
-		attBytes, err := ioutil.ReadFile(attra[2])
-		if err != nil {
-			log.Fatal(err)
-		}
-		att := sp.Attachment{
-			MIMEType: attra[0],
-			Filename: attra[1],
-			B64Data:  base64.StdEncoding.EncodeToString(attBytes),
-		}
-		content.Attachments = append(content.Attachments, att)
 	}
 
 	tx := &sp.Transmission{}
