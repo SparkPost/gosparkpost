@@ -1,4 +1,5 @@
 // Sparks is a command-line tool for quickly sending email using SparkPost.
+// It's like swaks, and apiaks sounded awkward.
 package main
 
 import (
@@ -44,6 +45,7 @@ var htmlFlag = flag.String("html", "", "string/filename containing html content"
 var textFlag = flag.String("text", "", "string/filename containing text content")
 var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
 var imgFile = flag.String("img", "", "mimetype:cid:path for image to include")
+var attFile = flag.String("attach", "", "mimetype:name:path for file to attach")
 var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
@@ -71,6 +73,7 @@ func main() {
 	hasText := strings.TrimSpace(*textFlag) != ""
 	hasSubs := strings.TrimSpace(*subsFlag) != ""
 	hasImg := strings.TrimSpace(*imgFile) != ""
+	hasAtt := strings.TrimSpace(*attFile) != ""
 
 	if !hasHtml && !hasText {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
@@ -138,6 +141,23 @@ func main() {
 			B64Data:  base64.StdEncoding.EncodeToString(imgBytes),
 		}
 		content.InlineImages = append(content.InlineImages, img)
+	}
+
+	if hasAtt {
+		attra := strings.SplitN(*attFile, ":", 3)
+		if len(attra) != 3 {
+			log.Fatalf("--attach format is mimetype:name:path")
+		}
+		attBytes, err := ioutil.ReadFile(attra[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+		att := sp.Attachment{
+			MIMEType: attra[0],
+			Filename: attra[1],
+			B64Data:  base64.StdEncoding.EncodeToString(attBytes),
+		}
+		content.Attachments = append(content.Attachments, att)
 	}
 
 	tx := &sp.Transmission{}
