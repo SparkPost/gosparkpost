@@ -1,4 +1,4 @@
-// Sparks is a command-line tool for quickly sending email using SparkPost
+// Sparks is a command-line tool for quickly sending email using SparkPost.
 package main
 
 import (
@@ -8,16 +8,37 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
-	sparkpost "github.com/SparkPost/gosparkpost"
+	sp "github.com/SparkPost/gosparkpost"
 )
 
+type Strings []string
+
+func (s *Strings) String() string {
+	return strings.Join([]string(*s), ",")
+}
+
+func (s *Strings) Set(value string) error {
+	*s = append([]string(*s), value)
+	return nil
+}
+
+var to Strings
+var cc Strings
+var bcc Strings
+var headers Strings
+
+func init() {
+	flag.Var(&to, "to", "where the mail goes to")
+	flag.Var(&cc, "cc", "carbon copy this address")
+	flag.Var(&bcc, "bcc", "blind carbon copy this address")
+	flag.Var(&headers, "header", "custom header for your content")
+}
+
 var from = flag.String("from", "default@sparkpostbox.com", "where the mail came from")
-var to = flag.String("to", "", "where the mail goes to")
-var cc = flag.String("cc", "", "carbon copy this address")
-var bcc = flag.String("bcc", "", "blind carbon copy this address")
 var subject = flag.String("subject", "", "email subject")
 var htmlFlag = flag.String("html", "", "string/filename containing html content")
 var textFlag = flag.String("text", "", "string/filename containing text content")
@@ -37,7 +58,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if strings.TrimSpace(*to) == "" {
+	if len(to) <= 0 {
 		log.Fatal("SUCCESS: send mail to nobody!\n")
 	}
 
@@ -55,7 +76,7 @@ func main() {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
 	}
 
-	cfg := &sparkpost.Config{ApiKey: apiKey}
+	cfg := &sp.Config{ApiKey: apiKey}
 	if strings.TrimSpace(*url) != "" {
 		if !strings.HasPrefix(*url, "https://") {
 			log.Fatal("FATAL: base url must be https!\n")
@@ -63,16 +84,17 @@ func main() {
 		cfg.BaseUrl = *url
 	}
 
-	var sparky sparkpost.Client
+	var sparky sp.Client
 	err := sparky.Init(cfg)
 	if err != nil {
 		log.Fatalf("SparkPost client init failed: %s\n", err)
 	}
 
-	content := sparkpost.Content{
+	content := sp.Content{
 		From:    *from,
 		Subject: *subject,
 	}
+
 	if hasHtml {
 		if strings.Contains(*htmlFlag, "/") {
 			// read file to get html
@@ -110,7 +132,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		img := sparkpost.InlineImage{
+		img := sp.InlineImage{
 			MIMEType: imgra[0],
 			Filename: imgra[1],
 			B64Data:  base64.StdEncoding.EncodeToString(imgBytes),
@@ -118,36 +140,9 @@ func main() {
 		content.InlineImages = append(content.InlineImages, img)
 	}
 
-	tx := &sparkpost.Transmission{}
+	tx := &sp.Transmission{}
 
-	hasCc := strings.TrimSpace(*cc) != ""
-	hasBcc := strings.TrimSpace(*bcc) != ""
-
-	if hasCc {
-		// need to set `header_to`; can't do that with string recipients
-		tx.Recipients = []sparkpost.Recipient{
-			{Address: sparkpost.Address{Email: *to}},
-			{Address: sparkpost.Address{Email: *cc, HeaderTo: *to}},
-		}
-		if content.Headers == nil {
-			content.Headers = map[string]string{}
-		}
-		content.Headers["cc"] = *cc
-		if hasBcc {
-			tx.Recipients = append(tx.Recipients.([]sparkpost.Recipient),
-				sparkpost.Recipient{
-					Address: sparkpost.Address{Email: *bcc, HeaderTo: *to}})
-		}
-	} else if hasBcc {
-		tx.Recipients = []sparkpost.Recipient{
-			{Address: sparkpost.Address{Email: *to}},
-			{Address: sparkpost.Address{Email: *bcc, HeaderTo: *to}},
-		}
-	} else {
-		tx.Recipients = []string{*to}
-	}
-	tx.Content = content
-
+	var subJson *json.RawMessage
 	if hasSubs {
 		var subsBytes []byte
 		if strings.Contains(*subsFlag, "/") {
@@ -160,30 +155,73 @@ func main() {
 			subsBytes = []byte(*subsFlag)
 		}
 
-		recip := sparkpost.Recipient{Address: *to, SubstitutionData: json.RawMessage{}}
-		err = json.Unmarshal(subsBytes, &recip.SubstitutionData)
+		subJson = &json.RawMessage{}
+		err = json.Unmarshal(subsBytes, subJson)
 		if err != nil {
 			log.Fatal(err)
 		}
-		// FIXME: this clobbers any cc/bcc recipients
-		tx.Recipients = []sparkpost.Recipient{recip}
 	}
+
+	headerTo := strings.Join(to, ",")
+
+	tx.Recipients = []sp.Recipient{}
+	for _, r := range to {
+		tx.Recipients = append(tx.Recipients.([]sp.Recipient), sp.Recipient{
+			Address:          sp.Address{Email: r, HeaderTo: headerTo},
+			SubstitutionData: subJson,
+		})
+	}
+
+	if len(cc) > 0 {
+		for _, r := range cc {
+			tx.Recipients = append(tx.Recipients.([]sp.Recipient), sp.Recipient{
+				Address:          sp.Address{Email: r, HeaderTo: headerTo},
+				SubstitutionData: subJson,
+			})
+		}
+		if content.Headers == nil {
+			content.Headers = map[string]string{}
+		}
+		content.Headers["cc"] = strings.Join(cc, ",")
+	}
+
+	if len(bcc) > 0 {
+		for _, r := range bcc {
+			tx.Recipients = append(tx.Recipients.([]sp.Recipient), sp.Recipient{
+				Address:          sp.Address{Email: r, HeaderTo: headerTo},
+				SubstitutionData: subJson,
+			})
+		}
+	}
+
+	if len(headers) > 0 {
+		if content.Headers == nil {
+			content.Headers = map[string]string{}
+		}
+		hb := regexp.MustCompile(`:\s*`)
+		for _, hstr := range headers {
+			hra := hb.Split(hstr, 2)
+			content.Headers[hra[0]] = hra[1]
+		}
+	}
+
+	tx.Content = content
 
 	if strings.TrimSpace(*sendDelay) != "" {
 		if tx.Options == nil {
-			tx.Options = &sparkpost.TxOptions{}
+			tx.Options = &sp.TxOptions{}
 		}
 		dur, err := time.ParseDuration(*sendDelay)
 		if err != nil {
 			log.Fatal(err)
 		}
-		start := sparkpost.RFC3339(time.Now().Add(dur))
+		start := sp.RFC3339(time.Now().Add(dur))
 		tx.Options.StartTime = &start
 	}
 
 	if *inline != false {
 		if tx.Options == nil {
-			tx.Options = &sparkpost.TxOptions{}
+			tx.Options = &sp.TxOptions{}
 		}
 		tx.Options.InlineCSS = true
 	}
