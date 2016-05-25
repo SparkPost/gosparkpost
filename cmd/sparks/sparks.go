@@ -19,9 +19,9 @@ var to = flag.String("to", "", "where the mail goes to")
 var cc = flag.String("cc", "", "carbon copy this address")
 var bcc = flag.String("bcc", "", "blind carbon copy this address")
 var subject = flag.String("subject", "", "email subject")
-var htmlFile = flag.String("html", "", "file containing html content")
-var textFile = flag.String("text", "", "file containing text content")
-var subsFile = flag.String("subs", "", "file containing substitution data (json object)")
+var htmlFlag = flag.String("html", "", "string/filename containing html content")
+var textFlag = flag.String("text", "", "string/filename containing text content")
+var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
 var imgFile = flag.String("img", "", "mimetype:cid:path for image to include")
 var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
@@ -40,9 +40,9 @@ func main() {
 		log.Fatal("SUCCESS: send mail to nobody!\n")
 	}
 
-	hasHtml := strings.TrimSpace(*htmlFile) != ""
-	hasText := strings.TrimSpace(*textFile) != ""
-	hasSubs := strings.TrimSpace(*subsFile) != ""
+	hasHtml := strings.TrimSpace(*htmlFlag) != ""
+	hasText := strings.TrimSpace(*textFlag) != ""
+	hasSubs := strings.TrimSpace(*subsFlag) != ""
 	hasImg := strings.TrimSpace(*imgFile) != ""
 
 	if !hasHtml && !hasText {
@@ -68,19 +68,31 @@ func main() {
 		Subject: *subject,
 	}
 	if hasHtml {
-		htmlBytes, err := ioutil.ReadFile(*htmlFile)
-		if err != nil {
-			log.Fatal(err)
+		if strings.Contains(*htmlFlag, "/") {
+			// read file to get html
+			htmlBytes, err := ioutil.ReadFile(*htmlFlag)
+			if err != nil {
+				log.Fatal(err)
+			}
+			content.HTML = string(htmlBytes)
+		} else {
+			// html string passed on command line
+			content.HTML = *htmlFlag
 		}
-		content.HTML = string(htmlBytes)
 	}
 
 	if hasText {
-		textBytes, err := ioutil.ReadFile(*textFile)
-		if err != nil {
-			log.Fatal(err)
+		if strings.Contains(*textFlag, "/") {
+			// read file to get text
+			textBytes, err := ioutil.ReadFile(*textFlag)
+			if err != nil {
+				log.Fatal(err)
+			}
+			content.Text = string(textBytes)
+		} else {
+			// text string passed on command line
+			content.Text = *textFlag
 		}
-		content.Text = string(textBytes)
 	}
 
 	if hasImg {
@@ -131,10 +143,17 @@ func main() {
 	tx.Content = content
 
 	if hasSubs {
-		subsBytes, err := ioutil.ReadFile(*subsFile)
-		if err != nil {
-			log.Fatal(err)
+		var subsBytes []byte
+		if strings.Contains(*subsFlag, "/") {
+			// read file to get substitution data
+			subsBytes, err = ioutil.ReadFile(*subsFlag)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			subsBytes = []byte(*subsFlag)
 		}
+
 		recip := sparkpost.Recipient{Address: *to, SubstitutionData: json.RawMessage{}}
 		err = json.Unmarshal(subsBytes, &recip.SubstitutionData)
 		if err != nil {
