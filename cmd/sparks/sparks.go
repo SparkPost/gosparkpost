@@ -27,17 +27,23 @@ var sendDelay = flag.String("send-delay", "", "delay delivery the specified amou
 var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
 var url = flag.String("url", "", "base url for api requests (optional)")
+var help = flag.Bool("help", false, "display a help message")
 
 func main() {
-	apiKey := os.Getenv("SPARKPOST_API_KEY")
-	if strings.TrimSpace(apiKey) == "" {
-		log.Fatal("FATAL: API key not found in environment!\n")
-	}
-
 	flag.Parse()
+
+	if *help {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	if strings.TrimSpace(*to) == "" {
 		log.Fatal("SUCCESS: send mail to nobody!\n")
+	}
+
+	apiKey := os.Getenv("SPARKPOST_API_KEY")
+	if strings.TrimSpace(apiKey) == "" {
+		log.Fatal("FATAL: API key not found in environment!\n")
 	}
 
 	hasHtml := strings.TrimSpace(*htmlFlag) != ""
