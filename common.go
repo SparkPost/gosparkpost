@@ -165,15 +165,17 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	}
 
 	ares := &Response{}
-	if c.Config.Verbose && ares.Verbose == nil {
-		ares.Verbose = map[string]string{}
+	if c.Config.Verbose {
+		if ares.Verbose == nil {
+			ares.Verbose = map[string]string{}
+		}
+		ares.Verbose["http_method"] = method
+		ares.Verbose["http_uri"] = urlStr
 	}
 	if data != nil {
 		req.Header.Set("Content-Type", "application/json")
 
 		if c.Config.Verbose {
-			ares.Verbose["http_method"] = method
-			ares.Verbose["http_uri"] = urlStr
 			ares.Verbose["http_postdata"] = string(data)
 		}
 	}
