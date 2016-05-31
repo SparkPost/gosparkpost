@@ -53,6 +53,7 @@ var inline = flag.Bool("inline-css", false, "automatically inline css")
 var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
 var url = flag.String("url", "", "base url for api requests (optional)")
 var help = flag.Bool("help", false, "display a help message")
+var httpDump = flag.Bool("httpdump", false, "dump out http request and response")
 
 func main() {
 	flag.Parse()
@@ -85,6 +86,9 @@ func main() {
 			log.Fatal("FATAL: base url must be https!\n")
 		}
 		cfg.BaseUrl = *url
+	}
+	if *httpDump {
+		cfg.Verbose = true
 	}
 
 	var sparky sp.Client
@@ -264,5 +268,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("HTTP [%s] TX %s\n", req.HTTP.Status, id)
+	if *httpDump {
+		if reqDump, ok := req.Verbose["http_requestdump"]; ok {
+			os.Stdout.Write([]byte(reqDump))
+		} else {
+			os.Stdout.Write([]byte("*** No request dump available! ***\n\n"))
+		}
+
+		if resDump, ok := req.Verbose["http_responsedump"]; ok {
+			os.Stdout.Write([]byte(resDump))
+			os.Stdout.Write([]byte("\n"))
+		} else {
+			os.Stdout.Write([]byte("*** No response dump available! ***\n"))
+		}
+	} else {
+		log.Printf("HTTP [%s] TX %s\n", req.HTTP.Status, id)
+	}
 }
