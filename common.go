@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"regexp"
 	"strings"
 
@@ -55,9 +56,11 @@ func NewConfig(m map[string]string) (*Config, error) {
 
 // Response contains information about the last HTTP response.
 // Helpful when an error message doesn't necessarily give the complete picture.
+// Also contains any messages emitted as a result of the Verbose config option.
 type Response struct {
 	HTTP    *http.Response
 	Body    []byte
+	Verbose map[string]string
 	Results map[string]interface{} `json:"results,omitempty"`
 	Errors  []Error                `json:"errors,omitempty"`
 }
@@ -156,20 +159,22 @@ func (c *Client) HttpDelete(url string) (*Response, error) {
 }
 
 func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
-
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
-		if c.Config.Verbose {
-			fmt.Println("Error: %s", err)
-		}
 		return nil, err
+	}
+
+	ares := &Response{}
+	if c.Config.Verbose && ares.Verbose == nil {
+		ares.Verbose = map[string]string{}
 	}
 	if data != nil {
 		req.Header.Set("Content-Type", "application/json")
 
 		if c.Config.Verbose {
-			fmt.Printf("URL: %s %s\n", method, urlStr)
-			fmt.Printf("Will Post: %s\n", string(data))
+			ares.Verbose["http_method"] = method
+			ares.Verbose["http_uri"] = urlStr
+			ares.Verbose["http_postdata"] = string(data)
 		}
 	}
 
@@ -188,24 +193,23 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	}
 
 	if c.Config.Verbose {
-		fmt.Println("Request: ", req)
+		reqBytes, err := httputil.DumpRequestOut(req, false)
+		if err != nil {
+			return ares, err
+		}
+		ares.Verbose["http_requestdump"] = string(reqBytes)
 	}
 
 	res, err := c.Client.Do(req)
-	ares := &Response{HTTP: res}
+	ares.HTTP = res
 
 	if c.Config.Verbose {
+		ares.Verbose["http_status"] = ares.HTTP.Status
+		bodyBytes, err := httputil.DumpResponse(res, true)
 		if err != nil {
-			fmt.Println("Error: ", err)
-		} else {
-			fmt.Println("Server Response: ", ares.HTTP.Status)
-			bodyBytes, err := ares.ReadBody()
-			if err != nil {
-				fmt.Println("Error: ", err)
-			} else {
-				fmt.Println("Body: ", string(bodyBytes))
-			}
+			return ares, err
 		}
+		ares.Verbose["http_responsedump"] = string(bodyBytes)
 	}
 
 	return ares, err
