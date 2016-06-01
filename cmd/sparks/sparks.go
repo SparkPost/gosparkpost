@@ -103,7 +103,7 @@ func main() {
 	}
 
 	if hasHtml {
-		if strings.Contains(*htmlFlag, "/") {
+		if strings.HasPrefix(*htmlFlag, "/") || strings.HasPrefix(*htmlFlag, "./") {
 			// read file to get html
 			htmlBytes, err := ioutil.ReadFile(*htmlFlag)
 			if err != nil {
@@ -117,7 +117,7 @@ func main() {
 	}
 
 	if hasText {
-		if strings.Contains(*textFlag, "/") {
+		if strings.HasPrefix(*textFlag, "/") || strings.HasPrefix(*textFlag, "./") {
 			// read file to get text
 			textBytes, err := ioutil.ReadFile(*textFlag)
 			if err != nil {
@@ -173,7 +173,7 @@ func main() {
 	var subJson *json.RawMessage
 	if hasSubs {
 		var subsBytes []byte
-		if strings.Contains(*subsFlag, "/") {
+		if strings.HasPrefix(*subsFlag, "/") || strings.HasPrefix(*subsFlag, "./") {
 			// read file to get substitution data
 			subsBytes, err = ioutil.ReadFile(*subsFlag)
 			if err != nil {
