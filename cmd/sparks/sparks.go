@@ -68,7 +68,7 @@ func main() {
 	}
 
 	apiKey := os.Getenv("SPARKPOST_API_KEY")
-	if strings.TrimSpace(apiKey) == "" {
+	if strings.TrimSpace(apiKey) == "" && *dryrun == false {
 		log.Fatal("FATAL: API key not found in environment!\n")
 	}
 
