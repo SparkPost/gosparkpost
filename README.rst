@@ -91,8 +91,10 @@ Documentation
 -------------
 
 * `SparkPost API Reference`_
+* `Example code - sparks`_
 
 .. _SparkPost API Reference: https://www.sparkpost.com/api
+.. _Example code - sparks: cmd/sparks/README.md
 
 Contribute
 ----------
