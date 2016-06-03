@@ -20,7 +20,7 @@ It's similar in function to [swaks](http://www.jetmore.org/john/code/swaks/), wh
 
     $ export SPARKPOST_API_KEY=0000000000000000000000000000000000000000
 
-### Examples
+### Usage Examples
 
 HTML content with inline image, dumping request and response HTTP headers, and response body.
 
