@@ -22,11 +22,11 @@ var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
 func main() {
 	flag.Parse()
 	var verbose bool
-	if verboseOpt != nil && *verboseOpt == true {
+	if *verboseOpt == true {
 		verbose = true
 	}
 
-	if filename == nil || strings.TrimSpace(*filename) == "" {
+	if *filename == "" {
 		log.Fatal("--file is required")
 	}
 
