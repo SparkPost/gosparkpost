@@ -14,6 +14,7 @@ type Message struct {
 	Filename  string
 	File      *os.File
 	Message   *mail.Message
+	MSFBL     string
 	Json      []byte
 	CustID    int
 	Recipient []byte
@@ -32,15 +33,15 @@ func (m *Message) Load() error {
 		return err
 	}
 
-	b64hdr := strings.Replace(m.Message.Header.Get("X-MSFBL"), " ", "", -1)
+	m.MSFBL = strings.Replace(m.Message.Header.Get("X-MSFBL"), " ", "", -1)
 
-	if strings.Index(b64hdr, "|") >= 0 {
+	if strings.Index(m.MSFBL, "|") >= 0 {
 		// Everything before the pipe is an encoded HMAC
 		// TODO: verify contents using HMAC
-		b64hdr = strings.Split(b64hdr, "|")[1]
+		m.MSFBL = strings.Split(m.MSFBL, "|")[1]
 	}
 
-	m.Json, err = base64.StdEncoding.DecodeString(b64hdr)
+	m.Json, err = base64.StdEncoding.DecodeString(m.MSFBL)
 	if err != nil {
 		return err
 	}

@@ -36,9 +36,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	b64hdr := msg.Message.Header.Get("X-MSFBL")
 	if verbose == true {
-		log.Printf("X-MSFBL: %s\n", b64hdr)
+		log.Printf("X-MSFBL: %s\n", msg.MSFBL)
 	}
 
 	if verbose == true {
@@ -46,7 +45,7 @@ func main() {
 	}
 
 	returnPath := msg.Message.Header.Get("Return-Path")
-	if fblAddress != nil && *fblAddress != "" {
+	if *fblAddress != "" {
 		returnPath = *fblAddress
 	}
 	fblAddr, err := mail.ParseAddress(returnPath)
@@ -61,7 +60,7 @@ func main() {
 	fblDomain := fblAddr.Address[atIdx:]
 	fblTo := fmt.Sprintf("fbl@%s", fblDomain)
 	if verbose == true {
-		if fblAddress != nil && *fblAddress != "" {
+		if *fblAddress != "" {
 			log.Printf("Got domain [%s] from --fblto\n", fblDomain)
 		} else {
 			log.Printf("Got domain [%s] from Return-Path header\n", fblDomain)
@@ -70,9 +69,9 @@ func main() {
 
 	// from/to are opposite here, since we're simulating a reply
 	fblFrom := string(msg.Recipient)
-	arf := BuildArf(fblFrom, fblTo, b64hdr, msg.CustID)
+	arf := BuildArf(fblFrom, fblTo, msg.MSFBL, msg.CustID)
 
-	if dumpArf != nil && *dumpArf == true {
+	if *dumpArf == true {
 		fmt.Fprintf(os.Stdout, "%s", arf)
 	}
 
@@ -88,7 +87,7 @@ func main() {
 	}
 	smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
 
-	if send != nil && *send == true {
+	if *send == true {
 		log.Printf("Sending FBL from [%s] to [%s] via [%s]...\n",
 			fblFrom, fblTo, smtpHost)
 		err = smtp.SendMail(smtpHost, nil, fblFrom, []string{fblTo}, []byte(arf))
