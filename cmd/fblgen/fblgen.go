@@ -13,7 +13,7 @@ import (
 	"github.com/SparkPost/gosparkpost/helpers/loadmsg"
 )
 
-var filename = flag.String("file", "", "path to email with a text/html part")
+var filename = flag.String("file", "", "path to raw email")
 var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
 var send = flag.Bool("send", false, "send fbl report")
 var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
