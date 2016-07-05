@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/mail"
 	"net/smtp"
 	"os"
 	"strings"
@@ -44,20 +43,15 @@ func main() {
 		log.Printf("Decoded FBL (cid=%d): %s\n", msg.CustID, string(msg.Json))
 	}
 
-	returnPath := msg.Message.Header.Get("Return-Path")
 	if *fblAddress != "" {
-		returnPath = *fblAddress
-	}
-	fblAddr, err := mail.ParseAddress(returnPath)
-	if err != nil {
-		log.Fatal(err)
+		msg.SetReturnPath(*fblAddress)
 	}
 
-	atIdx := strings.Index(fblAddr.Address, "@") + 1
+	atIdx := strings.Index(msg.ReturnPath.Address, "@") + 1
 	if atIdx < 0 {
-		log.Fatalf("Unsupported Return-Path header [%s]\n", returnPath)
+		log.Fatalf("Unsupported Return-Path header [%s]\n", msg.ReturnPath.Address)
 	}
-	fblDomain := fblAddr.Address[atIdx:]
+	fblDomain := msg.ReturnPath.Address[atIdx:]
 	fblTo := fmt.Sprintf("fbl@%s", fblDomain)
 	if verbose == true {
 		if *fblAddress != "" {

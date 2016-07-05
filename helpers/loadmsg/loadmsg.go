@@ -2,6 +2,7 @@ package loadmsg
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/mail"
 	"os"
 	"strconv"
@@ -11,13 +12,14 @@ import (
 )
 
 type Message struct {
-	Filename  string
-	File      *os.File
-	Message   *mail.Message
-	MSFBL     string
-	Json      []byte
-	CustID    int
-	Recipient []byte
+	Filename   string
+	File       *os.File
+	Message    *mail.Message
+	MSFBL      string
+	Json       []byte
+	CustID     int
+	Recipient  []byte
+	ReturnPath *mail.Address
 }
 
 func (m *Message) Load() error {
@@ -31,6 +33,13 @@ func (m *Message) Load() error {
 	m.Message, err = mail.ReadMessage(m.File)
 	if err != nil {
 		return err
+	}
+
+	if m.ReturnPath == nil {
+		err = m.SetReturnPath(m.Message.Header.Get("Return-Path"))
+		if err != nil {
+			return err
+		}
 	}
 
 	m.MSFBL = strings.Replace(m.Message.Header.Get("X-MSFBL"), " ", "", -1)
@@ -61,5 +70,16 @@ func (m *Message) Load() error {
 		return err
 	}
 
+	return nil
+}
+
+func (m *Message) SetReturnPath(addr string) (err error) {
+	if !strings.Contains(addr, "@") {
+		return fmt.Errorf("Unsupported Return-Path header: no @")
+	}
+	m.ReturnPath, err = mail.ParseAddress(addr)
+	if err != nil {
+		return err
+	}
 	return nil
 }
