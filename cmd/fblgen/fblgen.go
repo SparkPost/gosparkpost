@@ -8,7 +8,6 @@ import (
 	"net/mail"
 	"net/smtp"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/SparkPost/gosparkpost/helpers/loadmsg"
@@ -19,9 +18,6 @@ var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
 var send = flag.Bool("send", false, "send fbl report")
 var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
 var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
-
-var cidPattern *regexp.Regexp = regexp.MustCompile(`"customer_id"\s*:\s*"(\d+)"`)
-var toPattern *regexp.Regexp = regexp.MustCompile(`"r"\s*:\s*"([^"\s]+)"`)
 
 func main() {
 	flag.Parse()
