@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"log"
@@ -10,8 +9,9 @@ import (
 	"net/smtp"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/SparkPost/gosparkpost/helpers/loadmsg"
 )
 
 var filename = flag.String("file", "", "path to email with a text/html part")
@@ -34,57 +34,22 @@ func main() {
 		log.Fatal("--file is required")
 	}
 
-	fh, err := os.Open(*filename)
+	msg := loadmsg.Message{Filename: *filename}
+	err := msg.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	msg, err := mail.ReadMessage(fh)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	b64hdr := strings.Replace(msg.Header.Get("X-MSFBL"), " ", "", -1)
+	b64hdr := msg.Message.Header.Get("X-MSFBL")
 	if verbose == true {
 		log.Printf("X-MSFBL: %s\n", b64hdr)
 	}
 
-	var dec []byte
-	b64 := base64.StdEncoding
-	if strings.Index(b64hdr, "|") >= 0 {
-		// Everything before the pipe is an encoded hmac
-		// TODO: verify contents using hmac
-		encs := strings.Split(b64hdr, "|")
-		dec, err = b64.DecodeString(encs[1])
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		dec, err = b64.DecodeString(b64hdr)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	cidMatches := cidPattern.FindSubmatch(dec)
-	if cidMatches == nil || len(cidMatches) < 2 {
-		log.Fatalf("No key \"customer_id\" in X-MSFBL header:\n%s\n", string(dec))
-	}
-	cid, err := strconv.Atoi(string(cidMatches[1]))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	toMatches := toPattern.FindSubmatch(dec)
-	if toMatches == nil || len(toMatches) < 2 {
-		log.Fatalf("No key \"r\" (recipient) in X-MSFBL header:\n%s\n", string(dec))
-	}
-
 	if verbose == true {
-		log.Printf("Decoded FBL (cid=%d): %s\n", cid, string(dec))
+		log.Printf("Decoded FBL (cid=%d): %s\n", msg.CustID, string(msg.Json))
 	}
 
-	returnPath := msg.Header.Get("Return-Path")
+	returnPath := msg.Message.Header.Get("Return-Path")
 	if fblAddress != nil && *fblAddress != "" {
 		returnPath = *fblAddress
 	}
@@ -108,8 +73,8 @@ func main() {
 	}
 
 	// from/to are opposite here, since we're simulating a reply
-	fblFrom := string(toMatches[1])
-	arf := BuildArf(fblFrom, fblTo, b64hdr, cid)
+	fblFrom := string(msg.Recipient)
+	arf := BuildArf(fblFrom, fblTo, b64hdr, msg.CustID)
 
 	if dumpArf != nil && *dumpArf == true {
 		fmt.Fprintf(os.Stdout, "%s", arf)
