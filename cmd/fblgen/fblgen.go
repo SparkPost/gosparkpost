@@ -35,14 +35,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if verbose == true {
-		log.Printf("X-MSFBL: %s\n", msg.MSFBL)
-	}
-
-	if verbose == true {
-		log.Printf("Decoded FBL (cid=%d): %s\n", msg.CustID, string(msg.Json))
-	}
-
 	if *fblAddress != "" {
 		msg.SetReturnPath(*fblAddress)
 	}
@@ -57,7 +49,7 @@ func main() {
 		if *fblAddress != "" {
 			log.Printf("Got domain [%s] from --fblto\n", fblDomain)
 		} else {
-			log.Printf("Got domain [%s] from Return-Path header\n", fblDomain)
+			log.Printf("Got domain [%s] from Return-Path\n", fblDomain)
 		}
 	}
 
@@ -91,7 +83,7 @@ func main() {
 		log.Printf("Sent.\n")
 	} else {
 		if verbose == true {
-			log.Printf("Would send FBL from [%s] to [%s] via [%s]...\n",
+			log.Printf("Would send FBL from [%s] to [%s] via [%s]\n",
 				fblFrom, fblTo, smtpHost)
 		}
 	}

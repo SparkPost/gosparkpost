@@ -34,8 +34,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	atIdx := strings.Index(msg.ReturnPath.Address, "@")
+	if atIdx < 0 {
+		log.Fatalf("Unsupported Return-Path header [%s]\n", msg.ReturnPath.Address)
+	}
+	oobDomain := msg.ReturnPath.Address[atIdx+1:]
 	if verbose == true {
-		log.Printf("Return-Path: %s\n", msg.ReturnPath)
+		log.Printf("Got domain [%s] from Return-Path\n", oobDomain)
 	}
 
 	fileBytes, err := ioutil.ReadFile(*filename)
@@ -51,17 +56,15 @@ func main() {
 	}
 	oob := BuildOob(to, from.Address, string(fileBytes))
 
-	atIdx := strings.Index(msg.ReturnPath.Address, "@") + 1
-	msgDomain := msg.ReturnPath.Address[atIdx:]
-	mxs, err := net.LookupMX(msgDomain)
+	mxs, err := net.LookupMX(oobDomain)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if mxs == nil || len(mxs) <= 0 {
-		log.Fatal("No MXs for [%s]\n", msgDomain)
+		log.Fatal("No MXs for [%s]\n", oobDomain)
 	}
 	if verbose == true {
-		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, msgDomain)
+		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, oobDomain)
 	}
 	smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
 
@@ -75,7 +78,7 @@ func main() {
 		log.Printf("Sent.\n")
 	} else {
 		if verbose == true {
-			log.Printf("Would send OOB from [%s] to [%s] via [%s]...\n",
+			log.Printf("Would send OOB from [%s] to [%s] via [%s]\n",
 				from.Address, to, smtpHost)
 		}
 	}
