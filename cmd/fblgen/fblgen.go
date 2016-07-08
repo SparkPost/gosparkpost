@@ -39,11 +39,11 @@ func main() {
 		msg.SetReturnPath(*fblAddress)
 	}
 
-	atIdx := strings.Index(msg.ReturnPath.Address, "@") + 1
+	atIdx := strings.Index(msg.ReturnPath.Address, "@")
 	if atIdx < 0 {
 		log.Fatalf("Unsupported Return-Path header [%s]\n", msg.ReturnPath.Address)
 	}
-	fblDomain := msg.ReturnPath.Address[atIdx:]
+	fblDomain := msg.ReturnPath.Address[atIdx+1:]
 	fblTo := fmt.Sprintf("fbl@%s", fblDomain)
 	if verbose == true {
 		if *fblAddress != "" {
