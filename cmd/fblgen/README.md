@@ -1,7 +1,7 @@
 ## fblgen
 
 Testing your response to FBL reports doesn't have to involve waiting for an angry/lazy recipient to click "This is Spam".
-Here's how to send an FBL report in response to a message sent via SparkPost:
+Here's how to send an FBL report in response to a message sent via SparkPost, and saved (with full headers) to a local file:
 
     $ ./fblgen --file ./test.eml --verbose
     Got domain [sparkpostmail.com] from Return-Path

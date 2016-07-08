@@ -1,7 +1,7 @@
 ## oobgen
 
-Testing your response to out-of-band (OOB) bounces doesn't have to involve waiting for a remote mail server.
-Here's how to send an OOB bounce in response to a message sent via SparkPost:
+Testing your response to out-of-band (OOB) bounces doesn't have to involve waiting for one to be sent to you.
+Here's how to send an OOB bounce in response to a message sent via SparkPost, and saved (with full headers) to a local file:
 
     $ ./oobgen --file ./test.eml --verbose
     Got domain [sparkpostmail.com] from Return-Path
