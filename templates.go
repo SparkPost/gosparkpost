@@ -77,6 +77,10 @@ func ParseFrom(from interface{}) (f From, err error) {
 	case From:
 		f = fromVal
 
+	case Address:
+		f.Email = fromVal.Email
+		f.Name = fromVal.Name
+
 	case string: // simple string value
 		if fromVal == "" {
 			err = fmt.Errorf("Content.From may not be empty")

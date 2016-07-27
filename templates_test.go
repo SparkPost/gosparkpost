@@ -26,6 +26,23 @@ func TestTemplateValidation(t *testing.T) {
 		return
 	}
 
+	addrStruct := sp.Address{"a@b.com", "A B", "c@d.com"}
+	f, err = sp.ParseFrom(addrStruct)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if addrStruct.Email != f.Email {
+		t.Error(fmt.Errorf("expected email [%s] didn't match actual [%s]",
+			addrStruct.Email, f.Email))
+		return
+	}
+	if addrStruct.Name != f.Name {
+		t.Error(fmt.Errorf("expected name [%s] didn't match actual [%s]",
+			addrStruct.Name, f.Name))
+		return
+	}
+
 	fromString := "a@b.com"
 	f, err = sp.ParseFrom(fromString)
 	if err != nil {
