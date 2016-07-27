@@ -8,6 +8,25 @@ import (
 	"github.com/SparkPost/gosparkpost/test"
 )
 
+func TestTemplateValidation(t *testing.T) {
+	from := sp.From{"a@b.com", "A B"}
+	f, err := sp.ParseFrom(from)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if f.Email != from.Email {
+		t.Error(fmt.Errorf("expected email [%s] didn't match actual [%s]",
+			from.Email, f.Email))
+		return
+	}
+	if f.Name != from.Name {
+		t.Error(fmt.Errorf("expected name [%s] didn't match actual [%s]",
+			from.Name, f.Name))
+		return
+	}
+}
+
 func TestTemplates(t *testing.T) {
 	if true {
 		// Temporarily disable test so TravisCI reports build success instead of test failure.
