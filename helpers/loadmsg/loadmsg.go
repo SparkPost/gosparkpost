@@ -16,7 +16,6 @@ type Message struct {
 	File       *os.File
 	Message    *mail.Message
 	MSFBL      string
-	DKIM       []string
 	Json       []byte
 	CustID     int
 	Recipient  []byte
@@ -41,10 +40,6 @@ func (m *Message) Load() error {
 		if err != nil {
 			return errors.Wrap(err, "setting return path")
 		}
-	}
-
-	for _, hdr := range m.Message.Header["Dkim-Signature"] {
-		m.DKIM = append(m.DKIM, strings.Replace(hdr, " ", "", -1))
 	}
 
 	m.MSFBL = strings.Replace(m.Message.Header.Get("X-MSFBL"), " ", "", -1)
