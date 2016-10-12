@@ -143,6 +143,11 @@ func suppressionGet(c *Client, finalUrl string) (*SuppressionListWrapper, *Respo
 		return nil, res, err
 	}
 
+	err = res.ParseResponse()
+	if err != nil {
+		return nil, res, err
+	}
+
 	// Get the Content
 	bodyBytes, err := res.ReadBody()
 	if err != nil {
