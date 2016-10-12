@@ -42,3 +42,10 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 		t.Fatalf("Request method: %v, want %v", got, want)
 	}
 }
+
+func testFailVerbose(t *testing.T, res *Response, fmt string, args ...interface{}) {
+	for _, e := range res.Verbose {
+		t.Error(e)
+	}
+	t.Fatalf(fmt, args...)
+}
