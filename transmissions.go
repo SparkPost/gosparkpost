@@ -230,7 +230,11 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 	if res.HTTP.StatusCode == 200 {
 		var ok bool
-		id, ok = res.Results["id"].(string)
+		var results map[string]interface{}
+		if results, ok = res.Results.(map[string]interface{}); !ok {
+			return id, res, fmt.Errorf("Unexpected response to Transmission creation (results)")
+		}
+		id, ok = results["id"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Transmission creation")
 		}

@@ -61,8 +61,8 @@ type Response struct {
 	HTTP    *http.Response
 	Body    []byte
 	Verbose map[string]string
-	Results map[string]interface{} `json:"results,omitempty"`
-	Errors  []Error                `json:"errors,omitempty"`
+	Results interface{} `json:"results,omitempty"`
+	Errors  []Error     `json:"errors,omitempty"`
 }
 
 // Error mirrors the error format returned by SparkPost APIs.
