@@ -47,6 +47,7 @@ var from = flag.String("from", "default@sparkpostbox.com", "where the mail came 
 var subject = flag.String("subject", "", "email subject")
 var htmlFlag = flag.String("html", "", "string/filename containing html content")
 var textFlag = flag.String("text", "", "string/filename containing text content")
+var rfc822Flag = flag.String("rfc822", "", "string/filename containing raw message")
 var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
 var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 var inline = flag.Bool("inline-css", false, "automatically inline css")
@@ -74,9 +75,13 @@ func main() {
 
 	hasHtml := strings.TrimSpace(*htmlFlag) != ""
 	hasText := strings.TrimSpace(*textFlag) != ""
+	hasRFC822 := strings.TrimSpace(*rfc822Flag) != ""
 	hasSubs := strings.TrimSpace(*subsFlag) != ""
 
-	if !hasHtml && !hasText {
+	// rfc822 must be specified by itself, i.e. no text or html
+	if hasRFC822 && (hasHtml || hasText) {
+		log.Fatal("FATAL: --rfc822 cannot be combined with --html or --text!\n")
+	} else if !hasRFC822 && !hasHtml && !hasText {
 		log.Fatal("FATAL: must specify one of --html or --text!\n")
 	}
 
@@ -100,6 +105,23 @@ func main() {
 	content := sp.Content{
 		From:    *from,
 		Subject: *subject,
+	}
+
+	if hasRFC822 {
+		// these are pulled from the raw message
+		content.From = nil
+		content.Subject = ""
+		if strings.HasPrefix(*rfc822Flag, "/") || strings.HasPrefix(*rfc822Flag, "./") {
+			// read file to get raw message
+			rfc822Bytes, err := ioutil.ReadFile(*rfc822Flag)
+			if err != nil {
+				log.Fatal(err)
+			}
+			content.EmailRFC822 = string(rfc822Bytes)
+		} else {
+			// raw message string passed on command line
+			content.EmailRFC822 = *rfc822Flag
+		}
 	}
 
 	if hasHtml {
@@ -194,18 +216,20 @@ func main() {
 
 	tx.Recipients = []sp.Recipient{}
 	for _, r := range to {
-		tx.Recipients = append(tx.Recipients.([]sp.Recipient), sp.Recipient{
-			Address:          sp.Address{Email: r, HeaderTo: headerTo},
-			SubstitutionData: subJson,
-		})
+		var recip sp.Recipient = sp.Recipient{Address: sp.Address{Email: r, HeaderTo: headerTo}}
+		if hasSubs {
+			recip.SubstitutionData = subJson
+		}
+		tx.Recipients = append(tx.Recipients.([]sp.Recipient), recip)
 	}
 
 	if len(cc) > 0 {
 		for _, r := range cc {
-			tx.Recipients = append(tx.Recipients.([]sp.Recipient), sp.Recipient{
-				Address:          sp.Address{Email: r, HeaderTo: headerTo},
-				SubstitutionData: subJson,
-			})
+			var recip sp.Recipient = sp.Recipient{Address: sp.Address{Email: r, HeaderTo: headerTo}}
+			if hasSubs {
+				recip.SubstitutionData = subJson
+			}
+			tx.Recipients = append(tx.Recipients.([]sp.Recipient), recip)
 		}
 		if content.Headers == nil {
 			content.Headers = map[string]string{}
@@ -215,10 +239,11 @@ func main() {
 
 	if len(bcc) > 0 {
 		for _, r := range bcc {
-			tx.Recipients = append(tx.Recipients.([]sp.Recipient), sp.Recipient{
-				Address:          sp.Address{Email: r, HeaderTo: headerTo},
-				SubstitutionData: subJson,
-			})
+			var recip sp.Recipient = sp.Recipient{Address: sp.Address{Email: r, HeaderTo: headerTo}}
+			if hasSubs {
+				recip.SubstitutionData = subJson
+			}
+			tx.Recipients = append(tx.Recipients.([]sp.Recipient), recip)
 		}
 	}
 
