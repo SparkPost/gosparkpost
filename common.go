@@ -25,7 +25,7 @@ type Config struct {
 	Verbose    bool
 }
 
-// Client contains connection and authentication information.
+// Client contains connection, configuration, and authentication information.
 // Specifying your own http.Client gives you lots of control over how connections are made.
 type Client struct {
 	Config  *Config
@@ -61,8 +61,8 @@ type Response struct {
 	HTTP    *http.Response
 	Body    []byte
 	Verbose map[string]string
-	Results map[string]interface{} `json:"results,omitempty"`
-	Errors  []Error                `json:"errors,omitempty"`
+	Results interface{} `json:"results,omitempty"`
+	Errors  []Error     `json:"errors,omitempty"`
 }
 
 // Error mirrors the error format returned by SparkPost APIs.
@@ -120,7 +120,7 @@ func (api *Client) Init(cfg *Config) error {
 }
 
 // SetHeader adds additional HTTP headers for every API request made from client.
-// Usefull to set subaccount X-MSYS-SUBACCOUNT header and etc.
+// Useful to set subaccount X-MSYS-SUBACCOUNT header and etc.
 func (c *Client) SetHeader(header string, value string) {
 	c.headers[header] = value
 }

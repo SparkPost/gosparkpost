@@ -81,12 +81,16 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 
 	if res.HTTP.StatusCode == 200 {
 		var ok bool
-		f, ok := res.Results["subaccount_id"].(float64)
+		var results map[string]interface{}
+		if results, ok = res.Results.(map[string]interface{}); !ok {
+			return res, fmt.Errorf("Unexpected response to Subaccount creation (results)")
+		}
+		f, ok := results["subaccount_id"].(float64)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Subaccount creation")
 		}
 		s.ID = int(f)
-		s.ShortKey, ok = res.Results["short_key"].(string)
+		s.ShortKey, ok = results["short_key"].(string)
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Subaccount creation")
 		}
