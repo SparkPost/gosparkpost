@@ -11,9 +11,9 @@ var eventDocumentationFormat = "/api/v%d/webhooks/events/documentation"
 
 type EventGroup struct {
 	Name        string
-	Events      map[string]EventMeta
-	Description string `json:"description"`
-	DisplayName string `json:"display_name"`
+	Events      map[string]EventMeta `json:"events"`
+	Description string               `json:"description"`
+	DisplayName string               `json:"display_name"`
 }
 
 type EventMeta struct {
