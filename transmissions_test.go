@@ -31,8 +31,7 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
-	campaignID := "msys_smoke"
-	tlist, res, err := client.Transmissions(&campaignID, nil)
+	tlist, res, err := client.Transmissions(&sp.Transmission{CampaignID: "msys_smoke"})
 	if err != nil {
 		t.Error(err)
 		return
@@ -77,8 +76,10 @@ func TestTransmissions(t *testing.T) {
 	}
 
 	t.Errorf("Transmission created with id [%s]", id)
+	T.ID = id
 
-	tr, res, err := client.Transmission(id)
+	tr := &sp.Transmission{ID: id}
+	res, err = client.Transmission(tr)
 	if err != nil {
 		t.Error(err)
 		return
@@ -99,7 +100,7 @@ func TestTransmissions(t *testing.T) {
 		}
 	}
 
-	res, err = client.TransmissionDelete(id)
+	res, err = client.TransmissionDelete(tr)
 	if err != nil {
 		t.Error(err)
 		return

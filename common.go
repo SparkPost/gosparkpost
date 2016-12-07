@@ -133,32 +133,32 @@ func (c *Client) RemoveHeader(header string) {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
-	return c.DoRequest("POST", url, data)
+func (c *Client) HttpPost(url string, data []byte, h map[string]string) (*Response, error) {
+	return c.DoRequest("POST", url, data, h)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpGet(url string) (*Response, error) {
-	return c.DoRequest("GET", url, nil)
+func (c *Client) HttpGet(url string, h map[string]string) (*Response, error) {
+	return c.DoRequest("GET", url, nil, h)
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
-	return c.DoRequest("PUT", url, data)
+func (c *Client) HttpPut(url string, data []byte, h map[string]string) (*Response, error) {
+	return c.DoRequest("PUT", url, data, h)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpDelete(url string) (*Response, error) {
-	return c.DoRequest("DELETE", url, nil)
+func (c *Client) HttpDelete(url string, h map[string]string) (*Response, error) {
+	return c.DoRequest("DELETE", url, nil, h)
 }
 
-func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
+func (c *Client) DoRequest(method, urlStr string, data []byte, h map[string]string) (*Response, error) {
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -183,15 +183,20 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	// TODO: set User-Agent based on gosparkpost version and possibly git's short hash
 	req.Header.Set("User-Agent", "GoSparkPost v0.1")
 
+	if c.Config.ApiKey != "" {
+		req.Header.Set("Authorization", c.Config.ApiKey)
+	} else {
+		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
+	}
+
 	// Forward additional headers set in client to request
 	for header, value := range c.headers {
 		req.Header.Set(header, value)
 	}
 
-	if c.Config.ApiKey != "" {
-		req.Header.Set("Authorization", c.Config.ApiKey)
-	} else {
-		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
+	// Forward additional headers set on request data object
+	for header, value := range h {
+		req.Header.Set(header, value)
 	}
 
 	if c.Config.Verbose {

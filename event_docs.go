@@ -30,7 +30,7 @@ type EventField struct {
 
 func (c *Client) EventDocumentation() (g map[string]*EventGroup, res *Response, err error) {
 	path := fmt.Sprintf(eventDocumentationFormat, c.Config.ApiVersion)
-	res, err = c.HttpGet(c.Config.BaseUrl + path)
+	res, err = c.HttpGet(c.Config.BaseUrl+path, nil)
 	if err != nil {
 		return nil, nil, err
 	}

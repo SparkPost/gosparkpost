@@ -64,7 +64,7 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
 
-	res, err = c.HttpDelete(finalUrl)
+	res, err = c.HttpDelete(finalUrl, nil)
 	if err != nil {
 		return res, err
 	}
@@ -102,7 +102,7 @@ func suppressionPut(c *Client, finalUrl string, recipients SuppressionListWrappe
 		return nil, err
 	}
 
-	res, err := c.HttpPut(finalUrl, jsonBytes)
+	res, err := c.HttpPut(finalUrl, jsonBytes, nil)
 	if err != nil {
 		return res, err
 	}
@@ -133,7 +133,7 @@ func suppressionPut(c *Client, finalUrl string, recipients SuppressionListWrappe
 
 func suppressionGet(c *Client, finalUrl string) (*SuppressionListWrapper, *Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, nil)
 	if err != nil {
 		return nil, res, err
 	}

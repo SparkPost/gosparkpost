@@ -29,6 +29,8 @@ type Transmission struct {
 	NumGenerated         *int `json:"num_generated,omitempty"`
 	NumFailedGeneration  *int `json:"num_failed_generation,omitempty"`
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
+
+	Headers map[string]string `json:"-"`
 }
 
 type RFC3339 time.Time
@@ -214,7 +216,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(u, jsonBytes)
+	res, err = c.HttpPost(u, jsonBytes, t.Headers)
 	if err != nil {
 		return
 	}
@@ -252,72 +254,79 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 	return
 }
 
-// Retrieve accepts a Transmission.ID and retrieves the corresponding object.
-func (c *Client) Transmission(id string) (*Transmission, *Response, error) {
-	if nonDigit.MatchString(id) {
-		return nil, nil, fmt.Errorf("id may only contain digits")
+// Retrieve accepts a Transmission, looks up the record using its ID, and fills out the provided object.
+func (c *Client) Transmission(t *Transmission) (*Response, error) {
+	if nonDigit.MatchString(t.ID) {
+		return nil, fmt.Errorf("id may only contain digits")
 	}
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err := c.HttpGet(u)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
+	res, err := c.HttpGet(u, t.Headers)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err = res.AssertJson(); err != nil {
-		return nil, res, err
+		return res, err
 	}
 
 	if res.HTTP.StatusCode == 200 {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
-			return nil, res, err
+			return res, err
 		}
 
 		// Unwrap the returned Transmission
-		tmp := map[string]map[string]Transmission{}
+		tmp := map[string]map[string]json.RawMessage{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
-			return nil, res, err
+			return res, err
 		} else if results, ok := tmp["results"]; ok {
-			if tr, ok := results["transmission"]; ok {
-				return &tr, res, nil
+			if raw, ok := results["transmission"]; ok {
+				if err = json.Unmarshal(raw, t); err != nil {
+					return res, err
+				}
+				return res, nil
 			} else {
-				return nil, res, fmt.Errorf("Unexpected results structure in response")
+				return res, fmt.Errorf("Unexpected results structure in response")
 			}
 		}
-		return nil, res, fmt.Errorf("Unexpected response to Transmission.Retrieve")
+		return res, fmt.Errorf("Unexpected response to Transmission.Retrieve")
 
 	} else {
 		err = res.ParseResponse()
 		if err != nil {
-			return nil, res, err
+			return res, err
 		}
 		if len(res.Errors) > 0 {
 			err = res.PrettyError("Transmission", "retrieve")
 			if err != nil {
-				return nil, res, err
+				return res, err
 			}
 		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		return res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return nil, res, err
+	return res, err
 }
 
 // Delete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
-func (c *Client) TransmissionDelete(id string) (*Response, error) {
-	if id == "" {
+func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
+	if t == nil {
+		// Delete nothing? Done!
+		return nil, nil
+	} else if t.ID == "" {
 		return nil, fmt.Errorf("Delete called with blank id")
 	}
-	if nonDigit.MatchString(id) {
+	if nonDigit.MatchString(t.ID) {
 		return nil, fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err := c.HttpDelete(u)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
+	// TODO: take a Transmission object, pull out the ID and use Headers
+	res, err := c.HttpDelete(u, t.Headers)
 	if err != nil {
 		return nil, err
 	}
@@ -347,16 +356,19 @@ func (c *Client) TransmissionDelete(id string) (*Response, error) {
 }
 
 // List returns Transmission summary information for matching Transmissions.
-// To skip filtering by campaign or template id, use a nil param.
-func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, *Response, error) {
+// Filtering by CampaignID (t.CampaignID) and TemplateID (t.ID) is supported.
+func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, error) {
+	if t == nil {
+		return nil, nil, nil
+	}
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
-	if campaignID != nil {
-		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(*campaignID)))
+	if t.CampaignID != "" {
+		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(t.CampaignID)))
 	}
-	if templateID != nil {
-		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(*templateID)))
+	if t.ID != "" {
+		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(t.ID)))
 	}
 
 	qstr := ""
@@ -366,7 +378,7 @@ func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, 
 	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := c.HttpGet(u)
+	res, err := c.HttpGet(u, t.Headers)
 	if err != nil {
 		return nil, nil, err
 	}
