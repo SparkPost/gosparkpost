@@ -7,7 +7,7 @@ import (
 )
 
 // https://developers.sparkpost.com/api/#/reference/suppression-list
-var suppressionListsPathFormat = "/api/v%d/suppression-list"
+var SuppressionListsPathFormat = "/api/v%d/suppression-list"
 
 type SuppressionEntry struct {
 	// Email is used when list is stored
@@ -31,12 +31,12 @@ type SuppressionListWrapper struct {
 }
 
 func (c *Client) SuppressionList() (*SuppressionListWrapper, *Response, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	return suppressionGet(c, c.Config.BaseUrl+path)
 }
 
 func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWrapper, *Response, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
 
 	return suppressionGet(c, finalUrl)
@@ -44,7 +44,7 @@ func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWra
 
 func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionListWrapper, *Response, error) {
 	var finalUrl string
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 
 	if parameters == nil || len(parameters) == 0 {
 		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
@@ -61,7 +61,7 @@ func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionLi
 }
 
 func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
 
 	res, err = c.HttpDelete(finalUrl, nil)
@@ -90,7 +90,7 @@ func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (*Respons
 		return nil, fmt.Errorf("send `entries` cannot be nil here")
 	}
 
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	list := SuppressionListWrapper{nil, entries}
 
 	return suppressionPut(c, c.Config.BaseUrl+path, list)

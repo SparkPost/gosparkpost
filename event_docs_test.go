@@ -1,10 +1,12 @@
-package gosparkpost
+package gosparkpost_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	sp "github.com/SparkPost/gosparkpost"
 )
 
 const eventDocumentationFile = "test/event-docs.json"
@@ -56,7 +58,7 @@ func TestEventDocs_Get_parse(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	path := fmt.Sprintf(eventDocumentationFormat, testClient.Config.ApiVersion)
+	path := fmt.Sprintf(sp.EventDocumentationFormat, testClient.Config.ApiVersion)
 	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json; charset=utf8")

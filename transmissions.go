@@ -10,7 +10,7 @@ import (
 )
 
 // https://www.sparkpost.com/api#/reference/transmissions
-var transmissionsPathFormat = "/api/v%d/transmissions"
+var TransmissionsPathFormat = "/api/v%d/transmissions"
 
 // Transmission is the JSON structure accepted by and returned from the SparkPost Transmissions API.
 type Transmission struct {
@@ -214,7 +214,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 		return
 	}
 
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err = c.HttpPost(u, jsonBytes, t.Headers)
 	if err != nil {
@@ -259,7 +259,7 @@ func (c *Client) Transmission(t *Transmission) (*Response, error) {
 	if nonDigit.MatchString(t.ID) {
 		return nil, fmt.Errorf("id may only contain digits")
 	}
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
 	res, err := c.HttpGet(u, t.Headers)
 	if err != nil {
@@ -323,7 +323,7 @@ func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
 		return nil, fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
 	// TODO: take a Transmission object, pull out the ID and use Headers
 	res, err := c.HttpDelete(u, t.Headers)
@@ -375,7 +375,7 @@ func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, erro
 	if len(qp) > 0 {
 		qstr = strings.Join(qp, "&")
 	}
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
 	res, err := c.HttpGet(u, t.Headers)

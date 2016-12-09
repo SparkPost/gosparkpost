@@ -1,11 +1,95 @@
 package gosparkpost_test
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
 	"github.com/SparkPost/gosparkpost/test"
 )
+
+var transmissionSuccess string = `{
+  "results": {
+    "total_rejected_recipients": 0,
+    "total_accepted_recipients": 1,
+    "id": "11111111111111111"
+  }
+}`
+
+func TestTransmissions_Post_Success(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	path := fmt.Sprintf(sp.TransmissionsPathFormat, testClient.Config.ApiVersion)
+	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		w.Header().Set("Content-Type", "application/json; charset=utf8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(transmissionSuccess))
+	})
+
+	tx := &sp.Transmission{
+		CampaignID: "Post_Success",
+		ReturnPath: "returnpath@example.com",
+		Recipients: []string{"recipient1@example.com"},
+		Content: sp.Content{
+			Subject: "this is a test message",
+			HTML:    "<h1>TEST</h1>",
+			From:    map[string]string{"name": "test", "email": "from@example.com"},
+		},
+		Metadata: map[string]interface{}{"shoe_size": 9},
+	}
+	id, res, err := testClient.Send(tx)
+	if err != nil {
+		testFailVerbose(t, res, "Transmission POST returned error: %v", err)
+	}
+
+	if id != "11111111111111111" {
+		testFailVerbose(t, res, "Unexpected value for id! (expected: 11111111111111111, saw: %s)", id)
+	}
+}
+
+func TestTransmissions_ByID_Success(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	tx := &sp.Transmission{
+		CampaignID: "Post_Success",
+		ReturnPath: "returnpath@example.com",
+		Recipients: []string{"recipient1@example.com"},
+		Content: sp.Content{
+			Subject: "this is a test message",
+			HTML:    "<h1>TEST</h1>",
+			From:    map[string]string{"name": "test", "email": "from@example.com"},
+		},
+		Metadata: map[string]interface{}{"shoe_size": 9},
+	}
+	txBody := map[string]map[string]*sp.Transmission{"results": {"transmission": tx}}
+	txBytes, err := json.Marshal(txBody)
+	if err != nil {
+		t.Error(err)
+	}
+
+	path := fmt.Sprintf(sp.TransmissionsPathFormat, testClient.Config.ApiVersion)
+	testMux.HandleFunc(path+"/42", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json; charset=utf8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(txBytes)
+	})
+
+	tx1 := &sp.Transmission{ID: "42"}
+	res, err := testClient.Transmission(tx1)
+	if err != nil {
+		testFailVerbose(t, res, "Transmission GET failed")
+	}
+
+	if tx1.CampaignID != tx.CampaignID {
+		testFailVerbose(t, res, "CampaignIDs do not match")
+	}
+}
 
 func TestTransmissions(t *testing.T) {
 	if true {
