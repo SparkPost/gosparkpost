@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -48,6 +49,35 @@ func TestTransmissions_Post_Success(t *testing.T) {
 
 	if id != "11111111111111111" {
 		testFailVerbose(t, res, "Unexpected value for id! (expected: 11111111111111111, saw: %s)", id)
+	}
+}
+
+func TestTransmissions_Delete_Headers(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	path := fmt.Sprintf(sp.TransmissionsPathFormat, testClient.Config.ApiVersion)
+	testMux.HandleFunc(path+"/42", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "DELETE")
+		w.Header().Set("Content-Type", "application/json; charset=utf8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("{}"))
+	})
+
+	tx := &sp.Transmission{ID: "42", Headers: map[string]string{"X-Foo": "bar"}}
+	res, err := testClient.TransmissionDelete(tx)
+	if err != nil {
+		testFailVerbose(t, res, "Transmission DELETE failed")
+	}
+
+	var reqDump string
+	var ok bool
+	if reqDump, ok = res.Verbose["http_requestdump"]; !ok {
+		testFailVerbose(t, res, "HTTP Request unavailable")
+	}
+
+	if !strings.Contains(reqDump, "X-Foo: bar") {
+		testFailVerbose(t, res, "Header set on Transmission not sent")
 	}
 }
 
