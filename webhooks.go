@@ -1,6 +1,7 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -167,7 +168,7 @@ func doWebhookStatusRequest(c *Client, finalUrl string) (*WebhookStatusWrapper, 
 
 func doRequest(c *Client, finalUrl string) ([]byte, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, context.TODO())
 	if err != nil {
 		return nil, err
 	}

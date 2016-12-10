@@ -1,6 +1,7 @@
 package gosparkpost_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -53,10 +54,6 @@ func TestTransmissions_Post_Success(t *testing.T) {
 }
 
 func TestTransmissions_Delete_Headers(t *testing.T) {
-	if true {
-		return
-	}
-
 	testSetup(t)
 	defer testTeardown()
 
@@ -68,7 +65,13 @@ func TestTransmissions_Delete_Headers(t *testing.T) {
 		w.Write([]byte("{}"))
 	})
 
-	res, err := testClient.TransmissionDelete("42")
+	header := http.Header{}
+	header.Add("X-Foo", "bar")
+	tx := &sp.Transmission{
+		ID:      "42",
+		Context: context.WithValue(context.Background(), "http.Header", header),
+	}
+	res, err := testClient.TransmissionDelete(tx)
 	if err != nil {
 		testFailVerbose(t, res, "Transmission DELETE failed")
 	}
@@ -148,7 +151,7 @@ func TestTransmissions(t *testing.T) {
 		return
 	}
 
-	tlist, res, err := client.Transmissions("msys_smoke", "")
+	tlist, res, err := client.Transmissions(&sp.Transmission{CampaignID: "msys_smoke"})
 	if err != nil {
 		t.Error(err)
 		return
@@ -217,7 +220,8 @@ func TestTransmissions(t *testing.T) {
 		}
 	}
 
-	res, err = client.TransmissionDelete(id)
+	tx1 := &sp.Transmission{ID: id}
+	res, err = client.TransmissionDelete(tx1)
 	if err != nil {
 		t.Error(err)
 		return

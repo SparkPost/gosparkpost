@@ -1,6 +1,7 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -64,7 +65,7 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
 
-	res, err = c.HttpDelete(finalUrl)
+	res, err = c.HttpDelete(finalUrl, context.TODO())
 	if err != nil {
 		return res, err
 	}
@@ -102,7 +103,7 @@ func suppressionPut(c *Client, finalUrl string, recipients SuppressionListWrappe
 		return nil, err
 	}
 
-	res, err := c.HttpPut(finalUrl, jsonBytes)
+	res, err := c.HttpPut(finalUrl, jsonBytes, context.TODO())
 	if err != nil {
 		return res, err
 	}
@@ -133,7 +134,7 @@ func suppressionPut(c *Client, finalUrl string, recipients SuppressionListWrappe
 
 func suppressionGet(c *Client, finalUrl string) (*SuppressionListWrapper, *Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(finalUrl, context.TODO())
 	if err != nil {
 		return nil, res, err
 	}

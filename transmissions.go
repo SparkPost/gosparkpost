@@ -1,6 +1,7 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -30,7 +31,7 @@ type Transmission struct {
 	NumFailedGeneration  *int `json:"num_failed_generation,omitempty"`
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
 
-	Headers map[string]string `json:"-"`
+	Context context.Context `json:"-"`
 }
 
 type RFC3339 time.Time
@@ -216,7 +217,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(u, jsonBytes)
+	res, err = c.HttpPost(u, jsonBytes, t.Context)
 	if err != nil {
 		return
 	}
@@ -261,7 +262,7 @@ func (c *Client) Transmission(t *Transmission) (*Response, error) {
 	}
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
-	res, err := c.HttpGet(u)
+	res, err := c.HttpGet(u, t.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -312,18 +313,20 @@ func (c *Client) Transmission(t *Transmission) (*Response, error) {
 
 // Delete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
-func (c *Client) TransmissionDelete(id string) (*Response, error) {
-	if id == "" {
+func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
+	if t == nil {
+		return nil, nil
+	}
+	if t.ID == "" {
 		return nil, fmt.Errorf("Delete called with blank id")
 	}
-	if nonDigit.MatchString(id) {
+	if nonDigit.MatchString(t.ID) {
 		return nil, fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	// TODO: take a Transmission object, pull out the ID and use Headers
-	res, err := c.HttpDelete(u)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
+	res, err := c.HttpDelete(u, t.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -354,15 +357,15 @@ func (c *Client) TransmissionDelete(id string) (*Response, error) {
 
 // List returns Transmission summary information for matching Transmissions.
 // Filtering by CampaignID (t.CampaignID) and TemplateID (t.ID) is supported.
-func (c *Client) Transmissions(campaignID, templateID string) ([]Transmission, *Response, error) {
+func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
-	if campaignID != "" {
-		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(campaignID)))
+	if t.CampaignID != "" {
+		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(t.CampaignID)))
 	}
-	if templateID != "" {
-		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(templateID)))
+	if t.ID != "" {
+		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(t.ID)))
 	}
 
 	qstr := ""
@@ -372,7 +375,7 @@ func (c *Client) Transmissions(campaignID, templateID string) ([]Transmission, *
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := c.HttpGet(u)
+	res, err := c.HttpGet(u, t.Context)
 	if err != nil {
 		return nil, nil, err
 	}

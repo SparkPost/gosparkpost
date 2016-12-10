@@ -2,6 +2,7 @@ package gosparkpost
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -133,32 +134,32 @@ func (c *Client) RemoveHeader(header string) {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
-	return c.DoRequest("POST", url, data)
+func (c *Client) HttpPost(url string, data []byte, ctx context.Context) (*Response, error) {
+	return c.DoRequest("POST", url, data, ctx)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpGet(url string) (*Response, error) {
-	return c.DoRequest("GET", url, nil)
+func (c *Client) HttpGet(url string, ctx context.Context) (*Response, error) {
+	return c.DoRequest("GET", url, nil, ctx)
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
-	return c.DoRequest("PUT", url, data)
+func (c *Client) HttpPut(url string, data []byte, ctx context.Context) (*Response, error) {
+	return c.DoRequest("PUT", url, data, ctx)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpDelete(url string) (*Response, error) {
-	return c.DoRequest("DELETE", url, nil)
+func (c *Client) HttpDelete(url string, ctx context.Context) (*Response, error) {
+	return c.DoRequest("DELETE", url, nil, ctx)
 }
 
-func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
+func (c *Client) DoRequest(method, urlStr string, data []byte, ctx context.Context) (*Response, error) {
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -185,7 +186,7 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 
 	if c.Config.ApiKey != "" {
 		req.Header.Set("Authorization", c.Config.ApiKey)
-	} else {
+	} else if c.Config.Username != "" {
 		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
 	}
 
@@ -193,6 +194,26 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	for header, value := range c.headers {
 		req.Header.Set(header, value)
 	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	// set any headers provided in context
+	if header, ok := ctx.Value("http.Header").(http.Header); ok {
+		for key, vals := range map[string][]string(header) {
+			if len(vals) >= 1 {
+				// replace existing headers, default, or from Client.headers
+				req.Header.Set(key, vals[0])
+			}
+			if len(vals) > 2 {
+				for _, val := range vals[1:] {
+					// allow setting multiple values because why not
+					req.Header.Add(key, val)
+				}
+			}
+		}
+	}
+	req = req.WithContext(ctx)
 
 	if c.Config.Verbose {
 		reqBytes, err := httputil.DumpRequestOut(req, false)

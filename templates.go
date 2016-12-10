@@ -1,6 +1,7 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -203,7 +204,7 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, context.TODO())
 	if err != nil {
 		return
 	}
@@ -266,7 +267,7 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
 
-	res, err = c.HttpPut(url, jsonBytes)
+	res, err = c.HttpPut(url, jsonBytes, context.TODO())
 	if err != nil {
 		return
 	}
@@ -305,7 +306,7 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 func (c *Client) Templates() ([]Template, *Response, error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url)
+	res, err := c.HttpGet(url, context.TODO())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -354,7 +355,7 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err = c.HttpDelete(url)
+	res, err = c.HttpDelete(url, context.TODO())
 	if err != nil {
 		return
 	}
@@ -406,7 +407,7 @@ func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Respo
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s/preview", c.Config.BaseUrl, path, id)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(url, jsonBytes, context.TODO())
 	if err != nil {
 		return
 	}
