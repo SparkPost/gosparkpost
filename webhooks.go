@@ -168,7 +168,7 @@ func doWebhookStatusRequest(c *Client, finalUrl string) (*WebhookStatusWrapper, 
 
 func doRequest(c *Client, finalUrl string) ([]byte, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl, context.TODO())
+	res, err := c.HttpGet(context.TODO(), finalUrl)
 	if err != nil {
 		return nil, err
 	}

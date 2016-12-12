@@ -66,7 +66,7 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes, context.TODO())
+	res, err = c.HttpPost(context.TODO(), url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -146,7 +146,7 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, s.ID)
 
-	res, err = c.HttpPut(url, jsonBytes, context.TODO())
+	res, err = c.HttpPut(context.TODO(), url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -185,7 +185,7 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpGet(url, context.TODO())
+	res, err = c.HttpGet(context.TODO(), url)
 	if err != nil {
 		return
 	}
@@ -233,7 +233,7 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
-	res, err = c.HttpGet(u, context.TODO())
+	res, err = c.HttpGet(context.TODO(), u)
 	if err != nil {
 		return
 	}

@@ -92,7 +92,7 @@ func (c *Client) MetricEventAsString(e *DeliverabilityMetricItem) string {
 
 func doMetricsRequest(c *Client, finalUrl string) (*DeliverabilityMetricEventsWrapper, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl, context.TODO())
+	res, err := c.HttpGet(context.TODO(), finalUrl)
 	if err != nil {
 		return nil, err
 	}

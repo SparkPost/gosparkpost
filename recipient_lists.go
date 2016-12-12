@@ -160,7 +160,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes, context.TODO())
+	res, err = c.HttpPost(context.TODO(), url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -207,7 +207,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url, context.TODO())
+	res, err := c.HttpGet(context.TODO(), url)
 	if err != nil {
 		return nil, nil, err
 	}

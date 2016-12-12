@@ -45,7 +45,7 @@ func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(url.String(), context.TODO())
+	res, err := c.HttpGet(context.TODO(), url.String())
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (events *EventsPage) Next() (*EventsPage, error) {
 	}
 
 	// Send off our request
-	res, err := events.client.HttpGet(events.client.Config.BaseUrl+events.nextPage, context.TODO())
+	res, err := events.client.HttpGet(context.TODO(), events.client.Config.BaseUrl+events.nextPage)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(url.String(), context.TODO())
+	res, err := c.HttpGet(context.TODO(), url.String())
 	if err != nil {
 		return nil, err
 	}

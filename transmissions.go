@@ -217,7 +217,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(u, jsonBytes, t.Context)
+	res, err = c.HttpPost(t.Context, u, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -262,7 +262,7 @@ func (c *Client) Transmission(t *Transmission) (*Response, error) {
 	}
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
-	res, err := c.HttpGet(u, t.Context)
+	res, err := c.HttpGet(t.Context, u)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +326,7 @@ func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
 
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
-	res, err := c.HttpDelete(u, t.Context)
+	res, err := c.HttpDelete(t.Context, u)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, erro
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := c.HttpGet(u, t.Context)
+	res, err := c.HttpGet(t.Context, u)
 	if err != nil {
 		return nil, nil, err
 	}

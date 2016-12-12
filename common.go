@@ -134,32 +134,32 @@ func (c *Client) RemoveHeader(header string) {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPost(url string, data []byte, ctx context.Context) (*Response, error) {
-	return c.DoRequest("POST", url, data, ctx)
+func (c *Client) HttpPost(ctx context.Context, url string, data []byte) (*Response, error) {
+	return c.DoRequest(ctx, "POST", url, data)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpGet(url string, ctx context.Context) (*Response, error) {
-	return c.DoRequest("GET", url, nil, ctx)
+func (c *Client) HttpGet(ctx context.Context, url string) (*Response, error) {
+	return c.DoRequest(ctx, "GET", url, nil)
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPut(url string, data []byte, ctx context.Context) (*Response, error) {
-	return c.DoRequest("PUT", url, data, ctx)
+func (c *Client) HttpPut(ctx context.Context, url string, data []byte) (*Response, error) {
+	return c.DoRequest(ctx, "PUT", url, data)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpDelete(url string, ctx context.Context) (*Response, error) {
-	return c.DoRequest("DELETE", url, nil, ctx)
+func (c *Client) HttpDelete(ctx context.Context, url string) (*Response, error) {
+	return c.DoRequest(ctx, "DELETE", url, nil)
 }
 
-func (c *Client) DoRequest(method, urlStr string, data []byte, ctx context.Context) (*Response, error) {
+func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []byte) (*Response, error) {
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
