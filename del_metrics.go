@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
-	URL "net/url"
+	"github.com/pkg/errors"
 )
 
-// https://www.sparkpost.com/api#/reference/message-events
-var DeliverabilityMetricPathFormat = "/api/v%d/metrics/deliverability"
+var MetricsPathFormat = "/api/v%d/metrics/deliverability"
 
-type DeliverabilityMetricItem struct {
+type MetricItem struct {
 	CountInjected               int    `json:"count_injected"`
 	CountBounce                 int    `json:"count_bounce,omitempty"`
 	CountRejected               int    `json:"count_rejected,omitempty"`
@@ -51,11 +51,11 @@ type DeliverabilityMetricItem struct {
 	BindingGroup                string `json:"binding_group,omitempty"`
 }
 
-type DeliverabilityMetrics struct {
-	Results    []DeliverabilityMetricItem `json:"results,omitempty"`
-	TotalCount int                        `json:"total_count,omitempty"`
-	Links      []map[string]string        `json:"links,omitempty"`
-	Errors     []interface{}              `json:"errors,omitempty"`
+type Metrics struct {
+	Results    []MetricItem        `json:"results,omitempty"`
+	TotalCount int                 `json:"total_count,omitempty"`
+	Links      []map[string]string `json:"links,omitempty"`
+	Errors     []interface{}       `json:"errors,omitempty"`
 
 	ExtraPath string            `json:"-"`
 	Params    map[string]string `json:"-"`
@@ -63,31 +63,31 @@ type DeliverabilityMetrics struct {
 }
 
 // https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
-func (c *Client) QueryDeliverabilityMetrics(dm *DeliverabilityMetrics) (*Response, error) {
+func (c *Client) QueryMetrics(m *Metrics) (*Response, error) {
 	var finalUrl string
-	path := fmt.Sprintf(DeliverabilityMetricPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(MetricsPathFormat, c.Config.ApiVersion)
 
-	if dm.ExtraPath != "" {
-		path = fmt.Sprintf("%s/%s", path, dm.ExtraPath)
+	if m.ExtraPath != "" {
+		path = fmt.Sprintf("%s/%s", path, m.ExtraPath)
 	}
 
-	if dm.Params == nil || len(dm.Params) == 0 {
+	if m.Params == nil || len(m.Params) == 0 {
 		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
-		params := URL.Values{}
-		for k, v := range dm.Params {
+		params := url.Values{}
+		for k, v := range m.Params {
 			params.Add(k, v)
 		}
 
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return dm.doMetricsRequest(c, finalUrl)
+	return m.doMetricsRequest(c, finalUrl)
 }
 
-func (dm *DeliverabilityMetrics) doMetricsRequest(c *Client, finalUrl string) (*Response, error) {
+func (m *Metrics) doMetricsRequest(c *Client, finalUrl string) (*Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(dm.Context, finalUrl)
+	res, err := c.HttpGet(m.Context, finalUrl)
 	if err != nil {
 		return res, err
 	}
@@ -109,9 +109,9 @@ func (dm *DeliverabilityMetrics) doMetricsRequest(c *Client, finalUrl string) (*
 	}
 
 	// Parse expected response structure
-	err = json.Unmarshal(bodyBytes, dm)
+	err = json.Unmarshal(bodyBytes, m)
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "unmarshaling response")
 	}
 
 	return res, nil
