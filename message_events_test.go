@@ -2,12 +2,40 @@ package gosparkpost_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
 	"github.com/SparkPost/gosparkpost/events"
 	"github.com/SparkPost/gosparkpost/test"
 )
+
+var msgEventsEmpty string = `{
+	"links": [],
+	"results": [],
+	"total_count": 0
+}`
+
+func TestMsgEvents_Get_Empty(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	path := fmt.Sprintf(sp.MessageEventsPathFormat, testClient.Config.ApiVersion)
+	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json; charset=utf8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(msgEventsEmpty))
+	})
+
+	_, res, err := testClient.MessageEvents(map[string]string{
+		"from":   "1970-01-01T00:00",
+		"events": "injection",
+	})
+	if err != nil {
+		testFailVerbose(t, res, "Message Events GET returned error: %v", err)
+	}
+}
 
 func TestMessageEvents(t *testing.T) {
 	if true {
@@ -36,7 +64,7 @@ func TestMessageEvents(t *testing.T) {
 	params := map[string]string{
 		"per_page": "10",
 	}
-	eventsPage, err := client.MessageEvents(params)
+	eventsPage, _, err := client.MessageEvents(params)
 	if err != nil {
 		t.Error(err)
 		return

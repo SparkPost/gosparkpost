@@ -14,8 +14,8 @@ import (
 // https://www.sparkpost.com/api#/reference/message-events
 var (
 	ErrEmptyPage                   = errors.New("empty page")
-	messageEventsPathFormat        = "%s/api/v%d/message-events"
-	messageEventsSamplesPathFormat = "%s/api/v%d/message-events/events/samples"
+	MessageEventsPathFormat        = "/api/v%d/message-events"
+	MessageEventsSamplesPathFormat = "/api/v%d/message-events/events/samples"
 )
 
 type EventsPage struct {
@@ -30,10 +30,11 @@ type EventsPage struct {
 }
 
 // https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
-func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
-	url, err := url.Parse(fmt.Sprintf(messageEventsPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
+func (c *Client) MessageEvents(params map[string]string) (*EventsPage, *Response, error) {
+	path := fmt.Sprintf(MessageEventsPathFormat, c.Config.ApiVersion)
+	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(params) > 0 {
@@ -47,29 +48,29 @@ func (c *Client) MessageEvents(params map[string]string) (*EventsPage, error) {
 	// Send off our request
 	res, err := c.HttpGet(context.TODO(), url.String())
 	if err != nil {
-		return nil, err
+		return nil, res, err
 	}
 
 	// Assert that we got a JSON Content-Type back
 	if err = res.AssertJson(); err != nil {
-		return nil, err
+		return nil, res, err
 	}
 
 	// Get the Content
 	bodyBytes, err := res.ReadBody()
 	if err != nil {
-		return nil, err
+		return nil, res, err
 	}
 
 	var eventsPage EventsPage
 	err = json.Unmarshal(bodyBytes, &eventsPage)
 	if err != nil {
-		return nil, err
+		return nil, res, err
 	}
 
 	eventsPage.client = c
 
-	return &eventsPage, nil
+	return &eventsPage, res, nil
 }
 
 func (events *EventsPage) Next() (*EventsPage, error) {
@@ -148,7 +149,8 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 
 // Samples requests a list of example event data.
 func (c *Client) EventSamples(types *[]string) (*events.Events, error) {
-	url, err := url.Parse(fmt.Sprintf(messageEventsSamplesPathFormat, c.Config.BaseUrl, c.Config.ApiVersion))
+	path := fmt.Sprintf(MessageEventsSamplesPathFormat, c.Config.ApiVersion)
+	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
 		return nil, err
 	}
