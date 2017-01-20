@@ -97,7 +97,7 @@ func TestMessageEvents(t *testing.T) {
 		}
 	}
 
-	eventsPage, err = eventsPage.Next()
+	eventsPage, _, err = eventsPage.Next()
 	if err != nil && err != sp.ErrEmptyPage {
 		t.Error(err)
 	} else {
@@ -131,7 +131,7 @@ func TestAllEventsSamples(t *testing.T) {
 		return
 	}
 
-	e, err := client.EventSamples(nil)
+	e, _, err := client.EventSamples(nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -190,7 +190,7 @@ func TestFilteredEventsSamples(t *testing.T) {
 	}
 
 	types := []string{"open", "click", "bounce"}
-	e, err := client.EventSamples(&types)
+	e, _, err := client.EventSamples(&types)
 	if err != nil {
 		t.Error(err)
 		return
