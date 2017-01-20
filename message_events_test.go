@@ -28,10 +28,11 @@ func TestMsgEvents_Get_Empty(t *testing.T) {
 		w.Write([]byte(msgEventsEmpty))
 	})
 
-	_, res, err := testClient.MessageEvents(map[string]string{
+	ep := &sp.EventsPage{Params: map[string]string{
 		"from":   "1970-01-01T00:00",
 		"events": "injection",
-	})
+	}}
+	res, err := testClient.MessageEventsSearch(ep)
 	if err != nil {
 		testFailVerbose(t, res, "Message Events GET returned error: %v", err)
 	}
@@ -61,20 +62,20 @@ func TestMessageEvents(t *testing.T) {
 		return
 	}
 
-	params := map[string]string{
+	ep := &sp.EventsPage{Params: map[string]string{
 		"per_page": "10",
-	}
-	eventsPage, _, err := client.MessageEvents(params)
+	}}
+	_, err = client.MessageEventsSearch(ep)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if len(eventsPage.Events) == 0 {
+	if len(ep.Events) == 0 {
 		t.Error("expected non-empty result")
 	}
 
-	for _, ev := range eventsPage.Events {
+	for _, ev := range ep.Events {
 		switch event := ev.(type) {
 		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
 			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
@@ -97,11 +98,11 @@ func TestMessageEvents(t *testing.T) {
 		}
 	}
 
-	eventsPage, _, err = eventsPage.Next()
-	if err != nil && err != sp.ErrEmptyPage {
+	ep, _, err = ep.Next()
+	if err != nil {
 		t.Error(err)
-	} else {
-		if len(eventsPage.Events) == 0 {
+	} else if ep != nil {
+		if len(ep.Events) == 0 {
 			t.Error("expected non-empty result")
 		}
 	}

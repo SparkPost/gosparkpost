@@ -3,7 +3,6 @@ package gosparkpost
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -13,7 +12,6 @@ import (
 
 // https://www.sparkpost.com/api#/reference/message-events
 var (
-	ErrEmptyPage                   = errors.New("empty page")
 	MessageEventsPathFormat        = "/api/v%d/message-events"
 	MessageEventsSamplesPathFormat = "/api/v%d/message-events/events/samples"
 )
@@ -23,63 +21,67 @@ type EventsPage struct {
 
 	Events     events.Events
 	TotalCount int
-	nextPage   string
-	prevPage   string
-	firstPage  string
-	lastPage   string
+	Errors     []interface{}
+
+	NextPage  string
+	PrevPage  string
+	FirstPage string
+	LastPage  string
+
+	Params  map[string]string `json:"-"`
+	Context context.Context   `json:"-"`
 }
 
 // https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
-func (c *Client) MessageEvents(params map[string]string) (*EventsPage, *Response, error) {
+func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
 	path := fmt.Sprintf(MessageEventsPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if len(params) > 0 {
+	if len(ep.Params) > 0 {
 		q := url.Query()
-		for k, v := range params {
+		for k, v := range ep.Params {
 			q.Add(k, v)
 		}
 		url.RawQuery = q.Encode()
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(context.TODO(), url.String())
+	res, err := c.HttpGet(ep.Context, url.String())
 	if err != nil {
-		return nil, res, err
+		return res, err
 	}
 
 	// Assert that we got a JSON Content-Type back
 	if err = res.AssertJson(); err != nil {
-		return nil, res, err
+		return res, err
 	}
 
 	// Get the Content
 	bodyBytes, err := res.ReadBody()
 	if err != nil {
-		return nil, res, err
+		return res, err
 	}
 
-	var eventsPage EventsPage
-	err = json.Unmarshal(bodyBytes, &eventsPage)
+	err = json.Unmarshal(bodyBytes, ep)
 	if err != nil {
-		return nil, res, err
+		return res, err
 	}
 
-	eventsPage.client = c
+	ep.client = c
 
-	return &eventsPage, res, nil
+	return res, nil
 }
 
-func (events *EventsPage) Next() (*EventsPage, *Response, error) {
-	if events.nextPage == "" {
-		return nil, nil, ErrEmptyPage
+func (ep *EventsPage) Next() (*EventsPage, *Response, error) {
+	if ep.NextPage == "" {
+		return nil, nil, nil
 	}
 
 	// Send off our request
-	res, err := events.client.HttpGet(context.TODO(), events.client.Config.BaseUrl+events.nextPage)
+	res, err := ep.client.HttpGet(ep.Context, ep.client.Config.BaseUrl+ep.NextPage)
 	if err != nil {
 		return nil, res, err
 	}
@@ -101,7 +103,7 @@ func (events *EventsPage) Next() (*EventsPage, *Response, error) {
 		return nil, res, err
 	}
 
-	eventsPage.client = events.client
+	eventsPage.client = ep.client
 
 	return &eventsPage, res, nil
 }
@@ -118,6 +120,7 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 			Href string `json:"href"`
 			Rel  string `json:"rel"`
 		} `json:"links,omitempty"`
+		Errors []interface{} `json:"errors,omitempty"`
 	}
 	err := json.Unmarshal(data, &resultsWrapper)
 	if err != nil {
@@ -129,18 +132,19 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	ep.Errors = resultsWrapper.Errors
 	ep.TotalCount = resultsWrapper.TotalCount
 
 	for _, link := range resultsWrapper.Links {
 		switch link.Rel {
 		case "next":
-			ep.nextPage = link.Href
+			ep.NextPage = link.Href
 		case "previous":
-			ep.prevPage = link.Href
+			ep.PrevPage = link.Href
 		case "first":
-			ep.firstPage = link.Href
+			ep.FirstPage = link.Href
 		case "last":
-			ep.lastPage = link.Href
+			ep.LastPage = link.Href
 		}
 	}
 
