@@ -55,4 +55,8 @@ func TestMetrics_Get_noArgsError(t *testing.T) {
 	if err != nil {
 		testFailVerbose(t, res, "Metrics GET returned error: %+v", err)
 	}
+
+	if len(m.Errors) != 3 {
+		testFailVerbose(t, res, "Expected 3 errors, got %d", len(m.Errors))
+	}
 }
