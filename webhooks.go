@@ -9,9 +9,9 @@ import (
 )
 
 // https://www.sparkpost.com/api#/reference/message-events
-var webhookListPathFormat = "/api/v%d/webhooks"
-var webhookQueryPathFormat = "/api/v%d/webhooks/%s"
-var webhookStatusPathFormat = "/api/v%d/webhooks/%s/batch-status"
+var WebhookListPathFormat = "/api/v%d/webhooks"
+var WebhookQueryPathFormat = "/api/v%d/webhooks/%s"
+var WebhookStatusPathFormat = "/api/v%d/webhooks/%s/batch-status"
 
 type WebhookItem struct {
 	ID       string   `json:"id,omitempty"`
@@ -48,26 +48,34 @@ type WebhookItem struct {
 
 type WebhookStatus struct {
 	BatchID      string `json:"batch_id,omitempty"`
-	Ts           string `json:"ts,omitempty"`
+	Timestamp    string `json:"ts,omitempty"`
 	Attempts     int    `json:"attempts,omitempty"`
 	ResponseCode string `json:"response_code,omitempty"`
 }
 
+type WebhookCommon struct {
+	Errors  []interface{}     `json:"errors,omitempty"`
+	Params  map[string]string `json:"-"`
+	Context context.Context   `json:"-"`
+}
+
 type WebhookListWrapper struct {
 	Results []*WebhookItem `json:"results,omitempty"`
-	Errors  []interface{}  `json:"errors,omitempty"`
+	WebhookCommon
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
 type WebhookQueryWrapper struct {
-	Results *WebhookItem  `json:"results,omitempty"`
-	Errors  []interface{} `json:"errors,omitempty"`
+	ID      string       `json:"-"`
+	Results *WebhookItem `json:"results,omitempty"`
+	WebhookCommon
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
 type WebhookStatusWrapper struct {
+	ID      string           `json:"-"`
 	Results []*WebhookStatus `json:"results,omitempty"`
-	Errors  []interface{}    `json:"errors,omitempty"`
+	WebhookCommon
 	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
 }
 
@@ -87,77 +95,62 @@ func buildUrl(c *Client, path string, parameters map[string]string) string {
 }
 
 // https://developers.sparkpost.com/api/#/reference/webhooks/batch-status/retrieve-status-information
-func (c *Client) WebhookStatus(id string, parameters map[string]string) (*WebhookStatusWrapper, *Response, error) {
-	path := fmt.Sprintf(webhookStatusPathFormat, c.Config.ApiVersion, id)
-	finalUrl := buildUrl(c, path, parameters)
+func (c *Client) WebhookStatus(s *WebhookStatusWrapper) (*Response, error) {
+	path := fmt.Sprintf(WebhookStatusPathFormat, c.Config.ApiVersion, s.ID)
+	finalUrl := buildUrl(c, path, s.Params)
 
-	return doWebhookStatusRequest(c, finalUrl)
+	bodyBytes, res, err := doRequest(c, finalUrl, s.Context)
+	if err != nil {
+		return res, err
+	}
+
+	err = json.Unmarshal(bodyBytes, s)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
 }
 
 // https://developers.sparkpost.com/api/#/reference/webhooks/retrieve/retrieve-webhook-details
-func (c *Client) QueryWebhook(id string, parameters map[string]string) (*WebhookQueryWrapper, *Response, error) {
-	path := fmt.Sprintf(webhookQueryPathFormat, c.Config.ApiVersion, id)
-	finalUrl := buildUrl(c, path, parameters)
+func (c *Client) QueryWebhook(q *WebhookQueryWrapper) (*Response, error) {
+	path := fmt.Sprintf(WebhookQueryPathFormat, c.Config.ApiVersion, q.ID)
+	finalUrl := buildUrl(c, path, q.Params)
 
-	return doWebhooksQueryRequest(c, finalUrl)
+	bodyBytes, res, err := doRequest(c, finalUrl, q.Context)
+	if err != nil {
+		return res, err
+	}
+
+	err = json.Unmarshal(bodyBytes, q)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
 }
 
 // https://developers.sparkpost.com/api/#/reference/webhooks/list/list-all-webhooks
-func (c *Client) ListWebhooks(parameters map[string]string) (*WebhookListWrapper, *Response, error) {
-	path := fmt.Sprintf(webhookListPathFormat, c.Config.ApiVersion)
-	finalUrl := buildUrl(c, path, parameters)
+func (c *Client) ListWebhooks(l *WebhookListWrapper) (*Response, error) {
+	path := fmt.Sprintf(WebhookListPathFormat, c.Config.ApiVersion)
+	finalUrl := buildUrl(c, path, l.Params)
 
-	return doWebhooksListRequest(c, finalUrl)
-}
-
-func doWebhooksListRequest(c *Client, finalUrl string) (*WebhookListWrapper, *Response, error) {
-	bodyBytes, res, err := doRequest(c, finalUrl)
+	bodyBytes, res, err := doRequest(c, finalUrl, l.Context)
 	if err != nil {
-		return nil, res, err
+		return res, err
 	}
 
-	// Parse expected response structure
-	var resMap WebhookListWrapper
-	err = json.Unmarshal(bodyBytes, &resMap)
-
+	err = json.Unmarshal(bodyBytes, l)
 	if err != nil {
-		return nil, res, err
+		return res, err
 	}
 
-	return &resMap, res, err
+	return res, err
 }
 
-func doWebhooksQueryRequest(c *Client, finalUrl string) (*WebhookQueryWrapper, *Response, error) {
-	bodyBytes, res, err := doRequest(c, finalUrl)
-
-	// Parse expected response structure
-	var resMap WebhookQueryWrapper
-	err = json.Unmarshal(bodyBytes, &resMap)
-
-	if err != nil {
-		return nil, res, err
-	}
-
-	return &resMap, res, err
-}
-
-func doWebhookStatusRequest(c *Client, finalUrl string) (*WebhookStatusWrapper, *Response, error) {
-	bodyBytes, res, err := doRequest(c, finalUrl)
-
-	// Parse expected response structure
-	var resMap WebhookStatusWrapper
-	err = json.Unmarshal(bodyBytes, &resMap)
-
-	if err != nil {
-		return nil, res, err
-	}
-
-	return &resMap, res, err
-}
-
-func doRequest(c *Client, finalUrl string) ([]byte, *Response, error) {
+func doRequest(c *Client, finalUrl string, ctx context.Context) ([]byte, *Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(context.TODO(), finalUrl)
+	res, err := c.HttpGet(ctx, finalUrl)
 	if err != nil {
 		return nil, res, err
 	}
