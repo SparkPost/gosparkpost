@@ -140,9 +140,14 @@ func (r Recipient) Validate() error {
 	return nil
 }
 
-// Create accepts a populated RecipientList object, validates it,
+// RecipientListCreate accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
 func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Response, err error) {
+	return c.RecipientListCreateContext(context.Background(), rl)
+}
+
+// RecipientListCreateContext is the same as RecipientListCreate, and it accepts a context.Context
+func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientList) (id string, res *Response, err error) {
 	if rl == nil {
 		err = fmt.Errorf("Create called with nil RecipientList")
 		return
@@ -160,7 +165,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(context.TODO(), url, jsonBytes)
+	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -204,10 +209,16 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 	return
 }
 
+// RecipientLists returns all recipient lists
 func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
+	return c.RecipientListsContext(context.Background())
+}
+
+// RecipientListsContext is the same as RecipientLists, and it accepts a context.Context
+func (c *Client) RecipientListsContext(ctx context.Context) (*[]RecipientList, *Response, error) {
 	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(context.TODO(), url)
+	res, err := c.HttpGet(ctx, url)
 	if err != nil {
 		return nil, nil, err
 	}
