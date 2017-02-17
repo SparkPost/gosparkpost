@@ -67,11 +67,9 @@ func TestTransmissions_Delete_Headers(t *testing.T) {
 
 	header := http.Header{}
 	header.Add("X-Foo", "bar")
-	tx := &sp.Transmission{
-		ID:      "42",
-		Context: context.WithValue(context.Background(), "http.Header", header),
-	}
-	res, err := testClient.TransmissionDelete(tx)
+	ctx := context.WithValue(context.Background(), "http.Header", header)
+	tx := &sp.Transmission{ID: "42"}
+	res, err := testClient.TransmissionDeleteContext(ctx, tx)
 	if err != nil {
 		testFailVerbose(t, res, "Transmission DELETE failed")
 	}

@@ -30,8 +30,6 @@ type Transmission struct {
 	NumGenerated         *int `json:"num_generated,omitempty"`
 	NumFailedGeneration  *int `json:"num_failed_generation,omitempty"`
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
-
-	Context context.Context `json:"-"`
 }
 
 type RFC3339 time.Time
@@ -196,10 +194,15 @@ func (t *Transmission) Validate() error {
 	return nil
 }
 
-// Create accepts a populated Transmission object, performs basic sanity
+// Send accepts a populated Transmission object, performs basic sanity
 // checks on it, and performs an API call against the configured endpoint.
 // Calling this function can cause email to be sent, if used correctly.
 func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
+	return c.SendContext(context.Background(), t)
+}
+
+// SendContext does the same thing as Send, and in addition it accepts a context from the caller.
+func (c *Client) SendContext(ctx context.Context, t *Transmission) (id string, res *Response, err error) {
 	if t == nil {
 		err = fmt.Errorf("Create called with nil Transmission")
 		return
@@ -217,7 +220,7 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(t.Context, u, jsonBytes)
+	res, err = c.HttpPost(ctx, u, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -255,14 +258,19 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 	return
 }
 
-// Retrieve accepts a Transmission, looks up the record using its ID, and fills out the provided object.
+// Transmission accepts a Transmission, looks up the record using its ID, and fills out the provided object.
 func (c *Client) Transmission(t *Transmission) (*Response, error) {
+	return c.TransmissionContext(context.Background(), t)
+}
+
+// TransmissionContext is the same as Transmission, and it allows the caller to pass in a context.
+func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Response, error) {
 	if nonDigit.MatchString(t.ID) {
 		return nil, fmt.Errorf("id may only contain digits")
 	}
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
-	res, err := c.HttpGet(t.Context, u)
+	res, err := c.HttpGet(ctx, u)
 	if err != nil {
 		return nil, err
 	}
@@ -311,9 +319,14 @@ func (c *Client) Transmission(t *Transmission) (*Response, error) {
 	return res, err
 }
 
-// Delete attempts to remove the Transmission with the specified id.
+// TransmissionDelete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
 func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
+	return c.TransmissionDeleteContext(context.Background(), t)
+}
+
+// TransmissionDeleteContext is the same as TransmissionDelete, and it allows the caller to provide a context.
+func (c *Client) TransmissionDeleteContext(ctx context.Context, t *Transmission) (*Response, error) {
 	if t == nil {
 		return nil, nil
 	}
@@ -326,7 +339,7 @@ func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
 
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
-	res, err := c.HttpDelete(t.Context, u)
+	res, err := c.HttpDelete(ctx, u)
 	if err != nil {
 		return nil, err
 	}
@@ -355,9 +368,14 @@ func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
 	return res, nil
 }
 
-// List returns Transmission summary information for matching Transmissions.
+// Transmissions returns Transmission summary information for matching Transmissions.
 // Filtering by CampaignID (t.CampaignID) and TemplateID (t.ID) is supported.
 func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, error) {
+	return c.TransmissionsContext(context.Background(), t)
+}
+
+// TransmissionsContext is the same as Transmissions, and it allows the caller to provide a context.
+func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]Transmission, *Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
@@ -375,7 +393,7 @@ func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, erro
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := c.HttpGet(t.Context, u)
+	res, err := c.HttpGet(ctx, u)
 	if err != nil {
 		return nil, nil, err
 	}
