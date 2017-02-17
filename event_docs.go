@@ -10,6 +10,12 @@ import (
 
 var EventDocumentationFormat = "/api/v%d/webhooks/events/documentation"
 
+type EventGroups struct {
+	Groups map[string]*EventGroup `json:"groups"`
+
+	Context context.Context `json:"-"`
+}
+
 type EventGroup struct {
 	Name        string
 	Events      map[string]EventMeta `json:"events"`
@@ -29,15 +35,15 @@ type EventField struct {
 	SampleValue interface{} `json:"sampleValue"`
 }
 
-func (c *Client) EventDocumentation() (g map[string]*EventGroup, res *Response, err error) {
+func (c *Client) EventDocumentation(eg *EventGroups) (res *Response, err error) {
 	path := fmt.Sprintf(EventDocumentationFormat, c.Config.ApiVersion)
 	res, err = c.HttpGet(context.TODO(), c.Config.BaseUrl+path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err = res.AssertJson(); err != nil {
-		return nil, res, err
+		return res, err
 	}
 
 	if res.HTTP.StatusCode == 200 {
@@ -45,30 +51,29 @@ func (c *Client) EventDocumentation() (g map[string]*EventGroup, res *Response, 
 		var ok bool
 		body, err = res.ReadBody()
 		if err != nil {
-			return nil, res, err
+			return res, err
 		}
 
 		var results map[string]map[string]*EventGroup
-		var groups map[string]*EventGroup
 		if err = json.Unmarshal(body, &results); err != nil {
-			return nil, res, err
-		} else if groups, ok = results["results"]; ok {
-			return groups, res, err
+			return res, err
+		} else if eg.Groups, ok = results["results"]; ok {
+			return res, err
 		}
-		return nil, res, errors.New("Unexpected response format")
+		return res, errors.New("Unexpected response format")
 	} else {
 		err = res.ParseResponse()
 		if err != nil {
-			return nil, res, err
+			return res, err
 		}
 		if len(res.Errors) > 0 {
 			err = res.PrettyError("EventDocumentation", "retrieve")
 			if err != nil {
-				return nil, res, err
+				return res, err
 			}
 		}
-		return nil, res, errors.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		return res, errors.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return nil, res, err
+	return res, err
 }

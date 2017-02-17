@@ -1,6 +1,7 @@
 package gosparkpost_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -66,7 +67,8 @@ func TestEventDocs_Get_parse(t *testing.T) {
 	})
 
 	// hit our local handler
-	groups, res, err := testClient.EventDocumentation()
+	egroups := &sp.EventGroups{Context: context.Background()}
+	res, err := testClient.EventDocumentation(egroups)
 	if err != nil {
 		t.Errorf("EventDocumentation GET returned error: %v", err)
 		for _, e := range res.Verbose {
@@ -74,6 +76,7 @@ func TestEventDocs_Get_parse(t *testing.T) {
 		}
 		return
 	}
+	groups := egroups.Groups
 
 	// basic content test
 	if len(groups) == 0 {
