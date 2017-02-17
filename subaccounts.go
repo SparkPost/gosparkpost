@@ -34,9 +34,14 @@ type Subaccount struct {
 	ComplianceStatus string   `json:"compliance_status,omitempty"`
 }
 
-// Create accepts a populated Subaccount object, validates it,
+// SubaccountCreate accepts a populated Subaccount object, validates it,
 // and performs an API call against the configured endpoint.
 func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
+	return c.SubaccountCreateContext(context.Background(), s)
+}
+
+// SubaccountCreateContext is the same as SubaccountCreate, and it allows the caller to pass in a context
+func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
 	// enforce required parameters
 	if s == nil {
 		err = fmt.Errorf("Create called with nil Subaccount")
@@ -66,7 +71,7 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(context.TODO(), url, jsonBytes)
+	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -114,10 +119,15 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 	return
 }
 
-// Update updates a subaccount with the specified id.
+// SubaccountUpdate updates a subaccount with the specified id.
 // Actually it will marshal and send all the subaccount fields, but that must not be a problem,
 // as fields not supposed for update will be omitted
 func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
+	return c.SubaccountUpdateContext(context.Background(), s)
+}
+
+// SubaccountUpdateContext is the same as SubaccountUpdate, and it allows the caller to provide a context
+func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
 	if s.ID == 0 {
 		err = fmt.Errorf("Subaccount Update called with zero id")
 	} else if len(s.Name) > 1024 {
@@ -146,7 +156,7 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, s.ID)
 
-	res, err = c.HttpPut(context.TODO(), url, jsonBytes)
+	res, err = c.HttpPut(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -181,11 +191,16 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	return
 }
 
-// List returns metadata for all Templates in the system.
+// Subaccounts returns metadata for all Templates in the system.
 func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err error) {
+	return c.SubaccountsContext(context.Background())
+}
+
+// SubaccountsContext is the same as Subaccounts, and it allows the caller to provide a context
+func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpGet(context.TODO(), url)
+	res, err = c.HttpGet(ctx, url)
 	if err != nil {
 		return
 	}
@@ -230,10 +245,16 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 	return
 }
 
+// Subaccount looks up a subaccount by its id
 func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err error) {
+	return c.SubaccountContext(context.Background(), id)
+}
+
+// SubaccountContext is the same as Subaccount, and it accepts a context.Context
+func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
-	res, err = c.HttpGet(context.TODO(), u)
+	res, err = c.HttpGet(ctx, u)
 	if err != nil {
 		return
 	}
