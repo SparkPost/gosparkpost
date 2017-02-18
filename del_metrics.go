@@ -1,16 +1,17 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
-	URL "net/url"
+	"github.com/pkg/errors"
 )
 
-// https://www.sparkpost.com/api#/reference/message-events
-var deliverabilityMetricPathFormat = "/api/v%d/metrics/deliverability"
+var MetricsPathFormat = "/api/v%d/metrics/deliverability"
 
-type DeliverabilityMetricItem struct {
+type MetricItem struct {
 	CountInjected               int    `json:"count_injected"`
 	CountBounce                 int    `json:"count_bounce,omitempty"`
 	CountRejected               int    `json:"count_rejected,omitempty"`
@@ -50,77 +51,71 @@ type DeliverabilityMetricItem struct {
 	BindingGroup                string `json:"binding_group,omitempty"`
 }
 
-type DeliverabilityMetricEventsWrapper struct {
-	Results    []*DeliverabilityMetricItem `json:"results,omitempty"`
-	TotalCount int                         `json:"total_count,omitempty"`
-	Links      []map[string]string         `json:"links,omitempty"`
-	Errors     []interface{}               `json:"errors,omitempty"`
-	//{"errors":[{"param":"from","message":"From must be before to","value":"2014-07-20T09:00"},{"param":"to","message":"To must be in the format YYYY-MM-DDTHH:mm","value":"now"}]}
+type Metrics struct {
+	Results    []MetricItem        `json:"results,omitempty"`
+	TotalCount int                 `json:"total_count,omitempty"`
+	Links      []map[string]string `json:"links,omitempty"`
+	Errors     []interface{}       `json:"errors,omitempty"`
+
+	ExtraPath string            `json:"-"`
+	Params    map[string]string `json:"-"`
 }
 
 // https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
-func (c *Client) QueryDeliverabilityMetrics(extraPath string, parameters map[string]string) (*DeliverabilityMetricEventsWrapper, error) {
+func (c *Client) QueryMetrics(m *Metrics) (*Response, error) {
+	return c.QueryMetricsContext(context.Background(), m)
+}
 
+func (c *Client) QueryMetricsContext(ctx context.Context, m *Metrics) (*Response, error) {
 	var finalUrl string
-	path := fmt.Sprintf(deliverabilityMetricPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(MetricsPathFormat, c.Config.ApiVersion)
 
-	if extraPath != "" {
-		path = fmt.Sprintf("%s/%s", path, extraPath)
+	if m.ExtraPath != "" {
+		path = fmt.Sprintf("%s/%s", path, m.ExtraPath)
 	}
 
-	//log.Printf("Path: %s", path)
-
-	if parameters == nil || len(parameters) == 0 {
+	if m.Params == nil || len(m.Params) == 0 {
 		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
-		params := URL.Values{}
-		for k, v := range parameters {
+		params := url.Values{}
+		for k, v := range m.Params {
 			params.Add(k, v)
 		}
 
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return doMetricsRequest(c, finalUrl)
+	return m.doMetricsRequest(ctx, c, finalUrl)
 }
 
-func (c *Client) MetricEventAsString(e *DeliverabilityMetricItem) string {
-
-	return fmt.Sprintf("domain: %s, [%v]", e.Domain, e)
-}
-
-func doMetricsRequest(c *Client, finalUrl string) (*DeliverabilityMetricEventsWrapper, error) {
+func (m *Metrics) doMetricsRequest(ctx context.Context, c *Client, finalUrl string) (*Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(ctx, finalUrl)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	// Assert that we got a JSON Content-Type back
 	if err = res.AssertJson(); err != nil {
-		return nil, err
+		return res, err
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return res, err
 	}
 
 	// Get the Content
 	bodyBytes, err := res.ReadBody()
 	if err != nil {
-		return nil, err
+		return res, err
 	}
-
-	/*// DEBUG
-	err = iou.WriteFile("./events.json", bodyBytes, 0644)
-	if err != nil {
-		return nil, err
-	}
-	*/
 
 	// Parse expected response structure
-	var resMap DeliverabilityMetricEventsWrapper
-	err = json.Unmarshal(bodyBytes, &resMap)
-
+	err = json.Unmarshal(bodyBytes, m)
 	if err != nil {
-		return nil, err
+		return res, errors.Wrap(err, "unmarshaling response")
 	}
 
-	return &resMap, err
+	return res, nil
 }

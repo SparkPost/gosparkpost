@@ -1,6 +1,7 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -183,9 +184,14 @@ func (t *Template) SetHeaders(headers map[string]string) {
 	t.Content.Headers = headers
 }
 
-// Create accepts a populated Template object, validates its Contents,
+// TemplateCreate accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
 func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err error) {
+	return c.TemplateCreateContext(context.Background(), t)
+}
+
+// TemplateCreateContext is the same as TemplateCreate, and it allows the caller to provide a context.
+func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id string, res *Response, err error) {
 	if t == nil {
 		err = fmt.Errorf("Create called with nil Template")
 		return
@@ -203,7 +209,7 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -246,8 +252,13 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 	return
 }
 
-// Update updates a draft/published template with the specified id
+// TemplateUpdate updates a draft/published template with the specified id
 func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
+	return c.TemplateUpdateContext(context.Background(), t)
+}
+
+// TemplateUpdateContext is the same as TemplateUpdate, and it allows the caller to provide a context
+func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *Response, err error) {
 	if t.ID == "" {
 		err = fmt.Errorf("Update called with blank id")
 		return
@@ -266,7 +277,7 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
 
-	res, err = c.HttpPut(url, jsonBytes)
+	res, err = c.HttpPut(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -301,11 +312,16 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 	return
 }
 
-// List returns metadata for all Templates in the system.
+// Templates returns metadata for all Templates in the system.
 func (c *Client) Templates() ([]Template, *Response, error) {
+	return c.TemplatesContext(context.Background())
+}
+
+// TemplatesContext is the same as Templates, and it allows the caller to provide a context
+func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, error) {
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url)
+	res, err := c.HttpGet(ctx, url)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -345,8 +361,13 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 	return nil, res, err
 }
 
-// Delete removes the Template with the specified id.
+// TemplateDelete removes the Template with the specified id.
 func (c *Client) TemplateDelete(id string) (res *Response, err error) {
+	return c.TemplateDeleteContext(context.Background(), id)
+}
+
+// TemplateDeleteContext is the same as TemplateDelete, and it allows the caller to provide a context
+func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Delete called with blank id")
 		return
@@ -354,7 +375,7 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err = c.HttpDelete(url)
+	res, err = c.HttpDelete(ctx, url)
 	if err != nil {
 		return
 	}
@@ -389,7 +410,13 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 	return
 }
 
+// TemplatePreview renders and returns the output of a template using the provided substitution data.
 func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Response, err error) {
+	return c.TemplatePreviewContext(context.Background(), id, payload)
+}
+
+// TemplatePreviewContext is the same as TemplatePreview, and it allows the caller to provide a context
+func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload *PreviewOptions) (res *Response, err error) {
 	if id == "" {
 		err = fmt.Errorf("Preview called with blank id")
 		return
@@ -406,7 +433,7 @@ func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Respo
 
 	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s/preview", c.Config.BaseUrl, path, id)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}

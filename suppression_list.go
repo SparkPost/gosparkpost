@@ -1,13 +1,14 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
 )
 
 // https://developers.sparkpost.com/api/#/reference/suppression-list
-var suppressionListsPathFormat = "/api/v%d/suppression-list"
+var SuppressionListsPathFormat = "/api/v%d/suppression-list"
 
 type SuppressionEntry struct {
 	// Email is used when list is stored
@@ -31,40 +32,56 @@ type SuppressionListWrapper struct {
 }
 
 func (c *Client) SuppressionList() (*SuppressionListWrapper, *Response, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	return suppressionGet(c, c.Config.BaseUrl+path)
+	return c.SuppressionListContext(context.Background())
 }
 
-func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWrapper, *Response, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
-
-	return suppressionGet(c, finalUrl)
+func (c *Client) SuppressionListContext(ctx context.Context) (*SuppressionListWrapper, *Response, error) {
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	return c.suppressionGet(ctx, c.Config.BaseUrl+path)
 }
 
-func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionListWrapper, *Response, error) {
+func (c *Client) SuppressionRetrieve(email string) (*SuppressionListWrapper, *Response, error) {
+	return c.SuppressionRetrieveContext(context.Background(), email)
+}
+
+func (c *Client) SuppressionRetrieveContext(ctx context.Context, email string) (*SuppressionListWrapper, *Response, error) {
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
+
+	return c.suppressionGet(ctx, finalUrl)
+}
+
+func (c *Client) SuppressionSearch(params map[string]string) (*SuppressionListWrapper, *Response, error) {
+	return c.SuppressionSearchContext(context.Background(), params)
+}
+
+func (c *Client) SuppressionSearchContext(ctx context.Context, params map[string]string) (*SuppressionListWrapper, *Response, error) {
 	var finalUrl string
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 
-	if parameters == nil || len(parameters) == 0 {
+	if params == nil || len(params) == 0 {
 		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
-		params := url.Values{}
-		for k, v := range parameters {
-			params.Add(k, v)
+		args := url.Values{}
+		for k, v := range params {
+			args.Add(k, v)
 		}
 
-		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
+		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, args.Encode())
 	}
 
-	return suppressionGet(c, finalUrl)
+	return c.suppressionGet(ctx, finalUrl)
 }
 
-func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
+func (c *Client) SuppressionDelete(email string) (res *Response, err error) {
+	return c.SuppressionDeleteContext(context.Background(), email)
+}
 
-	res, err = c.HttpDelete(finalUrl)
+func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (res *Response, err error) {
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
+
+	res, err = c.HttpDelete(ctx, finalUrl)
 	if err != nil {
 		return res, err
 	}
@@ -85,24 +102,27 @@ func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err er
 	return res, err
 }
 
-func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (*Response, error) {
-	if entries == nil {
-		return nil, fmt.Errorf("send `entries` cannot be nil here")
-	}
-
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	list := SuppressionListWrapper{nil, entries}
-
-	return suppressionPut(c, c.Config.BaseUrl+path, list)
+// SuppressionUpsert adds an entry to the suppression, or updates the existing entry
+func (c *Client) SuppressionUpsert(entries []SuppressionEntry) (*Response, error) {
+	return c.SuppressionUpsertContext(context.Background(), entries)
 }
 
-func suppressionPut(c *Client, finalUrl string, recipients SuppressionListWrapper) (*Response, error) {
-	jsonBytes, err := json.Marshal(recipients)
+// SuppressionUpsertContext is the same as SuppressionUpsert, and it accepts a context.Context
+func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []SuppressionEntry) (*Response, error) {
+	if entries == nil {
+		return nil, fmt.Errorf("`entries` cannot be nil")
+	}
+
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	list := SuppressionListWrapper{nil, entries}
+
+	jsonBytes, err := json.Marshal(list)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.HttpPut(finalUrl, jsonBytes)
+	finalUrl := c.Config.BaseUrl + path
+	res, err := c.HttpPut(ctx, finalUrl, jsonBytes)
 	if err != nil {
 		return res, err
 	}
@@ -131,9 +151,9 @@ func suppressionPut(c *Client, finalUrl string, recipients SuppressionListWrappe
 	return res, err
 }
 
-func suppressionGet(c *Client, finalUrl string) (*SuppressionListWrapper, *Response, error) {
+func (c *Client) suppressionGet(ctx context.Context, finalUrl string) (*SuppressionListWrapper, *Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(ctx, finalUrl)
 	if err != nil {
 		return nil, res, err
 	}

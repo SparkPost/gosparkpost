@@ -1,9 +1,11 @@
-package gosparkpost
+package gosparkpost_test
 
 import (
 	"fmt"
 	"net/http"
 	"testing"
+
+	sp "github.com/SparkPost/gosparkpost"
 )
 
 var suppressionNotFound string = `{
@@ -20,7 +22,7 @@ func TestSuppression_Get_notFound(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	path := fmt.Sprintf(suppressionListsPathFormat, testClient.Config.ApiVersion)
+	path := fmt.Sprintf(sp.SuppressionListsPathFormat, testClient.Config.ApiVersion)
 	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json; charset=utf8")
@@ -67,7 +69,7 @@ func TestSuppression_Get_combinedList(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	path := fmt.Sprintf(suppressionListsPathFormat, testClient.Config.ApiVersion)
+	path := fmt.Sprintf(sp.SuppressionListsPathFormat, testClient.Config.ApiVersion)
 	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json; charset=utf8")
@@ -125,7 +127,7 @@ func TestSuppression_Get_separateList(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	path := fmt.Sprintf(suppressionListsPathFormat, testClient.Config.ApiVersion)
+	path := fmt.Sprintf(sp.SuppressionListsPathFormat, testClient.Config.ApiVersion)
 	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json; charset=utf8")

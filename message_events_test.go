@@ -2,12 +2,41 @@ package gosparkpost_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
 	"github.com/SparkPost/gosparkpost/events"
 	"github.com/SparkPost/gosparkpost/test"
 )
+
+var msgEventsEmpty string = `{
+	"links": [],
+	"results": [],
+	"total_count": 0
+}`
+
+func TestMsgEvents_Get_Empty(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	path := fmt.Sprintf(sp.MessageEventsPathFormat, testClient.Config.ApiVersion)
+	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json; charset=utf8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(msgEventsEmpty))
+	})
+
+	ep := &sp.EventsPage{Params: map[string]string{
+		"from":   "1970-01-01T00:00",
+		"events": "injection",
+	}}
+	res, err := testClient.MessageEventsSearch(ep)
+	if err != nil {
+		testFailVerbose(t, res, "Message Events GET returned error: %v", err)
+	}
+}
 
 func TestMessageEvents(t *testing.T) {
 	if true {
@@ -33,20 +62,20 @@ func TestMessageEvents(t *testing.T) {
 		return
 	}
 
-	params := map[string]string{
+	ep := &sp.EventsPage{Params: map[string]string{
 		"per_page": "10",
-	}
-	eventsPage, err := client.MessageEvents(params)
+	}}
+	_, err = client.MessageEventsSearch(ep)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if len(eventsPage.Events) == 0 {
+	if len(ep.Events) == 0 {
 		t.Error("expected non-empty result")
 	}
 
-	for _, ev := range eventsPage.Events {
+	for _, ev := range ep.Events {
 		switch event := ev.(type) {
 		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
 			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
@@ -69,11 +98,11 @@ func TestMessageEvents(t *testing.T) {
 		}
 	}
 
-	eventsPage, err = eventsPage.Next()
-	if err != nil && err != sp.ErrEmptyPage {
+	ep, _, err = ep.Next()
+	if err != nil {
 		t.Error(err)
-	} else {
-		if len(eventsPage.Events) == 0 {
+	} else if ep != nil {
+		if len(ep.Events) == 0 {
 			t.Error("expected non-empty result")
 		}
 	}
@@ -103,7 +132,7 @@ func TestAllEventsSamples(t *testing.T) {
 		return
 	}
 
-	e, err := client.EventSamples(nil)
+	e, _, err := client.EventSamples(nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -162,7 +191,7 @@ func TestFilteredEventsSamples(t *testing.T) {
 	}
 
 	types := []string{"open", "click", "bounce"}
-	e, err := client.EventSamples(&types)
+	e, _, err := client.EventSamples(&types)
 	if err != nil {
 		t.Error(err)
 		return

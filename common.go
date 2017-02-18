@@ -2,17 +2,20 @@ package gosparkpost
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
 	"strings"
 
 	certifi "github.com/certifi/gocertifi"
+	"github.com/pkg/errors"
 )
 
 // Config includes all information necessary to make an API request.
@@ -42,13 +45,13 @@ func NewConfig(m map[string]string) (*Config, error) {
 	if baseurl, ok := m["baseurl"]; ok {
 		c.BaseUrl = baseurl
 	} else {
-		return nil, fmt.Errorf("BaseUrl is required for api config")
+		return nil, errors.New("BaseUrl is required for api config")
 	}
 
 	if apikey, ok := m["apikey"]; ok {
 		c.ApiKey = apikey
 	} else {
-		return nil, fmt.Errorf("ApiKey is required for api config")
+		return nil, errors.New("ApiKey is required for api config")
 	}
 
 	return c, nil
@@ -77,7 +80,7 @@ type Error struct {
 func (e Error) Json() (string, error) {
 	jsonBytes, err := json.Marshal(e)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "marshaling json")
 	}
 	return string(jsonBytes), nil
 }
@@ -89,7 +92,7 @@ func (api *Client) Init(cfg *Config) error {
 	if cfg.BaseUrl == "" {
 		cfg.BaseUrl = "https://api.sparkpost.com"
 	} else if !strings.HasPrefix(cfg.BaseUrl, "https://") {
-		return fmt.Errorf("API base url must be https!")
+		return errors.New("API base url must be https!")
 	}
 	if cfg.ApiVersion == 0 {
 		cfg.ApiVersion = 1
@@ -104,7 +107,7 @@ func (api *Client) Init(cfg *Config) error {
 		// load Mozilla cert pool
 		pool, err := certifi.CACerts()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "loading certifi cert pool")
 		}
 
 		// configure transport using Mozilla cert pool
@@ -133,35 +136,35 @@ func (c *Client) RemoveHeader(header string) {
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPost(url string, data []byte) (*Response, error) {
-	return c.DoRequest("POST", url, data)
+func (c *Client) HttpPost(ctx context.Context, url string, data []byte) (*Response, error) {
+	return c.DoRequest(ctx, "POST", url, data)
 }
 
 // HttpGet sends a Get request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpGet(url string) (*Response, error) {
-	return c.DoRequest("GET", url, nil)
+func (c *Client) HttpGet(ctx context.Context, url string) (*Response, error) {
+	return c.DoRequest(ctx, "GET", url, nil)
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpPut(url string, data []byte) (*Response, error) {
-	return c.DoRequest("PUT", url, data)
+func (c *Client) HttpPut(ctx context.Context, url string, data []byte) (*Response, error) {
+	return c.DoRequest(ctx, "PUT", url, data)
 }
 
 // HttpDelete sends a Delete request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
-func (c *Client) HttpDelete(url string) (*Response, error) {
-	return c.DoRequest("DELETE", url, nil)
+func (c *Client) HttpDelete(ctx context.Context, url string) (*Response, error) {
+	return c.DoRequest(ctx, "DELETE", url, nil)
 }
 
-func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error) {
+func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []byte) (*Response, error) {
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "building request")
 	}
 
 	ares := &Response{}
@@ -183,21 +186,41 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 	// TODO: set User-Agent based on gosparkpost version and possibly git's short hash
 	req.Header.Set("User-Agent", "GoSparkPost v0.1")
 
+	if c.Config.ApiKey != "" {
+		req.Header.Set("Authorization", c.Config.ApiKey)
+	} else if c.Config.Username != "" {
+		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
+	}
+
 	// Forward additional headers set in client to request
 	for header, value := range c.headers {
 		req.Header.Set(header, value)
 	}
 
-	if c.Config.ApiKey != "" {
-		req.Header.Set("Authorization", c.Config.ApiKey)
-	} else {
-		req.Header.Add("Authorization", "Basic "+basicAuth(c.Config.Username, c.Config.Password))
+	if ctx == nil {
+		ctx = context.Background()
 	}
+	// set any headers provided in context
+	if header, ok := ctx.Value("http.Header").(http.Header); ok {
+		for key, vals := range map[string][]string(header) {
+			if len(vals) >= 1 {
+				// replace existing headers, default, or from Client.headers
+				req.Header.Set(key, vals[0])
+			}
+			if len(vals) > 2 {
+				for _, val := range vals[1:] {
+					// allow setting multiple values because why not
+					req.Header.Add(key, val)
+				}
+			}
+		}
+	}
+	req = req.WithContext(ctx)
 
 	if c.Config.Verbose {
 		reqBytes, err := httputil.DumpRequestOut(req, false)
 		if err != nil {
-			return ares, err
+			return ares, errors.Wrap(err, "saving request")
 		}
 		ares.Verbose["http_requestdump"] = string(reqBytes)
 	}
@@ -207,14 +230,18 @@ func (c *Client) DoRequest(method, urlStr string, data []byte) (*Response, error
 
 	if c.Config.Verbose {
 		ares.Verbose["http_status"] = ares.HTTP.Status
-		bodyBytes, err := httputil.DumpResponse(res, true)
+		bodyBytes, dumpErr := httputil.DumpResponse(res, true)
 		if err != nil {
-			return ares, err
+			ares.Verbose["http_responsedump_err"] = dumpErr.Error()
+		} else {
+			ares.Verbose["http_responsedump"] = string(bodyBytes)
 		}
-		ares.Verbose["http_responsedump"] = string(bodyBytes)
 	}
 
-	return ares, err
+	if err != nil {
+		return ares, errors.Wrap(err, "error response")
+	}
+	return ares, nil
 }
 
 func basicAuth(username, password string) string {
@@ -234,8 +261,11 @@ func (r *Response) ReadBody() ([]byte, error) {
 
 	defer r.HTTP.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(r.HTTP.Body)
+	if err != nil {
+		return bodyBytes, errors.Wrap(err, "reading http body")
+	}
 	r.Body = bodyBytes
-	return bodyBytes, err
+	return bodyBytes, nil
 }
 
 // ParseResponse pulls info from JSON http responses into api.Response object.
@@ -248,7 +278,7 @@ func (r *Response) ParseResponse() error {
 
 	err = json.Unmarshal(body, r)
 	if err != nil {
-		return fmt.Errorf("Failed to parse API response: [%s]\n%s", err, string(body))
+		return errors.Wrap(err, "parsing api response")
 	}
 
 	return nil
@@ -257,12 +287,16 @@ func (r *Response) ParseResponse() error {
 // AssertJson returns an error if the provided HTTP response isn't JSON.
 func (r *Response) AssertJson() error {
 	if r.HTTP == nil {
-		return fmt.Errorf("AssertJson got nil http.Response")
+		return errors.New("AssertJson got nil http.Response")
 	}
-	ctype := strings.ToLower(r.HTTP.Header.Get("Content-Type"))
+	ctype := r.HTTP.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(ctype)
+	if err != nil {
+		return errors.Wrap(err, "parsing content-type")
+	}
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
-	if !strings.HasPrefix(ctype, "application/json") {
-		return fmt.Errorf("Expected json, got [%s] with code %d", ctype, r.HTTP.StatusCode)
+	if mediaType != "application/json" {
+		return fmt.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
 	}
 	return nil
 }

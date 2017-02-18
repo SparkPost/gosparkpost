@@ -1,13 +1,14 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
 )
 
-var eventDocumentationFormat = "/api/v%d/webhooks/events/documentation"
+var EventDocumentationFormat = "/api/v%d/webhooks/events/documentation"
 
 type EventGroup struct {
 	Name        string
@@ -29,8 +30,12 @@ type EventField struct {
 }
 
 func (c *Client) EventDocumentation() (g map[string]*EventGroup, res *Response, err error) {
-	path := fmt.Sprintf(eventDocumentationFormat, c.Config.ApiVersion)
-	res, err = c.HttpGet(c.Config.BaseUrl + path)
+	return c.EventDocumentationContext(context.Background())
+}
+
+func (c *Client) EventDocumentationContext(ctx context.Context) (g map[string]*EventGroup, res *Response, err error) {
+	path := fmt.Sprintf(EventDocumentationFormat, c.Config.ApiVersion)
+	res, err = c.HttpGet(ctx, c.Config.BaseUrl+path)
 	if err != nil {
 		return nil, nil, err
 	}

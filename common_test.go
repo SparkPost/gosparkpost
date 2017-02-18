@@ -1,4 +1,4 @@
-package gosparkpost
+package gosparkpost_test
 
 import (
 	"crypto/tls"
@@ -6,11 +6,13 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	sp "github.com/SparkPost/gosparkpost"
 )
 
 var (
 	testMux    *http.ServeMux
-	testClient *Client
+	testClient *sp.Client
 	testServer *httptest.Server
 )
 
@@ -20,8 +22,8 @@ func testSetup(t *testing.T) {
 	testServer = httptest.NewTLSServer(testMux)
 	// our client configured to hit the https test server with self-signed cert
 	tx := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	testClient = &Client{Client: &http.Client{Transport: tx}}
-	testClient.Config = &Config{Verbose: true}
+	testClient = &sp.Client{Client: &http.Client{Transport: tx}}
+	testClient.Config = &sp.Config{Verbose: true}
 	testUrl, err := url.Parse(testServer.URL)
 	if err != nil {
 		t.Fatalf("Test server url parsing failed: %v", err)
@@ -43,9 +45,11 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	}
 }
 
-func testFailVerbose(t *testing.T, res *Response, fmt string, args ...interface{}) {
-	for _, e := range res.Verbose {
-		t.Error(e)
+func testFailVerbose(t *testing.T, res *sp.Response, fmt string, args ...interface{}) {
+	if res != nil {
+		for _, e := range res.Verbose {
+			t.Error(e)
+		}
 	}
 	t.Fatalf(fmt, args...)
 }
