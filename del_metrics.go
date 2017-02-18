@@ -59,11 +59,14 @@ type Metrics struct {
 
 	ExtraPath string            `json:"-"`
 	Params    map[string]string `json:"-"`
-	Context   context.Context   `json:"-"`
 }
 
 // https://developers.sparkpost.com/api/#/reference/metrics/deliverability-metrics-by-domain
 func (c *Client) QueryMetrics(m *Metrics) (*Response, error) {
+	return c.QueryMetricsContext(context.Background(), m)
+}
+
+func (c *Client) QueryMetricsContext(ctx context.Context, m *Metrics) (*Response, error) {
 	var finalUrl string
 	path := fmt.Sprintf(MetricsPathFormat, c.Config.ApiVersion)
 
@@ -82,12 +85,12 @@ func (c *Client) QueryMetrics(m *Metrics) (*Response, error) {
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return m.doMetricsRequest(c, finalUrl)
+	return m.doMetricsRequest(ctx, c, finalUrl)
 }
 
-func (m *Metrics) doMetricsRequest(c *Client, finalUrl string) (*Response, error) {
+func (m *Metrics) doMetricsRequest(ctx context.Context, c *Client, finalUrl string) (*Response, error) {
 	// Send off our request
-	res, err := c.HttpGet(m.Context, finalUrl)
+	res, err := c.HttpGet(ctx, finalUrl)
 	if err != nil {
 		return res, err
 	}

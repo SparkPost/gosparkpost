@@ -28,12 +28,16 @@ type EventsPage struct {
 	FirstPage string
 	LastPage  string
 
-	Params  map[string]string `json:"-"`
-	Context context.Context   `json:"-"`
+	Params map[string]string `json:"-"`
 }
 
 // https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
 func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
+	return c.MessageEventsSearchContext(context.Background(), ep)
+}
+
+// MessageEventsSearchContext is the same as MessageEventsSearch, and it accepts a context.Context
+func (c *Client) MessageEventsSearchContext(ctx context.Context, ep *EventsPage) (*Response, error) {
 	path := fmt.Sprintf(MessageEventsPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
@@ -49,7 +53,7 @@ func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(ep.Context, url.String())
+	res, err := c.HttpGet(ctx, url.String())
 	if err != nil {
 		return res, err
 	}
@@ -75,13 +79,19 @@ func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
 	return res, nil
 }
 
+// Next returns the next page of results from a previous MessageEventsSearch call
 func (ep *EventsPage) Next() (*EventsPage, *Response, error) {
+	return ep.NextContext(context.Background())
+}
+
+// NextContext is the same as Next, and it accepts a context.Context
+func (ep *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, error) {
 	if ep.NextPage == "" {
 		return nil, nil, nil
 	}
 
 	// Send off our request
-	res, err := ep.client.HttpGet(ep.Context, ep.client.Config.BaseUrl+ep.NextPage)
+	res, err := ep.client.HttpGet(ctx, ep.client.Config.BaseUrl+ep.NextPage)
 	if err != nil {
 		return nil, res, err
 	}
@@ -151,8 +161,13 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Samples requests a list of example event data.
+// EventSamples requests a list of example event data.
 func (c *Client) EventSamples(types *[]string) (*events.Events, *Response, error) {
+	return c.EventSamplesContext(context.Background(), types)
+}
+
+// EventSamplesContext is the same as EventSamples, and it accepts a context.Context
+func (c *Client) EventSamplesContext(ctx context.Context, types *[]string) (*events.Events, *Response, error) {
 	path := fmt.Sprintf(MessageEventsSamplesPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
@@ -176,7 +191,7 @@ func (c *Client) EventSamples(types *[]string) (*events.Events, *Response, error
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(context.TODO(), url.String())
+	res, err := c.HttpGet(ctx, url.String())
 	if err != nil {
 		return nil, res, err
 	}

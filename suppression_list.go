@@ -102,7 +102,13 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 	return res, err
 }
 
-func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (*Response, error) {
+// SuppressionUpsert adds an entry to the suppression, or updates the existing entry
+func (c *Client) SuppressionUpsert(entries []SuppressionEntry) (*Response, error) {
+	return c.SuppressionUpsertContext(context.Background(), entries)
+}
+
+// SuppressionUpsertContext is the same as SuppressionUpsert, and it accepts a context.Context
+func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []SuppressionEntry) (*Response, error) {
 	if entries == nil {
 		return nil, fmt.Errorf("`entries` cannot be nil")
 	}
@@ -116,7 +122,7 @@ func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (*Respons
 	}
 
 	finalUrl := c.Config.BaseUrl + path
-	res, err := c.HttpPut(context.TODO(), finalUrl, jsonBytes)
+	res, err := c.HttpPut(ctx, finalUrl, jsonBytes)
 	if err != nil {
 		return res, err
 	}
