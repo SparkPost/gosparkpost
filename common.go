@@ -30,6 +30,7 @@ type Config struct {
 
 // Client contains connection, configuration, and authentication information.
 // Specifying your own http.Client gives you lots of control over how connections are made.
+// Clients are safe for concurrent (read-only) reuse by multiple goroutines.
 type Client struct {
 	Config  *Config
 	Client  *http.Client
@@ -124,11 +125,13 @@ func (api *Client) Init(cfg *Config) error {
 
 // SetHeader adds additional HTTP headers for every API request made from client.
 // Useful to set subaccount X-MSYS-SUBACCOUNT header and etc.
+// All calls to SetHeader must happen before Client is exposed to possible concurrent use.
 func (c *Client) SetHeader(header string, value string) {
 	c.headers[header] = value
 }
 
-// Removes header set in SetHeader function
+// RemoveHeader removes a header set in SetHeader function
+// All calls to RemoveHeader must happen before Client is exposed to possible concurrent use.
 func (c *Client) RemoveHeader(header string) {
 	delete(c.headers, header)
 }

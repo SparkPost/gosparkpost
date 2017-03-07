@@ -94,7 +94,7 @@ Documentation
 * `Code samples`_
 * `Command-line tool: sparks`_
 
-.. _SparkPost API Reference: https://www.sparkpost.com/api
+.. _SparkPost API Reference: https://developers.sparkpost.com/api
 .. _Code samples: examples/README.md
 .. _Command-line tool\: sparks: cmd/sparks/README.md
 
