@@ -10,6 +10,10 @@
 SparkPost Go API client
 =======================
 
+.. image:: https://travis-ci.org/SparkPost/gosparkpost.svg?branch=master
+    :target: https://travis-ci.org/SparkPost/gosparkpost
+    :alt: Build Status
+
 .. image:: http://slack.sparkpost.com/badge.svg
     :target: http://slack.sparkpost.com
     :alt: Slack Community
