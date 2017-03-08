@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -52,4 +53,29 @@ func testFailVerbose(t *testing.T, res *sp.Response, fmt string, args ...interfa
 		}
 	}
 	t.Fatalf(fmt, args...)
+}
+
+var newConfigTests = []struct {
+	in  map[string]string
+	cfg *sp.Config
+	err error
+}{
+	{map[string]string{}, nil, errors.New("BaseUrl is required for api config")},
+	{map[string]string{"baseurl": "http://example.com"}, nil, errors.New("ApiKey is required for api config")},
+	{map[string]string{"baseurl": "http://example.com", "apikey": "foo"}, &sp.Config{BaseUrl: "http://example.com", ApiKey: "foo"}, nil},
+}
+
+func TestNewConfig(t *testing.T) {
+	var cfg *sp.Config
+	var err error
+	for idx, test := range newConfigTests {
+		cfg, err = sp.NewConfig(test.in)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("NewConfig[%d] => err %q, want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("NewConfig[%d] => err %q, want %q", idx, err, test.err)
+		} else if cfg == nil && test.cfg != nil || cfg != nil && test.cfg == nil {
+			t.Errorf("NewConfig[%d] => cfg %v, want %v", idx, cfg, test.cfg)
+		}
+	}
 }
