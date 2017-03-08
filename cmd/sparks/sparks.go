@@ -27,36 +27,34 @@ func (s *Strings) Set(value string) error {
 	return nil
 }
 
-var to Strings
-var cc Strings
-var bcc Strings
-var headers Strings
-var images Strings
-var attachments Strings
+func main() {
+	var to Strings
+	var cc Strings
+	var bcc Strings
+	var headers Strings
+	var images Strings
+	var attachments Strings
 
-func init() {
 	flag.Var(&to, "to", "where the mail goes to")
 	flag.Var(&cc, "cc", "carbon copy this address")
 	flag.Var(&bcc, "bcc", "blind carbon copy this address")
 	flag.Var(&headers, "header", "custom header for your content")
 	flag.Var(&images, "img", "mimetype:cid:path for image to include")
 	flag.Var(&attachments, "attach", "mimetype:name:path for file to attach")
-}
 
-var from = flag.String("from", "default@sparkpostbox.com", "where the mail came from")
-var subject = flag.String("subject", "", "email subject")
-var htmlFlag = flag.String("html", "", "string/filename containing html content")
-var textFlag = flag.String("text", "", "string/filename containing text content")
-var rfc822Flag = flag.String("rfc822", "", "string/filename containing raw message")
-var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
-var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
-var inline = flag.Bool("inline-css", false, "automatically inline css")
-var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
-var url = flag.String("url", "", "base url for api requests (optional)")
-var help = flag.Bool("help", false, "display a help message")
-var httpDump = flag.Bool("httpdump", false, "dump out http request and response")
+	var from = flag.String("from", "default@sparkpostbox.com", "where the mail came from")
+	var subject = flag.String("subject", "", "email subject")
+	var htmlFlag = flag.String("html", "", "string/filename containing html content")
+	var textFlag = flag.String("text", "", "string/filename containing text content")
+	var rfc822Flag = flag.String("rfc822", "", "string/filename containing raw message")
+	var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
+	var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
+	var inline = flag.Bool("inline-css", false, "automatically inline css")
+	var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
+	var url = flag.String("url", "", "base url for api requests (optional)")
+	var help = flag.Bool("help", false, "display a help message")
+	var httpDump = flag.Bool("httpdump", false, "dump out http request and response")
 
-func main() {
 	flag.Parse()
 
 	if *help {

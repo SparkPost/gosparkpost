@@ -12,9 +12,9 @@ import (
 	mime "github.com/jhillyerd/go.enmime"
 )
 
-var filename = flag.String("file", "", "path to email with a text/html part")
-
 func main() {
+	var filename = flag.String("file", "", "path to email with a text/html part")
+
 	flag.Parse()
 
 	if filename == nil || strings.TrimSpace(*filename) == "" {

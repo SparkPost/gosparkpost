@@ -13,11 +13,11 @@ import (
 	"github.com/SparkPost/gosparkpost/helpers/loadmsg"
 )
 
-var filename = flag.String("file", "", "path to raw email")
-var send = flag.Bool("send", false, "send fbl report")
-var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
-
 func main() {
+	var filename = flag.String("file", "", "path to raw email")
+	var send = flag.Bool("send", false, "send fbl report")
+	var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
+
 	flag.Parse()
 	var verbose bool
 	if *verboseOpt == true {
