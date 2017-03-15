@@ -3,10 +3,8 @@ package gosparkpost
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -14,7 +12,6 @@ import (
 	"regexp"
 	"strings"
 
-	certifi "github.com/certifi/gocertifi"
 	"github.com/pkg/errors"
 )
 
@@ -100,25 +97,6 @@ func (api *Client) Init(cfg *Config) error {
 	}
 	api.Config = cfg
 	api.headers = make(map[string]string)
-
-	if api.Client == nil {
-		// Ran into an issue where USERTrust was not recognized on OSX.
-		// The rest of this block was the fix.
-
-		// load Mozilla cert pool
-		pool, err := certifi.CACerts()
-		if err != nil {
-			return errors.Wrap(err, "loading certifi cert pool")
-		}
-
-		// configure transport using Mozilla cert pool
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: pool},
-		}
-
-		// configure http client using transport
-		api.Client = &http.Client{Transport: transport}
-	}
 
 	return nil
 }
@@ -299,7 +277,7 @@ func (r *Response) AssertJson() error {
 	}
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
 	if mediaType != "application/json" {
-		return fmt.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
+		return errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
 	}
 	return nil
 }
@@ -313,12 +291,12 @@ func (r *Response) PrettyError(noun, verb string) error {
 	}
 	code := r.HTTP.StatusCode
 	if code == 404 {
-		return fmt.Errorf("%s does not exist, %s failed.", noun, verb)
+		return errors.Errorf("%s does not exist, %s failed.", noun, verb)
 	} else if code == 401 {
-		return fmt.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
+		return errors.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
 	} else if code == 403 {
 		// This is what happens if an endpoint URL gets typo'd.
-		return fmt.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
+		return errors.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
 	}
 	return nil
 }

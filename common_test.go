@@ -66,10 +66,8 @@ var newConfigTests = []struct {
 }
 
 func TestNewConfig(t *testing.T) {
-	var cfg *sp.Config
-	var err error
 	for idx, test := range newConfigTests {
-		cfg, err = sp.NewConfig(test.in)
+		cfg, err := sp.NewConfig(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("NewConfig[%d] => err %q, want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
@@ -79,3 +77,51 @@ func TestNewConfig(t *testing.T) {
 		}
 	}
 }
+
+func TestJson(t *testing.T) {
+	var e = &sp.Error{Message: "This is fine."}
+	var exp = `{"message":"This is fine.","code":"","description":""}`
+	str, err := e.Json()
+	if err != nil {
+		t.Errorf("*Error.Json() => err %v, want nil", err)
+	} else if str != exp {
+		t.Errorf("*Error.Json => %q, want %q", str, exp)
+	}
+}
+
+var initTests = []struct {
+	api *sp.Client
+	cfg *sp.Config
+	out *sp.Config
+	err error
+}{
+	{&sp.Client{}, &sp.Config{BaseUrl: ""}, &sp.Config{BaseUrl: "https://api.sparkpost.com"}, nil},
+	{&sp.Client{}, &sp.Config{BaseUrl: "http://api.sparkpost.com"}, nil, errors.New("API base url must be https!")},
+}
+
+func TestInit(t *testing.T) {
+	for idx, test := range initTests {
+		err := test.api.Init(test.cfg)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("Init[%d] => err %q, want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("NewConfig[%d] => err %q, want %q", idx, err, test.err)
+		} else if test.out != nil && test.api.Config.BaseUrl != test.out.BaseUrl {
+			t.Errorf("Init[%d] => BaseUrl %q, want %q", idx, test.api.Config.BaseUrl, test.out.BaseUrl)
+		}
+	}
+}
+
+/* // either make headers public or can it entirely in favor of context
+func TestSetHeader(t *testing.T) {
+	var val string
+	var ok bool
+	cl := &sp.Client{}
+	cl.SetHeader("X-Foo", "Bar")
+	if val, ok = cl.headers["X-Foo"]; !ok {
+		t.Errorf("SetHeader => nil, want %q", "Bar")
+	} else if val != "Bar" {
+		t.Errorf("SetHeader => %q, want %q", val, "Bar")
+	}
+}
+*/
