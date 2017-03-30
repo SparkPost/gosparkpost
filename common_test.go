@@ -87,6 +87,16 @@ func TestJson(t *testing.T) {
 	}
 }
 
+func TestDoRequest_BadMethod(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	_, err := testClient.DoRequest(nil, "💩", "", nil)
+	if err == nil {
+		t.Fatalf("bogus request method should fail")
+	}
+}
+
 var initTests = []struct {
 	api *sp.Client
 	cfg *sp.Config
