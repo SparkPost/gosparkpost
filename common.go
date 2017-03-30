@@ -75,12 +75,10 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
-func (e Error) Json() (string, error) {
-	jsonBytes, err := json.Marshal(e)
-	if err != nil {
-		return "", errors.Wrap(err, "marshaling json")
-	}
-	return string(jsonBytes), nil
+func (e Error) Json() string {
+	// safe to ignore errors when Marshaling a constant type
+	jsonb, _ := json.Marshal(e)
+	return string(jsonb)
 }
 
 // Init pulls together everything necessary to make an API request.

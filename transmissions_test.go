@@ -207,10 +207,7 @@ func TestTransmissions(t *testing.T) {
 		t.Errorf("Retrieve returned HTTP %s\n", res.HTTP.Status)
 		if len(res.Errors) > 0 {
 			for _, e := range res.Errors {
-				json, err := e.Json()
-				if err != nil {
-					t.Error(err)
-				}
+				json := e.Json()
 				t.Errorf("%s\n", json)
 			}
 		} else {

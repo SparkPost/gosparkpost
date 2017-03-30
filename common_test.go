@@ -81,10 +81,8 @@ func TestNewConfig(t *testing.T) {
 func TestJson(t *testing.T) {
 	var e = &sp.Error{Message: "This is fine."}
 	var exp = `{"message":"This is fine.","code":"","description":""}`
-	str, err := e.Json()
-	if err != nil {
-		t.Errorf("*Error.Json() => err %v, want nil", err)
-	} else if str != exp {
+	str := e.Json()
+	if str != exp {
 		t.Errorf("*Error.Json => %q, want %q", str, exp)
 	}
 }
