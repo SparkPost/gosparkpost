@@ -236,22 +236,11 @@ func TestTransmissionOptions(t *testing.T) {
 	var jsonb []byte
 	var err error
 	var opt bool
+
 	tx := &sp.Transmission{}
 	to := &sp.TxOptions{InlineCSS: &opt}
-
 	tx.Options = to
-	opt = true
 
-	jsonb, err = json.Marshal(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":true}`)) {
-		t.Fatalf("expected inline_css option to be false:\n%s", string(jsonb))
-	}
-
-	opt = false
 	jsonb, err = json.Marshal(tx)
 	if err != nil {
 		t.Fatal(err)
@@ -259,5 +248,15 @@ func TestTransmissionOptions(t *testing.T) {
 
 	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":false}`)) {
 		t.Fatalf("expected inline_css option to be false:\n%s", string(jsonb))
+	}
+
+	opt = true
+	jsonb, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":true}`)) {
+		t.Fatalf("expected inline_css option to be true:\n%s", string(jsonb))
 	}
 }

@@ -129,27 +129,25 @@ func TestTemplateOptions(t *testing.T) {
 
 	te := &sp.Template{}
 	to := &sp.TmplOptions{Transactional: &opt}
-
 	te.Options = to
-	opt = true
 
-	jsonb, err = json.Marshal(te)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Contains(jsonb, []byte(`"options":{"transactional":true}`)) {
-		t.Fatal("expected transactional option to be false")
-	}
-
-	opt = false
 	jsonb, err = json.Marshal(te)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !bytes.Contains(jsonb, []byte(`"options":{"transactional":false}`)) {
-		t.Fatalf("expected transactional option to be false:\n%s", string(jsonb))
+		t.Fatal("expected transactional option to be false")
+	}
+
+	opt = true
+	jsonb, err = json.Marshal(te)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"transactional":true}`)) {
+		t.Fatalf("expected transactional option to be true:\n%s", string(jsonb))
 	}
 }
 
