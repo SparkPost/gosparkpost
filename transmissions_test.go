@@ -32,6 +32,9 @@ func TestTransmissions_Post_Success(t *testing.T) {
 		w.Write([]byte(transmissionSuccess))
 	})
 
+	testClient.Headers.Add("X-Foo", "foo")
+	testClient.Headers.Add("X-Bar", "bar")
+	testClient.Headers.Del("X-Bar")
 	tx := &sp.Transmission{
 		CampaignID: "Post_Success",
 		ReturnPath: "returnpath@example.com",
@@ -50,6 +53,19 @@ func TestTransmissions_Post_Success(t *testing.T) {
 
 	if id != "11111111111111111" {
 		testFailVerbose(t, res, "Unexpected value for id! (expected: 11111111111111111, saw: %s)", id)
+	}
+
+	var reqDump string
+	var ok bool
+	if reqDump, ok = res.Verbose["http_requestdump"]; !ok {
+		testFailVerbose(t, res, "HTTP Request unavailable")
+	}
+
+	if !strings.Contains(reqDump, "X-Foo: foo") {
+		testFailVerbose(t, res, "Header set on Client not sent")
+	}
+	if strings.Contains(reqDump, "X-Bar: bar") {
+		testFailVerbose(t, res, "Header set on Client should not have been sent")
 	}
 }
 

@@ -109,17 +109,3 @@ func TestInit(t *testing.T) {
 		}
 	}
 }
-
-/* // either make headers public or can it entirely in favor of context
-func TestSetHeader(t *testing.T) {
-	var val string
-	var ok bool
-	cl := &sp.Client{}
-	cl.SetHeader("X-Foo", "Bar")
-	if val, ok = cl.headers["X-Foo"]; !ok {
-		t.Errorf("SetHeader => nil, want %q", "Bar")
-	} else if val != "Bar" {
-		t.Errorf("SetHeader => %q, want %q", val, "Bar")
-	}
-}
-*/

@@ -28,10 +28,12 @@ type Config struct {
 // Client contains connection, configuration, and authentication information.
 // Specifying your own http.Client gives you lots of control over how connections are made.
 // Clients are safe for concurrent (read-only) reuse by multiple goroutines.
+// Headers is useful to set subaccount (X-MSYS-SUBACCOUNT header) and any other custom headers.
+// All calls to SetHeader must happen before Client is exposed to possible concurrent use.
 type Client struct {
 	Config  *Config
 	Client  *http.Client
-	headers map[string]string
+	Headers *http.Header
 }
 
 var nonDigit *regexp.Regexp = regexp.MustCompile(`\D`)
@@ -94,22 +96,9 @@ func (api *Client) Init(cfg *Config) error {
 		cfg.ApiVersion = 1
 	}
 	api.Config = cfg
-	api.headers = make(map[string]string)
+	api.Headers = &http.Header{}
 
 	return nil
-}
-
-// SetHeader adds additional HTTP headers for every API request made from client.
-// Useful to set subaccount X-MSYS-SUBACCOUNT header and etc.
-// All calls to SetHeader must happen before Client is exposed to possible concurrent use.
-func (c *Client) SetHeader(header string, value string) {
-	c.headers[header] = value
-}
-
-// RemoveHeader removes a header set in SetHeader function
-// All calls to RemoveHeader must happen before Client is exposed to possible concurrent use.
-func (c *Client) RemoveHeader(header string) {
-	delete(c.headers, header)
 }
 
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
@@ -172,8 +161,10 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	}
 
 	// Forward additional headers set in client to request
-	for header, value := range c.headers {
-		req.Header.Set(header, value)
+	for header, values := range map[string][]string(*c.Headers) {
+		for _, value := range values {
+			req.Header.Add(header, value)
+		}
 	}
 
 	if ctx == nil {
