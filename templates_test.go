@@ -123,16 +123,15 @@ func TestTemplateValidation(t *testing.T) {
 // Assert that options are actually ... optional,
 // and that unspecified options don't default to their zero values.
 func TestTemplateOptions(t *testing.T) {
-	var te *sp.Template
-	var to *sp.TmplOptions
 	var jsonb []byte
 	var err error
-	var tx bool
+	var opt bool
 
-	te = &sp.Template{}
-	to = &sp.TmplOptions{Transactional: &tx}
+	te := &sp.Template{}
+	to := &sp.TmplOptions{Transactional: &opt}
+
 	te.Options = to
-	tx = true
+	opt = true
 
 	jsonb, err = json.Marshal(te)
 	if err != nil {
@@ -143,7 +142,7 @@ func TestTemplateOptions(t *testing.T) {
 		t.Fatal("expected transactional option to be false")
 	}
 
-	tx = false
+	opt = false
 	jsonb, err = json.Marshal(te)
 	if err != nil {
 		t.Fatal(err)
