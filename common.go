@@ -173,15 +173,9 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	// set any headers provided in context
 	if header, ok := ctx.Value("http.Header").(http.Header); ok {
 		for key, vals := range map[string][]string(header) {
-			if len(vals) >= 1 {
-				// replace existing headers, default, or from Client.headers
-				req.Header.Set(key, vals[0])
-			}
-			if len(vals) > 2 {
-				for _, val := range vals[1:] {
-					// allow setting multiple values because why not
-					req.Header.Add(key, val)
-				}
+			req.Header.Del(key)
+			for _, val := range vals {
+				req.Header.Add(key, val)
 			}
 		}
 	}
@@ -201,7 +195,7 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	if c.Config.Verbose {
 		ares.Verbose["http_status"] = ares.HTTP.Status
 		bodyBytes, dumpErr := httputil.DumpResponse(res, true)
-		if err != nil {
+		if dumpErr != nil {
 			ares.Verbose["http_responsedump_err"] = dumpErr.Error()
 		} else {
 			ares.Verbose["http_responsedump"] = string(bodyBytes)
