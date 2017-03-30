@@ -32,9 +32,15 @@ func TestTransmissions_Post_Success(t *testing.T) {
 		w.Write([]byte(transmissionSuccess))
 	})
 
+	// set some headers on the client
 	testClient.Headers.Add("X-Foo", "foo")
 	testClient.Headers.Add("X-Bar", "bar")
-	testClient.Headers.Del("X-Bar")
+	testClient.Headers.Add("X-Baz", "baz")
+	testClient.Headers.Del("X-Baz")
+	// override one of the headers using a context
+	header := http.Header{}
+	header.Add("X-Foo", "bar")
+	ctx := context.WithValue(context.Background(), "http.Header", header)
 	tx := &sp.Transmission{
 		CampaignID: "Post_Success",
 		ReturnPath: "returnpath@example.com",
@@ -46,7 +52,8 @@ func TestTransmissions_Post_Success(t *testing.T) {
 		},
 		Metadata: map[string]interface{}{"shoe_size": 9},
 	}
-	id, res, err := testClient.Send(tx)
+	// send using the client and the context
+	id, res, err := testClient.SendContext(ctx, tx)
 	if err != nil {
 		testFailVerbose(t, res, "Transmission POST returned error: %v", err)
 	}
@@ -61,10 +68,13 @@ func TestTransmissions_Post_Success(t *testing.T) {
 		testFailVerbose(t, res, "HTTP Request unavailable")
 	}
 
-	if !strings.Contains(reqDump, "X-Foo: foo") {
+	if !strings.Contains(reqDump, "X-Foo: bar") {
 		testFailVerbose(t, res, "Header set on Client not sent")
 	}
-	if strings.Contains(reqDump, "X-Bar: bar") {
+	if !strings.Contains(reqDump, "X-Bar: bar") {
+		testFailVerbose(t, res, "Header set on Client not sent")
+	}
+	if strings.Contains(reqDump, "X-Baz: baz") {
 		testFailVerbose(t, res, "Header set on Client should not have been sent")
 	}
 }
