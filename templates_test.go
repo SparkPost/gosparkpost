@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
-	"github.com/SparkPost/gosparkpost/test"
 )
 
 func TestTemplateValidation(t *testing.T) {
@@ -57,6 +56,11 @@ func TestTemplateValidation(t *testing.T) {
 	if "" != f.Name {
 		t.Error(fmt.Errorf("expected name to be blank"))
 		return
+	}
+	fromString = ""
+	_, err = sp.ParseFrom(fromString)
+	if err == nil {
+		t.Error(fmt.Errorf("Content.From should not be allowed!"))
 	}
 
 	fromMap1 := map[string]interface{}{
@@ -116,71 +120,4 @@ func TestTemplateValidation(t *testing.T) {
 		return
 	}
 
-}
-
-func TestTemplates(t *testing.T) {
-	if true {
-		// Temporarily disable test so TravisCI reports build success instead of test failure.
-		// NOTE: need travis to set sparkpost base urls etc, or mock http request
-		return
-	}
-
-	cfgMap, err := test.LoadConfig()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	cfg, err := sp.NewConfig(cfgMap)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	var client sp.Client
-	err = client.Init(cfg)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	tlist, _, err := client.Templates()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Logf("templates listed: %+v", tlist)
-
-	content := sp.Content{
-		Subject: "this is a test template",
-		// NB: deliberate syntax error
-		//Text: "text part of the test template {{a}",
-		Text: "text part of the test template",
-		From: map[string]string{
-			"name":  "test name",
-			"email": "test@email.com",
-		},
-	}
-	template := &sp.Template{Content: content, Name: "test template"}
-
-	id, _, err := client.TemplateCreate(template)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	fmt.Printf("Created Template with id=%s\n", id)
-
-	d := map[string]interface{}{}
-	res, err := client.TemplatePreview(id, &sp.PreviewOptions{d})
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	fmt.Printf("Preview Template with id=%s and response %+v\n", id, res)
-
-	_, err = client.TemplateDelete(id)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	fmt.Printf("Deleted Template with id=%s\n", id)
 }
