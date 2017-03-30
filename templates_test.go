@@ -1,6 +1,8 @@
 package gosparkpost_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -116,6 +118,40 @@ func TestTemplateValidation(t *testing.T) {
 		return
 	}
 
+}
+
+// Assert that options are actually ... optional,
+// and that unspecified options don't default to their zero values.
+func TestTemplateOptions(t *testing.T) {
+	var te *sp.Template
+	var to *sp.TmplOptions
+	var jsonb []byte
+	var err error
+	var tx bool
+
+	te = &sp.Template{}
+	to = &sp.TmplOptions{Transactional: &tx}
+	te.Options = to
+	tx = true
+
+	jsonb, err = json.Marshal(te)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"transactional":true}`)) {
+		t.Fatal("expected transactional option to be false")
+	}
+
+	tx = false
+	jsonb, err = json.Marshal(te)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"transactional":false}`)) {
+		t.Fatalf("expected transactional option to be false:\n%s", string(jsonb))
+	}
 }
 
 func TestTemplates(t *testing.T) {
