@@ -47,9 +47,9 @@ type TxOptions struct {
 	TmplOptions
 
 	StartTime       *RFC3339 `json:"start_time,omitempty"`
-	Sandbox         bool     `json:"sandbox,omitempty"`
+	Sandbox         *bool    `json:"sandbox,omitempty"`
 	SkipSuppression string   `json:"skip_suppression,omitempty"`
-	InlineCSS       bool     `json:"inline_css,omitempty"`
+	InlineCSS       *bool    `json:"inline_css,omitempty"`
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.

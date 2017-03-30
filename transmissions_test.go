@@ -1,6 +1,7 @@
 package gosparkpost_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -227,4 +228,36 @@ func TestTransmissions(t *testing.T) {
 
 	t.Errorf("Delete returned HTTP %s\n%s\n", res.HTTP.Status, res.Body)
 
+}
+
+// Assert that options are actually ... optional,
+// and that unspecified options don't default to their zero values.
+func TestTransmissionOptions(t *testing.T) {
+	var jsonb []byte
+	var err error
+	var opt bool
+	tx := &sp.Transmission{}
+	to := &sp.TxOptions{InlineCSS: &opt}
+
+	tx.Options = to
+	opt = true
+
+	jsonb, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":true}`)) {
+		t.Fatalf("expected inline_css option to be false:\n%s", string(jsonb))
+	}
+
+	opt = false
+	jsonb, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":false}`)) {
+		t.Fatalf("expected inline_css option to be false:\n%s", string(jsonb))
+	}
 }
