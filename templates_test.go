@@ -16,6 +16,7 @@ var templateFromValidationTests = []struct {
 	{sp.From{"a@b.com", "A B"}, nil, sp.From{"a@b.com", "A B"}},
 	{sp.Address{"a@b.com", "A B", "c@d.com"}, nil, sp.From{"a@b.com", "A B"}},
 	{"a@b.com", nil, sp.From{"a@b.com", ""}},
+	{nil, errors.New("unsupported Content.From value type [%!s(<nil>)]"), sp.From{"", ""}},
 	{[]byte("a@b.com"), errors.New("unsupported Content.From value type [[]uint8]"), sp.From{"", ""}},
 	{"", errors.New("Content.From may not be empty"), sp.From{"", ""}},
 	{map[string]interface{}{"name": "A B", "email": "a@b.com"}, nil, sp.From{"a@b.com", "A B"}},
