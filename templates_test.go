@@ -1,7 +1,7 @@
 package gosparkpost_test
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -48,8 +48,40 @@ var templateValidationTests = []struct {
 	{&sp.Template{}, errors.New("Template requires a non-empty Content.Subject"), nil},
 	{&sp.Template{Content: sp.Content{Subject: "s"}}, errors.New("Template requires either Content.HTML or Content.Text"), nil},
 	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: ""}},
-		errors.New("Content.From may not be empty"), nil,
-	},
+		errors.New("Content.From may not be empty"), nil},
+
+	{&sp.Template{ID: strings.Repeat("id", 33), Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+		errors.New("Template id may not be longer than 64 bytes"), nil},
+	{&sp.Template{Name: strings.Repeat("name", 257), Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+		errors.New("Template name may not be longer than 1024 bytes"), nil},
+	{&sp.Template{Description: strings.Repeat("desc", 257), Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+		errors.New("Template description may not be longer than 1024 bytes"), nil},
+
+	{&sp.Template{
+		Content: sp.Content{
+			Subject: "s", HTML: "h", From: "f",
+			Attachments: []sp.Attachment{{Filename: strings.Repeat("f", 256)}},
+		}},
+		errors.Errorf("Attachment name length must be <= 255: [%s]", strings.Repeat("f", 256)), nil},
+	{&sp.Template{
+		Content: sp.Content{
+			Subject: "s", HTML: "h", From: "f",
+			Attachments: []sp.Attachment{{B64Data: "\r\n"}},
+		}},
+		errors.New("Attachment data may not contain line breaks [\\r\\n]"), nil},
+
+	{&sp.Template{
+		Content: sp.Content{
+			Subject: "s", HTML: "h", From: "f",
+			InlineImages: []sp.InlineImage{{Filename: strings.Repeat("f", 256)}},
+		}},
+		errors.Errorf("InlineImage name length must be <= 255: [%s]", strings.Repeat("f", 256)), nil},
+	{&sp.Template{
+		Content: sp.Content{
+			Subject: "s", HTML: "h", From: "f",
+			InlineImages: []sp.InlineImage{{B64Data: "\r\n"}},
+		}},
+		errors.New("InlineImage data may not contain line breaks [\\r\\n]"), nil},
 
 	{
 		&sp.Template{Content: sp.Content{EmailRFC822: "From:foo@example.com\r\n", Subject: "removeme"}},
