@@ -10,7 +10,7 @@ import (
 )
 
 // https://www.sparkpost.com/api#/reference/templates
-var templatesPathFormat = "/api/v%d/templates"
+var TemplatesPathFormat = "/api/v%d/templates"
 
 // Template is the JSON structure accepted by and returned from the SparkPost Templates API.
 // It's mostly metadata at this level - see Content and Options for more detail.
@@ -207,7 +207,7 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
@@ -274,7 +274,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
 
 	res, err = c.HttpPut(ctx, url, jsonBytes)
@@ -319,7 +319,7 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 
 // TemplatesContext is the same as Templates, and it allows the caller to provide a context
 func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, error) {
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err := c.HttpGet(ctx, url)
 	if err != nil {
@@ -373,7 +373,7 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
 	res, err = c.HttpDelete(ctx, url)
 	if err != nil {
@@ -431,7 +431,7 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s/preview", c.Config.BaseUrl, path, id)
 	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
