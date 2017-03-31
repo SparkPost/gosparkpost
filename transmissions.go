@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// https://www.sparkpost.com/api#/reference/transmissions
+// TransmissionsPathFormat https://www.sparkpost.com/api#/reference/transmissions
 var TransmissionsPathFormat = "/api/v%d/transmissions"
 
 // Transmission is the JSON structure accepted by and returned from the SparkPost Transmissions API.
@@ -32,8 +32,10 @@ type Transmission struct {
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
 }
 
+// RFC3339 formats time.Time values as expected by the SparkPost API
 type RFC3339 time.Time
 
+// MarshalJSON applies RFC3339 formatting
 func (r *RFC3339) MarshalJSON() ([]byte, error) {
 	if r == nil {
 		return json.Marshal(nil)
@@ -41,14 +43,16 @@ func (r *RFC3339) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(*r).Format(time.RFC3339))
 }
 
-// Options specifies settings to apply to this Transmission.
+// TxOptions specifies settings to apply to this Transmission.
 // If not specified, and present in TmplOptions, those values will be used.
 type TxOptions struct {
 	TmplOptions
 
 	StartTime       *RFC3339 `json:"start_time,omitempty"`
+	Transactional   *bool    `json:"transactional,omitempty"`
 	Sandbox         *bool    `json:"sandbox,omitempty"`
-	SkipSuppression string   `json:"skip_suppression,omitempty"`
+	SkipSuppression *bool    `json:"skip_suppression,omitempty"`
+	IPPool          string   `json:"ip_pool,omitempty"`
 	InlineCSS       *bool    `json:"inline_css,omitempty"`
 }
 
@@ -72,7 +76,7 @@ func ParseRecipients(recips interface{}) (ra *[]Recipient, err error) {
 		return
 
 	case map[string]string:
-		for k, _ := range rVal {
+		for k := range rVal {
 			if strings.EqualFold(k, "list_id") {
 				return
 			}
@@ -137,7 +141,7 @@ func ParseContent(content interface{}) (err error) {
 		return fmt.Errorf("Transmission.Content objects must contain a key `template_id`")
 
 	case map[string]string:
-		for k, _ := range rVal {
+		for k := range rVal {
 			if strings.EqualFold(k, "template_id") {
 				return nil
 			}
@@ -296,11 +300,10 @@ func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Res
 					return res, err
 				}
 				return res, nil
-			} else {
-				return res, fmt.Errorf("Unexpected results structure in response")
 			}
+			return res, fmt.Errorf("Unexpected results structure in response")
 		}
-		return res, fmt.Errorf("Unexpected response to Transmission.Retrieve")
+		err = fmt.Errorf("Unexpected response to Transmission.Retrieve")
 
 	} else {
 		err = res.ParseResponse()
@@ -313,7 +316,7 @@ func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Res
 				return res, err
 			}
 		}
-		return res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return res, err
@@ -414,7 +417,7 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 		} else if list, ok := tlist["results"]; ok {
 			return list, res, nil
 		}
-		return nil, res, fmt.Errorf("Unexpected response to Transmission list")
+		err = fmt.Errorf("Unexpected response to Transmission list")
 
 	} else {
 		err = res.ParseResponse()
@@ -427,6 +430,8 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 				return nil, res, err
 			}
 		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
+
+	return nil, res, err
 }
