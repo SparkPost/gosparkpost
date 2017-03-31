@@ -179,11 +179,6 @@ func (t *Template) Validate() error {
 	return nil
 }
 
-// SetHeaders is a convenience method which sets Template.Content.Headers to the provided map.
-func (t *Template) SetHeaders(headers map[string]string) {
-	t.Content.Headers = headers
-}
-
 // TemplateCreate accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
 func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err error) {

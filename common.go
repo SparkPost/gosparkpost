@@ -29,7 +29,7 @@ type Config struct {
 // Specifying your own http.Client gives you lots of control over how connections are made.
 // Clients are safe for concurrent (read-only) reuse by multiple goroutines.
 // Headers is useful to set subaccount (X-MSYS-SUBACCOUNT header) and any other custom headers.
-// All calls to SetHeader must happen before Client is exposed to possible concurrent use.
+// All changes to Headers must happen before Client is exposed to possible concurrent use.
 type Client struct {
 	Config  *Config
 	Client  *http.Client
