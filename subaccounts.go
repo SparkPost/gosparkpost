@@ -7,7 +7,7 @@ import (
 )
 
 // https://www.sparkpost.com/api#/reference/subaccounts
-var subaccountsPathFormat = "/api/v%d/subaccounts"
+var SubaccountsPathFormat = "/api/v%d/subaccounts"
 var availableGrants = []string{
 	"smtp/inject",
 	"sending_domains/manage",
@@ -69,7 +69,7 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
@@ -153,7 +153,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, s.ID)
 
 	res, err = c.HttpPut(ctx, url, jsonBytes)
@@ -198,7 +198,7 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 
 // SubaccountsContext is the same as Subaccounts, and it allows the caller to provide a context
 func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccount, res *Response, err error) {
-	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err = c.HttpGet(ctx, url)
 	if err != nil {
@@ -252,7 +252,7 @@ func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err 
 
 // SubaccountContext is the same as Subaccount, and it accepts a context.Context
 func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Subaccount, res *Response, err error) {
-	path := fmt.Sprintf(subaccountsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
 	res, err = c.HttpGet(ctx, u)
 	if err != nil {
