@@ -153,3 +153,70 @@ func TestSuppression_Get_separateList(t *testing.T) {
 		t.Errorf("SuppressionList GET Unmarshal error; saw [%v] expected [rcpt_1@example.com]", s.Results[0].Recipient)
 	}
 }
+
+var suppressionListCursor string = `{
+  "results": [
+    {
+      "recipient": "rcpt_1@example.com",
+      "transactional": true,
+      "non_transactional": true,
+      "source": "Manually Added",
+      "description": "User requested to not receive any non-transactional emails.",
+      "created": "2016-01-01T12:00:00+00:00",
+      "updated": "2016-01-01T12:00:00+00:00"
+    }
+  ],
+  "links": [
+    {
+      "href": "The_HREF_Value1",
+      "rel": "first"
+    },
+    {
+      "href": "The_HREF_Value2",
+      "rel": "next"
+    }
+  ],
+  "total_count": 44
+}`
+
+// Test parsing of separate suppression list results
+func TestSuppression_links(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	path := fmt.Sprintf(sp.SuppressionListsPathFormat, testClient.Config.ApiVersion)
+	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json; charset=utf8")
+		w.Write([]byte(suppressionListCursor))
+	})
+
+	// hit our local handler
+	s, res, err := testClient.SuppressionList()
+	if err != nil {
+		t.Errorf("SuppressionList GET returned error: %v", err)
+		for _, e := range res.Verbose {
+			t.Error(e)
+		}
+		return
+	}
+
+	// basic content test
+	if s.Results == nil {
+		t.Error("SuppressionList GET returned nil Results")
+	} else if s.TotalCount != 44 {
+		t.Errorf("SuppressionList GET returned %d results, expected %d", s.TotalCount, 44)
+	} else if len(s.Links) != 2 {
+		t.Errorf("SuppressionList GET returned %d results, expected %d", len(s.Links), 2)
+	} else if s.Links[0].Href != "The_HREF_Value1" {
+		t.Error("SuppressionList GET returned invalid link[0].Href")
+	} else if s.Links[1].Href != "The_HREF_Value2" {
+		t.Error("SuppressionList GET returned invalid link[1].Href")
+	} else if s.Links[0].Rel != "first" {
+		t.Error("SuppressionList GET returned invalid s.Links[0].Rel")
+	} else if s.Links[1].Rel != "next" {
+		t.Error("SuppressionList GET returned invalid s.Links[1].Rel")
+	}
+
+}
