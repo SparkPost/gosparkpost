@@ -57,15 +57,15 @@ type From struct {
 	Name  string
 }
 
-// Options specifies settings to apply to this Template.
+// TmplOptions specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
 type TmplOptions struct {
-	OpenTracking  bool `json:"open_tracking,omitempty"`
-	ClickTracking bool `json:"click_tracking,omitempty"`
-	Transactional bool `json:"transactional,omitempty"`
+	OpenTracking  *bool `json:"open_tracking,omitempty"`
+	ClickTracking *bool `json:"click_tracking,omitempty"`
+	Transactional *bool `json:"transactional,omitempty"`
 }
 
-// Preview options contains the required subsitution_data object to
+// PreviewOptions contains the required subsitution_data object to
 // preview a template
 type PreviewOptions struct {
 	SubstitutionData map[string]interface{} `json:"substitution_data"`
@@ -342,7 +342,7 @@ func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, e
 		} else if list, ok := tlist["results"]; ok {
 			return list, res, nil
 		}
-		return nil, res, fmt.Errorf("Unexpected response to Template list")
+		err = fmt.Errorf("Unexpected response to Template list")
 
 	} else {
 		err = res.ParseResponse()
@@ -355,7 +355,7 @@ func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, e
 				return nil, res, err
 			}
 		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return nil, res, err

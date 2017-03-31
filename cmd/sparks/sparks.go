@@ -274,7 +274,7 @@ func main() {
 		if tx.Options == nil {
 			tx.Options = &sp.TxOptions{}
 		}
-		tx.Options.InlineCSS = true
+		tx.Options.InlineCSS = inline
 	}
 
 	if *dryrun != false {
