@@ -10,7 +10,8 @@ import (
 // SuppressionListsPathFormat https://developers.sparkpost.com/api/#/reference/suppression-list
 var SuppressionListsPathFormat = "/api/v%d/suppression-list"
 
-// SuppressionEntry is an entry of the suppression list
+// SuppressionEntry stores a recipient’s opt-out preferences. It is a list of recipient email addresses to which you do NOT want to send email.
+// https://developers.sparkpost.com/api/suppression-list.html#header-list-entry-attributes
 type SuppressionEntry struct {
 	// Email is used when list is stored
 	Email string `json:"email,omitempty"`
@@ -38,23 +39,27 @@ type SuppressionListWrapper struct {
 	} `json:"links,omitempty"`
 }
 
-// SuppressionList retrieves the accounts suppression list
+// SuppressionList retrieves the account's suppression list.
+// Suppression lists larger than 10,000 entries will need to use cursor to retrieve more results.
+// See https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
 func (c *Client) SuppressionList() (*SuppressionListWrapper, *Response, error) {
 	return c.SuppressionListContext(context.Background())
 }
 
-// SuppressionListContext retrieves the accounts suppression list
+// SuppressionListContext retrieves the account's suppression list
 func (c *Client) SuppressionListContext(ctx context.Context) (*SuppressionListWrapper, *Response, error) {
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	return c.suppressionGet(ctx, c.Config.BaseUrl+path)
 }
 
-// SuppressionRetrieve fetches suppression entry for a specific email address
+// SuppressionRetrieve retrieves the suppression status for a specific recipient by specifying the recipient’s email address
+// // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-retrieve,-delete,-insert-or-update-get
 func (c *Client) SuppressionRetrieve(email string) (*SuppressionListWrapper, *Response, error) {
 	return c.SuppressionRetrieveContext(context.Background(), email)
 }
 
-//SuppressionRetrieveContext fetches suppression entry for a specific email address
+//SuppressionRetrieveContext retrieves the suppression status for a specific recipient by specifying the recipient’s email address
+// // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-retrieve,-delete,-insert-or-update-get
 func (c *Client) SuppressionRetrieveContext(ctx context.Context, email string) (*SuppressionListWrapper, *Response, error) {
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	finalURL := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
@@ -62,12 +67,14 @@ func (c *Client) SuppressionRetrieveContext(ctx context.Context, email string) (
 	return c.suppressionGet(ctx, finalURL)
 }
 
-// SuppressionSearch search for suppression entries
+// SuppressionSearch search for suppression entries. For a list of parameters see
+// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
 func (c *Client) SuppressionSearch(params map[string]string) (*SuppressionListWrapper, *Response, error) {
 	return c.SuppressionSearchContext(context.Background(), params)
 }
 
-// SuppressionSearchContext search for suppression entries
+// SuppressionSearchContext search for suppression entries. For a list of parameters see
+// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
 func (c *Client) SuppressionSearchContext(ctx context.Context, params map[string]string) (*SuppressionListWrapper, *Response, error) {
 	var finalURL string
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
