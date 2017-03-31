@@ -202,10 +202,8 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		return
 	}
 
-	jsonBytes, err := json.Marshal(t)
-	if err != nil {
-		return
-	}
+	// A Template that makes it past Validate() will always Marshal
+	jsonBytes, _ := json.Marshal(t)
 
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)

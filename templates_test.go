@@ -1,6 +1,8 @@
 package gosparkpost_test
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -100,6 +102,54 @@ func TestTemplateValidation(t *testing.T) {
 			t.Errorf("Template.Validate[%d] => err %q, want %q", idx, err, test.err)
 		} else if test.cmp != nil && test.cmp(test.te) == false {
 			t.Errorf("Template.Validate[%d] => failed post-condition check for %q", test.te)
+		}
+	}
+}
+
+var templatePostSuccessTests = []struct {
+	in     *sp.Template
+	err    error
+	status int
+	json   string
+	id     string
+}{
+	{nil, errors.New("Create called with nil Template"), 0, "", ""},
+	{&sp.Template{}, errors.New("Template requires a non-empty Content.Subject"), 0, "", ""},
+	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+		errors.New("Unexpected response to Template creation (results)"),
+		200, `{"foo":{"id":"new-template"}}`, ""},
+	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+		errors.New("Unexpected response to Template creation"),
+		200, `{"results":{"ID":"new-template"}}`, ""},
+
+	{&sp.Template{Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
+		errors.New("3000: substitution language syntax error in template content\nError while compiling header Subject: substitution statement missing ending '}}'"),
+		422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`, ""},
+
+	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil,
+		200, `{"results":{"id":"new-template"}}`, "new-template"},
+}
+
+func TestTemplateCreate(t *testing.T) {
+	for idx, test := range templatePostSuccessTests {
+		testSetup(t)
+		defer testTeardown()
+
+		path := fmt.Sprintf(sp.TemplatesPathFormat, testClient.Config.ApiVersion)
+		testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "POST")
+			w.Header().Set("Content-Type", "application/json; charset=utf8")
+			w.WriteHeader(test.status)
+			w.Write([]byte(test.json))
+		})
+
+		id, _, err := testClient.TemplateCreate(test.in)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("TemplateCreate[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("TemplateCreate[%d] => err %q want %q", idx, err, test.err)
+		} else if id != test.id {
+			t.Errorf("TemplateCreate[%d] => id %q want %q", idx, id, test.id)
 		}
 	}
 }
