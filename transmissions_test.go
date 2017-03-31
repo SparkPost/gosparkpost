@@ -1,6 +1,7 @@
 package gosparkpost_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -157,5 +158,36 @@ func TestTransmissions_ByID_Success(t *testing.T) {
 
 	if tx1.CampaignID != tx.CampaignID {
 		testFailVerbose(t, res, "CampaignIDs do not match")
+	}
+}
+
+// Assert that options are actually ... optional,
+// and that unspecified options don't default to their zero values.
+func TestTransmissionOptions(t *testing.T) {
+	var jsonb []byte
+	var err error
+	var opt bool
+
+	tx := &sp.Transmission{}
+	to := &sp.TxOptions{InlineCSS: &opt}
+	tx.Options = to
+
+	jsonb, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":false}`)) {
+		t.Fatalf("expected inline_css option to be false:\n%s", string(jsonb))
+	}
+
+	opt = true
+	jsonb, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":true}`)) {
+		t.Fatalf("expected inline_css option to be true:\n%s", string(jsonb))
 	}
 }
