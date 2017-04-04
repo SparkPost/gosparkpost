@@ -2,19 +2,14 @@ package gosparkpost_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
 )
 
-var suppressionNotFound string = `{
-	"errors": [
-		{
-			"message": "Recipient could not be found"
-		}
-	]
-}`
+var suppressionNotFound = loadTestFile("test_data/suppression_not_found_error.json")
 
 // Test parsing of "not found" case
 func TestSuppression_Get_notFound(t *testing.T) {
@@ -31,37 +26,27 @@ func TestSuppression_Get_notFound(t *testing.T) {
 	})
 
 	// hit our local handler
-	s, res, err := testClient.SuppressionList()
+	suppressionPage := &sp.SuppressionPage{}
+
+	res, err := testClient.SuppressionList(suppressionPage)
 	if err != nil {
 		testFailVerbose(t, res, "SuppressionList GET returned error: %v", err)
 	}
 
 	// basic content test
-	if s.Results != nil {
+	if suppressionPage.Results != nil {
 		testFailVerbose(t, res, "SuppressionList GET returned non-nil Results (error expected)")
-	} else if len(s.Results) != 0 {
-		testFailVerbose(t, res, "SuppressionList GET returned %d results, expected %d", len(s.Results), 0)
-	} else if len(res.Errors) != 1 {
-		testFailVerbose(t, res, "SuppressionList GET returned %d errors, expected %d", len(res.Errors), 1)
-	} else if res.Errors[0].Message != "Recipient could not be found" {
+	} else if len(suppressionPage.Results) != 0 {
+		testFailVerbose(t, res, "SuppressionList GET returned %d results, expected %d", len(suppressionPage.Results), 0)
+	} else if len(suppressionPage.Errors) != 1 {
+		testFailVerbose(t, res, "SuppressionList GET returned %d errors, expected %d", len(suppressionPage.Errors), 1)
+	} else if suppressionPage.Errors[0].Message != "Recipient could not be found" {
 		testFailVerbose(t, res, "SuppressionList GET Unmarshal error; saw [%v] expected [%v]",
 			res.Errors[0].Message, "Recipient could not be found")
 	}
 }
 
-var combinedSuppressionList string = `{
-  "results": [
-    {
-      "recipient": "rcpt_1@example.com",
-      "transactional": true,
-      "non_transactional": true,
-      "source": "Manually Added",
-      "description": "User requested to not receive any non-transactional emails.",
-      "created": "2016-01-01T12:00:00+00:00",
-      "updated": "2016-01-01T12:00:00+00:00"
-    }
-  ]
-}`
+var combinedSuppressionList = loadTestFile("test_data/suppression_combined.json")
 
 // Test parsing of combined suppression list results
 func TestSuppression_Get_combinedList(t *testing.T) {
@@ -96,30 +81,7 @@ func TestSuppression_Get_combinedList(t *testing.T) {
 	}
 }
 
-var separateSuppressionList string = `{
-  "results": [
-    {
-      "recipient": "rcpt_1@example.com",
-      "non_transactional": true,
-      "source": "Manually Added",
-      "type": "non_transactional",
-      "description": "User requested to not receive any non-transactional emails.",
-      "created": "2016-01-01T12:00:00+00:00",
-      "updated": "2016-01-01T12:00:00+00:00"
-    },
-    {
-      "recipient": "rcpt_1@example.com",
-      "transactional": true,
-      "source": "Bounce Rule",
-      "type": "transactional",
-      "description": "550: 550-5.1.1 Invalid Recipient",
-      "created": "2015-10-15T12:00:00+00:00",
-      "updated": "2015-10-15T12:00:00+00:00"
-    }
-  ],
-  "links": [],
-  "total_count": 2
-}`
+var separateSuppressionList = loadTestFile("test_data/suppression_seperate_lists.json")
 
 // Test parsing of separate suppression list results
 func TestSuppression_Get_separateList(t *testing.T) {
@@ -154,30 +116,7 @@ func TestSuppression_Get_separateList(t *testing.T) {
 	}
 }
 
-var suppressionListCursor string = `{
-  "results": [
-    {
-      "recipient": "rcpt_1@example.com",
-      "transactional": true,
-      "non_transactional": true,
-      "source": "Manually Added",
-      "description": "User requested to not receive any non-transactional emails.",
-      "created": "2016-01-01T12:00:00+00:00",
-      "updated": "2016-01-01T12:00:00+00:00"
-    }
-  ],
-  "links": [
-    {
-      "href": "The_HREF_Value1",
-      "rel": "first"
-    },
-    {
-      "href": "The_HREF_Value2",
-      "rel": "next"
-    }
-  ],
-  "total_count": 44
-}`
+var suppressionListCursor = loadTestFile("test_data/suppression_cursor.json")
 
 // Test parsing of separate suppression list results
 func TestSuppression_links(t *testing.T) {
@@ -219,4 +158,13 @@ func TestSuppression_links(t *testing.T) {
 		t.Error("SuppressionList GET returned invalid s.Links[1].Rel")
 	}
 
+}
+
+func loadTestFile(fileToLoad string) string {
+	b, err := ioutil.ReadFile(fileToLoad)
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	return string(b)
 }
