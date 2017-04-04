@@ -12,20 +12,17 @@
     ],
     "links": [
         {
-            "href": "The_HREF_first",
+            "href": "/test_data/suppression_page1.json",
             "rel": "first"
         },
         {
-            "href": "The_HREF_next",
+            "href": "/test_data/suppression_page2.json",
             "rel": "next"
-        },{
-            "href": "The_HREF_previous",
-            "rel": "previous"
         },
         {
-            "href": "The_HREF_last",
+            "href": "/test_data/suppression_pageLast.json",
             "rel": "last"
         }
     ],
-    "total_count": 44
+    "total_count": 3
 }

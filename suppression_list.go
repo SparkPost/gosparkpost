@@ -34,9 +34,16 @@ type SuppressionPage struct {
 
 	Results    []*SuppressionEntry `json:"results,omitempty"`
 	Recipients []SuppressionEntry  `json:"recipients,omitempty"`
-	Errors     []interface{}
+	Errors     []struct {
+		Message string `json:"message,omitempty"`
+	} `json:"errors,omitempty"`
 
 	TotalCount int `json:"total_count,omitempty"`
+
+	NextPage  string
+	PrevPage  string
+	FirstPage string
+	LastPage  string
 
 	Links []struct {
 		Href string `json:"href"`
@@ -76,21 +83,21 @@ func (c *Client) SuppressionRetrieveContext(ctx context.Context, email string, s
 
 // SuppressionSearch search for suppression entries. For a list of parameters see
 // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
-func (c *Client) SuppressionSearch(params map[string]string, sp *SuppressionPage) (*Response, error) {
-	return c.SuppressionSearchContext(context.Background(), params, sp)
+func (c *Client) SuppressionSearch(sp *SuppressionPage) (*Response, error) {
+	return c.SuppressionSearchContext(context.Background(), sp)
 }
 
 // SuppressionSearchContext search for suppression entries. For a list of parameters see
 // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
-func (c *Client) SuppressionSearchContext(ctx context.Context, params map[string]string, sp *SuppressionPage) (*Response, error) {
+func (c *Client) SuppressionSearchContext(ctx context.Context, sp *SuppressionPage) (*Response, error) {
 	var finalURL string
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 
-	if params == nil || len(params) == 0 {
+	if sp.Params == nil || len(sp.Params) == 0 {
 		finalURL = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
 		args := url.Values{}
-		for k, v := range params {
+		for k, v := range sp.Params {
 			args.Add(k, v)
 		}
 
@@ -98,6 +105,25 @@ func (c *Client) SuppressionSearchContext(ctx context.Context, params map[string
 	}
 
 	return c.suppressionGet(ctx, finalURL, sp)
+}
+
+// Next returns the next page of results from a previous MessageEventsSearch call
+func (sp *SuppressionPage) Next() (*SuppressionPage, *Response, error) {
+	return sp.NextContext(context.Background())
+}
+
+// NextContext is the same as Next, and it accepts a context.Context
+func (sp *SuppressionPage) NextContext(ctx context.Context) (*SuppressionPage, *Response, error) {
+	if sp.NextPage == "" {
+		return nil, nil, nil
+	}
+
+	suppressionPage := &SuppressionPage{}
+	suppressionPage.client = sp.client
+	finalURL := fmt.Sprintf("%s", sp.client.Config.BaseUrl+sp.NextPage)
+	res, err := sp.client.suppressionGet(ctx, finalURL, suppressionPage)
+
+	return suppressionPage, res, err
 }
 
 // SuppressionDelete deletes an entry from the suppression list
@@ -182,6 +208,7 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Suppres
 
 // Wraps call to server and unmarshals response
 func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *SuppressionPage) (*Response, error) {
+
 	// Send off our request
 	res, err := c.HttpGet(ctx, finalURL)
 	if err != nil {
@@ -205,8 +232,25 @@ func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *Suppre
 	}
 
 	// Parse expected response structure
-	// var resMap SuppressionListWrapper
 	err = json.Unmarshal(bodyBytes, sp)
+
+	// For usage convenience parse out common links
+	for _, link := range sp.Links {
+		switch link.Rel {
+		case "next":
+			sp.NextPage = link.Href
+		case "previous":
+			sp.PrevPage = link.Href
+		case "first":
+			sp.FirstPage = link.Href
+		case "last":
+			sp.LastPage = link.Href
+		}
+	}
+
+	if sp.client == nil {
+		sp.client = c
+	}
 
 	if err != nil {
 		return res, err
