@@ -5,8 +5,25 @@ import (
 	"net/http"
 	"testing"
 
+	"encoding/json"
+
 	sp "github.com/SparkPost/gosparkpost"
 )
+
+func TestUnmarshal_SupressionEvent(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	var suppressionEventString = loadTestFile("test_data/suppression_entry_simple.json")
+
+	suppressionEntry := &sp.SuppressionEntry{}
+	err := json.Unmarshal([]byte(suppressionEventString), suppressionEntry)
+	if err != nil {
+		testFailVerbose(t, nil, "Unmarshal SuppressionEntry returned error: %v", err)
+	}
+
+	verifySuppressionEnty(t, suppressionEntry)
+}
 
 // Test parsing of "not found" case
 func TestSuppression_Get_notFound(t *testing.T) {
@@ -35,6 +52,35 @@ func TestSuppression_Get_notFound(t *testing.T) {
 		testFailVerbose(t, res, "SuppressionList GET Unmarshal error; saw [%v] expected [%v]",
 			res.Errors[0].Message, "Recipient could not be found")
 	}
+}
+
+func TestSuppression_Retrieve(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	var mockResponse = loadTestFile("test_data/suppression_retrieve.json")
+	status := http.StatusOK
+	email := "john.doe@domain.com"
+	mockRestResponseBuilderFormat(t, "GET", status, sp.SuppressionListsPathFormat+"/"+email, mockResponse)
+
+	// hit our local handler
+	suppressionPage := &sp.SuppressionPage{}
+	res, err := testClient.SuppressionRetrieve(email, suppressionPage)
+	if err != nil {
+		testFailVerbose(t, res, "SuppressionList retrieve returned error: %v", err)
+	} else if res == nil {
+		testFailVerbose(t, res, "SuppressionList retrieve expected an HTTP response")
+	}
+
+	if len(suppressionPage.Results) != 1 {
+		testFailVerbose(t, res, "SuppressionList retrieve expected 1 result: %v", suppressionPage)
+	} else if suppressionPage.TotalCount != 1 {
+		testFailVerbose(t, res, "SuppressionList retrieve expected 1 result: %v", suppressionPage)
+	}
+
+	verifySuppressionEnty(t, suppressionPage.Results[0])
+
 }
 
 func TestSuppression_Error_Bad_Path(t *testing.T) {
@@ -266,6 +312,71 @@ func TestSuppression_NextPage(t *testing.T) {
 	}
 }
 
+// Test parsing of combined suppression list results
+func TestSuppression_Search_combinedList(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	var mockResponse = loadTestFile("test_data/suppression_combined.json")
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
+
+	// hit our local handler
+	suppressionPage := &sp.SuppressionPage{}
+	res, err := testClient.SuppressionSearch(suppressionPage)
+	if err != nil {
+		t.Errorf("SuppressionList GET returned error: %v", err)
+		for _, e := range res.Verbose {
+			t.Error(e)
+		}
+		return
+	}
+
+	// basic content test
+	if suppressionPage.Results == nil {
+		t.Error("SuppressionList GET returned nil Results")
+	} else if len(suppressionPage.Results) != 1 {
+		t.Errorf("SuppressionList GET returned %d results, expected %d", len(suppressionPage.Results), 1)
+	} else if suppressionPage.Results[0].Recipient != "rcpt_1@example.com" {
+		t.Errorf("SuppressionList GET Unmarshal error; saw [%v] expected [rcpt_1@example.com]", suppressionPage.Results[0].Recipient)
+	}
+}
+
+// Test parsing of combined suppression list results
+func TestSuppression_Search_params(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	var mockResponse = loadTestFile("test_data/suppression_combined.json")
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
+
+	// hit our local handler
+	suppressionPage := &sp.SuppressionPage{}
+	parameters := map[string]string{
+		"from": "1970-01-01T00:00",
+	}
+	suppressionPage.Params = parameters
+
+	res, err := testClient.SuppressionSearch(suppressionPage)
+	if err != nil {
+		t.Errorf("SuppressionList GET returned error: %v", err)
+		for _, e := range res.Verbose {
+			t.Error(e)
+		}
+		return
+	}
+
+	// basic content test
+	if suppressionPage.Results == nil {
+		t.Error("SuppressionList GET returned nil Results")
+	} else if len(suppressionPage.Results) != 1 {
+		t.Errorf("SuppressionList GET returned %d results, expected %d", len(suppressionPage.Results), 1)
+	} else if suppressionPage.Results[0].Recipient != "rcpt_1@example.com" {
+		t.Errorf("SuppressionList GET Unmarshal error; saw [%v] expected [rcpt_1@example.com]", suppressionPage.Results[0].Recipient)
+	}
+}
+
 func TestClient_SuppressionUpsert_nil_entry(t *testing.T) {
 	testSetup(t)
 	defer testTeardown()
@@ -433,6 +544,24 @@ func TestClient_Suppression_Delete_Errors(t *testing.T) {
 /////////////////////
 // Internal Helpers
 /////////////////////
+
+func verifySuppressionEnty(t *testing.T, suppressionEntry *sp.SuppressionEntry) {
+	if suppressionEntry.Recipient != "john.doe@domain.com" {
+		testFailVerbose(t, nil, "Unexpected Recipient: %s", suppressionEntry.Recipient)
+	} else if suppressionEntry.Description != "entry description" {
+		testFailVerbose(t, nil, "Unexpected Description: %s", suppressionEntry.Description)
+	} else if suppressionEntry.Source != "manually created" {
+		testFailVerbose(t, nil, "Unexpected Source: %s", suppressionEntry.Source)
+	} else if suppressionEntry.Type != "non_transactional" {
+		testFailVerbose(t, nil, "Unexpected Type: %s", suppressionEntry.Type)
+	} else if suppressionEntry.Created != "2016-05-02T16:29:56+00:00" {
+		testFailVerbose(t, nil, "Unexpected Created: %s", suppressionEntry.Created)
+	} else if suppressionEntry.Updated != "2016-05-02T17:20:50+00:00" {
+		testFailVerbose(t, nil, "Unexpected Updated: %s", suppressionEntry.Updated)
+	} else if suppressionEntry.NonTransactional != true {
+		testFailVerbose(t, nil, "Unexpected NonTransactional value")
+	}
+}
 
 func mockRestBuilderFormat(t *testing.T, method string, pathFormat string, mockResponse string) {
 	mockRestResponseBuilderFormat(t, method, http.StatusOK, pathFormat, mockResponse)
