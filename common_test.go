@@ -2,7 +2,6 @@ package gosparkpost_test
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -56,10 +55,11 @@ func testFailVerbose(t *testing.T, res *sp.Response, fmt string, args ...interfa
 	t.Fatalf(fmt, args...)
 }
 
-func loadTestFile(fileToLoad string) string {
+func loadTestFile(t *testing.T, fileToLoad string) string {
 	b, err := ioutil.ReadFile(fileToLoad)
+
 	if err != nil {
-		fmt.Print(err)
+		t.Fatalf("Failed to load test data: %v", err)
 	}
 
 	return string(b)

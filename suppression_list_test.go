@@ -14,7 +14,7 @@ func TestUnmarshal_SupressionEvent(t *testing.T) {
 	testSetup(t)
 	defer testTeardown()
 
-	var suppressionEventString = loadTestFile("test_data/suppression_entry_simple.json")
+	var suppressionEventString = loadTestFile(t, "test_data/suppression_entry_simple.json")
 
 	suppressionEntry := &sp.SuppressionEntry{}
 	err := json.Unmarshal([]byte(suppressionEventString), suppressionEntry)
@@ -31,7 +31,7 @@ func TestSuppression_Get_notFound(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_not_found_error.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -59,7 +59,7 @@ func TestSuppression_Retrieve(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_retrieve.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_retrieve.json")
 	status := http.StatusOK
 	email := "john.doe@domain.com"
 	mockRestResponseBuilderFormat(t, "GET", status, sp.SuppressionListsPathFormat+"/"+email, mockResponse)
@@ -88,7 +88,7 @@ func TestSuppression_Error_Bad_Path(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_not_found_error.json")
 	mockRestBuilderFormat(t, "GET", "/bad/path", mockResponse)
 
 	// hit our local handler
@@ -144,7 +144,7 @@ func TestSuppression_Get_combinedList(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_combined.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_combined.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -174,7 +174,7 @@ func TestSuppression_Get_separateList(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_seperate_lists.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_seperate_lists.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -204,7 +204,7 @@ func TestSuppression_links(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_cursor.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_cursor.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -253,7 +253,7 @@ func TestSuppression_Empty_NextPage(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_single_page.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_single_page.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -284,10 +284,10 @@ func TestSuppression_NextPage(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_page1.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_page1.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
-	mockResponse = loadTestFile("test_data/suppression_page2.json")
+	mockResponse = loadTestFile(t, "test_data/suppression_page2.json")
 	mockRestBuilder(t, "GET", "/test_data/suppression_page2.json", mockResponse)
 
 	// hit our local handler
@@ -318,7 +318,7 @@ func TestSuppression_Search_combinedList(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_combined.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_combined.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -348,7 +348,7 @@ func TestSuppression_Search_params(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	var mockResponse = loadTestFile("test_data/suppression_combined.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_combined.json")
 	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
@@ -451,7 +451,7 @@ func TestClient_SuppressionUpsert_error_response(t *testing.T) {
 	testSetup(t)
 	defer testTeardown()
 
-	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_not_found_error.json")
 	status := http.StatusBadRequest
 	mockRestResponseBuilderFormat(t, "PUT", status, sp.SuppressionListsPathFormat, mockResponse)
 
@@ -523,7 +523,7 @@ func TestClient_Suppression_Delete_Errors(t *testing.T) {
 
 	email := "test@test.com"
 	status := http.StatusBadRequest
-	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	var mockResponse = loadTestFile(t, "test_data/suppression_not_found_error.json")
 	mockRestResponseBuilderFormat(t, "DELETE", status, sp.SuppressionListsPathFormat+"/"+email, mockResponse)
 
 	response, err := testClient.SuppressionDelete(email)
