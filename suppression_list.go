@@ -257,6 +257,9 @@ func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *Suppre
 
 	// Parse expected response structure
 	err = json.Unmarshal(bodyBytes, sp)
+	if err != nil {
+		return res, err
+	}
 
 	// For usage convenience parse out common links
 	for _, link := range sp.Links {
@@ -276,9 +279,5 @@ func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *Suppre
 		sp.client = c
 	}
 
-	if err != nil {
-		return res, err
-	}
-
-	return res, err
+	return res, nil
 }
