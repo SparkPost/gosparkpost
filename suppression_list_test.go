@@ -15,7 +15,7 @@ func TestSuppression_Get_notFound(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, mockResponse)
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -43,7 +43,7 @@ func TestSuppression_Error_Bad_Path(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
-	mockRestBuilderFormat(t, "/bad/path", mockResponse)
+	mockRestBuilderFormat(t, "GET", "/bad/path", mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -61,7 +61,7 @@ func TestSuppression_Error_Bad_JSON(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, "ThisIsBadJSON")
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, "ThisIsBadJSON")
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -79,7 +79,7 @@ func TestSuppression_Error_Wrong_JSON(t *testing.T) {
 	defer testTeardown()
 
 	// set up the response handler
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, "{\"errors\":\"\"")
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, "{\"errors\":\"\"")
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -99,7 +99,7 @@ func TestSuppression_Get_combinedList(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_combined.json")
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, mockResponse)
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -129,7 +129,7 @@ func TestSuppression_Get_separateList(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_seperate_lists.json")
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, mockResponse)
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -159,7 +159,7 @@ func TestSuppression_links(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_cursor.json")
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, mockResponse)
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -208,7 +208,7 @@ func TestSuppression_Empty_NextPage(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_single_page.json")
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, mockResponse)
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -239,10 +239,10 @@ func TestSuppression_NextPage(t *testing.T) {
 
 	// set up the response handler
 	var mockResponse = loadTestFile("test_data/suppression_page1.json")
-	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, mockResponse)
+	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
 
 	mockResponse = loadTestFile("test_data/suppression_page2.json")
-	mockRestBuilder(t, "/test_data/suppression_page2.json", mockResponse)
+	mockRestBuilder(t, "GET", "/test_data/suppression_page2.json", mockResponse)
 
 	// hit our local handler
 	suppressionPage := &sp.SuppressionPage{}
@@ -266,15 +266,196 @@ func TestSuppression_NextPage(t *testing.T) {
 	}
 }
 
-func mockRestBuilderFormat(t *testing.T, pathFormat string, mockResponse string) {
-	path := fmt.Sprintf(pathFormat, testClient.Config.ApiVersion)
-	mockRestBuilder(t, path, mockResponse)
+func TestClient_SuppressionUpsert_nil_entry(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	response, err := testClient.SuppressionUpsert(nil)
+	if response != nil {
+		t.Errorf("Expected nil response object but got: %v", response)
+	} else if err == nil {
+		t.Errorf("Expected an error")
+	}
 }
 
-func mockRestBuilder(t *testing.T, path string, mockResponse string) {
+func TestClient_SuppressionUpsert_bad_json(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	var mockResponse = "{bad json}"
+	mockRestBuilderFormat(t, "PUT", sp.SuppressionListsPathFormat, mockResponse)
+
+	entry := sp.SuppressionEntry{
+		Recipient:        "john.doe@domain.com",
+		Description:      "entry description",
+		Source:           "manually created",
+		Type:             "non_transactional",
+		Created:          "2016-05-02T16:29:56+00:00",
+		Updated:          "2016-05-02T16:29:56+00:00",
+		NonTransactional: true,
+	}
+
+	entries := []sp.SuppressionEntry{
+		entry,
+	}
+
+	response, err := testClient.SuppressionUpsert(entries)
+	if response == nil {
+		t.Errorf("Expected a response")
+	} else if err == nil {
+		t.Errorf("Expected an error")
+	}
+}
+
+func TestClient_SuppressionUpsert_1_entry(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	var mockResponse = "{}"
+	mockRestBuilderFormat(t, "PUT", sp.SuppressionListsPathFormat, mockResponse)
+
+	entry := sp.SuppressionEntry{
+		Recipient:        "john.doe@domain.com",
+		Description:      "entry description",
+		Source:           "manually created",
+		Type:             "non_transactional",
+		Created:          "2016-05-02T16:29:56+00:00",
+		Updated:          "2016-05-02T16:29:56+00:00",
+		NonTransactional: true,
+	}
+
+	entries := []sp.SuppressionEntry{
+		entry,
+	}
+
+	response, err := testClient.SuppressionUpsert(entries)
+	if response == nil {
+		t.Errorf("Expected a response")
+	} else if err != nil {
+		t.Errorf("Did not expect an error: %v", err)
+	}
+}
+
+func TestClient_SuppressionUpsert_error_response(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	status := http.StatusBadRequest
+	mockRestResponseBuilderFormat(t, "PUT", status, sp.SuppressionListsPathFormat, mockResponse)
+
+	entry := sp.SuppressionEntry{
+		Recipient:        "john.doe@domain.com",
+		Description:      "entry description",
+		Source:           "manually created",
+		Type:             "non_transactional",
+		Created:          "2016-05-02T16:29:56+00:00",
+		Updated:          "2016-05-02T16:29:56+00:00",
+		NonTransactional: true,
+	}
+
+	entries := []sp.SuppressionEntry{
+		entry,
+	}
+
+	response, err := testClient.SuppressionUpsert(entries)
+	if response == nil {
+		t.Errorf("Expected a response")
+	} else if err == nil {
+		t.Errorf("Expected an error with the HTTP status code")
+	}
+
+	if response.HTTP.StatusCode != status {
+		testFailVerbose(t, response, "Expected HTTP status code %d but got %d", status, response.HTTP.StatusCode)
+	} else if len(response.Errors) != 1 {
+		testFailVerbose(t, response, "SuppressionUpsert PUT returned %d errors, expected %d", len(response.Errors), 1)
+	} else if response.Errors[0].Message != "Recipient could not be found" {
+		testFailVerbose(t, response, "SuppressionUpsert PUT Unmarshal error; saw [%v] expected [%v]",
+			response.Errors[0].Message, "Recipient could not be found")
+	}
+}
+
+func TestClient_Suppression_Delete_nil_email(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	status := http.StatusNotFound
+	mockRestResponseBuilderFormat(t, "DELETE", status, sp.SuppressionListsPathFormat+"/", "")
+
+	_, err := testClient.SuppressionDelete("")
+	if err == nil {
+		t.Errorf("Expected an error indicating an email address is required")
+	}
+}
+
+func TestClient_Suppression_Delete(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	email := "test@test.com"
+	status := http.StatusNoContent
+	mockRestResponseBuilderFormat(t, "DELETE", status, sp.SuppressionListsPathFormat+"/"+email, "")
+
+	response, err := testClient.SuppressionDelete(email)
+	if err != nil {
+		t.Errorf("Did not expect an error")
+	}
+
+	if response.HTTP.StatusCode != status {
+		testFailVerbose(t, response, "Expected HTTP status code %d but got %d", status, response.HTTP.StatusCode)
+	}
+}
+
+func TestClient_Suppression_Delete_Errors(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	email := "test@test.com"
+	status := http.StatusBadRequest
+	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	mockRestResponseBuilderFormat(t, "DELETE", status, sp.SuppressionListsPathFormat+"/"+email, mockResponse)
+
+	response, err := testClient.SuppressionDelete(email)
+	if err == nil {
+		t.Errorf("Expected an error")
+	}
+
+	if response.HTTP.StatusCode != status {
+		testFailVerbose(t, response, "Expected HTTP status code %d but got %d", status, response.HTTP.StatusCode)
+	} else if len(response.Errors) != 1 {
+		testFailVerbose(t, response, "SuppressionDelete DELETE returned %d errors, expected %d", len(response.Errors), 1)
+	} else if response.Errors[0].Message != "Recipient could not be found" {
+		testFailVerbose(t, response, "SuppressionDelete DELETE Unmarshal error; saw [%v] expected [%v]",
+			response.Errors[0].Message, "Recipient could not be found")
+	}
+}
+
+/////////////////////
+// Internal Helpers
+/////////////////////
+
+func mockRestBuilderFormat(t *testing.T, method string, pathFormat string, mockResponse string) {
+	mockRestResponseBuilderFormat(t, method, http.StatusOK, pathFormat, mockResponse)
+}
+
+func mockRestBuilder(t *testing.T, method string, path string, mockResponse string) {
+	mockRestResponseBuilder(t, method, http.StatusOK, path, mockResponse)
+}
+
+func mockRestResponseBuilderFormat(t *testing.T, method string, status int, pathFormat string, mockResponse string) {
+	path := fmt.Sprintf(pathFormat, testClient.Config.ApiVersion)
+	mockRestResponseBuilder(t, method, status, path, mockResponse)
+}
+
+func mockRestResponseBuilder(t *testing.T, method string, status int, path string, mockResponse string) {
 	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, "GET")
-		w.Header().Set("Content-Type", "application/json; charset=utf8")
-		w.Write([]byte(mockResponse))
+		testMethod(t, r, method)
+		if mockResponse != "" {
+			w.Header().Set("Content-Type", "application/json; charset=utf8")
+		}
+		w.WriteHeader(status)
+		if mockResponse != "" {
+			w.Write([]byte(mockResponse))
+		}
 	})
 }

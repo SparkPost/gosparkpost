@@ -133,12 +133,22 @@ func (c *Client) SuppressionDelete(email string) (res *Response, err error) {
 
 // SuppressionDeleteContext deletes an entry from the suppression list
 func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (res *Response, err error) {
+	if email == "" {
+		err = fmt.Errorf("Deleting a suppression entry requires an email address")
+		return nil, err
+	}
+
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 	finalURL := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
 
 	res, err = c.HttpDelete(ctx, finalURL)
 	if err != nil {
 		return res, err
+	}
+
+	// If there are errors the response has JSON otherwise it is empty
+	if res.AssertJson != nil {
+		res.ParseResponse()
 	}
 
 	if res.HTTP.StatusCode >= 200 && res.HTTP.StatusCode <= 299 {
@@ -169,9 +179,9 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Suppres
 	}
 
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
-	list := SuppressionPage{}
+	suppressionPage := SuppressionPage{}
 
-	jsonBytes, err := json.Marshal(list)
+	jsonBytes, err := json.Marshal(suppressionPage)
 	if err != nil {
 		return nil, err
 	}
