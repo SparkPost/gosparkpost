@@ -252,6 +252,11 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 
 // TemplateUpdateContext is the same as TemplateUpdate, and it allows the caller to provide a context
 func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *Response, err error) {
+	if t == nil {
+		err = fmt.Errorf("Update called with nil Template")
+		return
+	}
+
 	if t.ID == "" {
 		err = fmt.Errorf("Update called with blank id")
 		return
@@ -262,10 +267,8 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 		return
 	}
 
-	jsonBytes, err := json.Marshal(t)
-	if err != nil {
-		return
-	}
+	// A Template that makes it past Validate() will always Marshal
+	jsonBytes, _ := json.Marshal(t)
 
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
@@ -275,13 +278,11 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
-		return
-	}
-
-	err = res.ParseResponse()
-	if err != nil {
-		return
+	if res.AssertJson() == nil {
+		err = res.ParseResponse()
+		if err != nil {
+			return
+		}
 	}
 
 	if res.HTTP.StatusCode == 200 {

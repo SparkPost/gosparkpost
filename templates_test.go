@@ -186,3 +186,41 @@ func TestTemplateCreate(t *testing.T) {
 		}
 	}
 }
+
+var templateUpdateTests = []struct {
+	in     *sp.Template
+	err    error
+	status int
+	json   string
+}{
+	{nil, errors.New("Update called with nil Template"), 0, ""},
+	{&sp.Template{ID: ""}, errors.New("Update called with blank id"), 0, ""},
+	{&sp.Template{ID: "id", Content: sp.Content{}}, errors.New("Template requires a non-empty Content.Subject"), 0, ""},
+	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil, 200, ""},
+}
+
+func TestTemplateUpdate(t *testing.T) {
+	for idx, test := range templateUpdateTests {
+		testSetup(t)
+		defer testTeardown()
+
+		id := ""
+		if test.in != nil {
+			id = test.in.ID
+		}
+		path := fmt.Sprintf(sp.TemplatesPathFormat+"/"+id, testClient.Config.ApiVersion)
+		testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "PUT")
+			w.Header().Set("Content-Type", "application/json; charset=utf8")
+			w.WriteHeader(test.status)
+			w.Write([]byte(test.json))
+		})
+
+		_, err := testClient.TemplateUpdate(test.in)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
+		}
+	}
+}
