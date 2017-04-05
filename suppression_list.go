@@ -147,7 +147,7 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 	}
 
 	// If there are errors the response has JSON otherwise it is empty
-	if res.AssertJson != nil {
+	if res.AssertJson() == nil {
 		res.ParseResponse()
 	}
 
