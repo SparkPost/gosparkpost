@@ -37,6 +37,61 @@ func TestSuppression_Get_notFound(t *testing.T) {
 	}
 }
 
+func TestSuppression_Error_Bad_Path(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	var mockResponse = loadTestFile("test_data/suppression_not_found_error.json")
+	mockRestBuilderFormat(t, "/bad/path", mockResponse)
+
+	// hit our local handler
+	suppressionPage := &sp.SuppressionPage{}
+	res, err := testClient.SuppressionList(suppressionPage)
+	if err.Error() != "Expected json, got [text/plain] with code 404" {
+		testFailVerbose(t, res, "SuppressionList GET returned error: %v", err)
+	} else if res.HTTP.StatusCode != 404 {
+		testFailVerbose(t, res, "Expected a 404 error: %v", res)
+	}
+
+}
+
+func TestSuppression_Error_Bad_JSON(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, "ThisIsBadJSON")
+
+	// hit our local handler
+	suppressionPage := &sp.SuppressionPage{}
+
+	// Bad JSON should generate an Error
+	res, err := testClient.SuppressionList(suppressionPage)
+	if err == nil {
+		testFailVerbose(t, res, "Expected an error due to bad JSON: %v", err)
+	}
+
+}
+
+func TestSuppression_Error_Wrong_JSON(t *testing.T) {
+	testSetup(t)
+	defer testTeardown()
+
+	// set up the response handler
+	mockRestBuilderFormat(t, sp.SuppressionListsPathFormat, "{\"errors\":\"\"")
+
+	// hit our local handler
+	suppressionPage := &sp.SuppressionPage{}
+
+	// Bad JSON should generate an Error
+	res, err := testClient.SuppressionList(suppressionPage)
+	if err == nil {
+		testFailVerbose(t, res, "Expected an error due to bad JSON: %v", err)
+	}
+
+}
+
 // Test parsing of combined suppression list results
 func TestSuppression_Get_combinedList(t *testing.T) {
 	testSetup(t)
@@ -213,11 +268,7 @@ func TestSuppression_NextPage(t *testing.T) {
 
 func mockRestBuilderFormat(t *testing.T, pathFormat string, mockResponse string) {
 	path := fmt.Sprintf(pathFormat, testClient.Config.ApiVersion)
-	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, "GET")
-		w.Header().Set("Content-Type", "application/json; charset=utf8")
-		w.Write([]byte(mockResponse))
-	})
+	mockRestBuilder(t, path, mockResponse)
 }
 
 func mockRestBuilder(t *testing.T, path string, mockResponse string) {
