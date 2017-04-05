@@ -396,17 +396,13 @@ func TestClient_SuppressionUpsert_bad_json(t *testing.T) {
 	var mockResponse = "{bad json}"
 	mockRestBuilderFormat(t, "PUT", sp.SuppressionListsPathFormat, mockResponse)
 
-	entry := sp.SuppressionEntry{
-		Recipient:        "john.doe@domain.com",
-		Description:      "entry description",
-		Source:           "manually created",
-		Type:             "non_transactional",
-		Created:          "2016-05-02T16:29:56+00:00",
-		Updated:          "2016-05-02T16:29:56+00:00",
-		NonTransactional: true,
+	entry := sp.WritableSuppressionEntry{
+		Recipient:   "john.doe@domain.com",
+		Description: "entry description",
+		Type:        "non_transactional",
 	}
 
-	entries := []sp.SuppressionEntry{
+	entries := []sp.WritableSuppressionEntry{
 		entry,
 	}
 
@@ -425,17 +421,13 @@ func TestClient_SuppressionUpsert_1_entry(t *testing.T) {
 	var mockResponse = "{}"
 	mockRestBuilderFormat(t, "PUT", sp.SuppressionListsPathFormat, mockResponse)
 
-	entry := sp.SuppressionEntry{
-		Recipient:        "john.doe@domain.com",
-		Description:      "entry description",
-		Source:           "manually created",
-		Type:             "non_transactional",
-		Created:          "2016-05-02T16:29:56+00:00",
-		Updated:          "2016-05-02T16:29:56+00:00",
-		NonTransactional: true,
+	entry := sp.WritableSuppressionEntry{
+		Recipient:   "john.doe@domain.com",
+		Description: "entry description",
+		Type:        "non_transactional",
 	}
 
-	entries := []sp.SuppressionEntry{
+	entries := []sp.WritableSuppressionEntry{
 		entry,
 	}
 
@@ -455,17 +447,13 @@ func TestClient_SuppressionUpsert_error_response(t *testing.T) {
 	status := http.StatusBadRequest
 	mockRestResponseBuilderFormat(t, "PUT", status, sp.SuppressionListsPathFormat, mockResponse)
 
-	entry := sp.SuppressionEntry{
-		Recipient:        "john.doe@domain.com",
-		Description:      "entry description",
-		Source:           "manually created",
-		Type:             "non_transactional",
-		Created:          "2016-05-02T16:29:56+00:00",
-		Updated:          "2016-05-02T16:29:56+00:00",
-		NonTransactional: true,
+	entry := sp.WritableSuppressionEntry{
+		Recipient:   "john.doe@domain.com",
+		Description: "entry description",
+		Type:        "non_transactional",
 	}
 
-	entries := []sp.SuppressionEntry{
+	entries := []sp.WritableSuppressionEntry{
 		entry,
 	}
 

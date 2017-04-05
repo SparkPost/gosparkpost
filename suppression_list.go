@@ -28,6 +28,15 @@ type SuppressionEntry struct {
 	Created          string `json:"created,omitempty"`
 }
 
+// WritableSuppressionEntry stores a recipient’s opt-out preferences. It is a list of recipient email addresses to which you do NOT want to send email.
+// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-bulk-insert-update-put
+type WritableSuppressionEntry struct {
+	// Recipient is used when a list is returned
+	Recipient   string `json:"recipient,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
 // SuppressionPage wraps suppression entries and response meta information
 type SuppressionPage struct {
 	client *Client
@@ -168,20 +177,25 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 }
 
 // SuppressionUpsert adds an entry to the suppression, or updates the existing entry
-func (c *Client) SuppressionUpsert(entries []SuppressionEntry) (*Response, error) {
+func (c *Client) SuppressionUpsert(entries []WritableSuppressionEntry) (*Response, error) {
 	return c.SuppressionUpsertContext(context.Background(), entries)
 }
 
 // SuppressionUpsertContext is the same as SuppressionUpsert, and it accepts a context.Context
-func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []SuppressionEntry) (*Response, error) {
+func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []WritableSuppressionEntry) (*Response, error) {
 	if entries == nil {
 		return nil, fmt.Errorf("`entries` cannot be nil")
 	}
 
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
-	suppressionPage := SuppressionPage{}
 
-	jsonBytes, err := json.Marshal(suppressionPage)
+	type EntriesWrapper struct {
+		Recipients []WritableSuppressionEntry `json:"recipients,omitempty"`
+	}
+
+	entriesWrapper := EntriesWrapper{entries}
+
+	jsonBytes, err := json.Marshal(entriesWrapper)
 	if err != nil {
 		return nil, err
 	}
