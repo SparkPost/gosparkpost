@@ -253,7 +253,7 @@ func TestTemplateDelete(t *testing.T) {
 		json   string
 	}{
 		{"", errors.New("Delete called with blank id"), 0, ""},
-		{"nope", errors.New("[{\"message\":\"Resource could not be found\",\"code\":\"\",\"description\":\"\"}]"), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`},
+		{"nope", errors.New(`[{"message":"Resource could not be found","code":"","description":""}]`), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`},
 		{"id", nil, 200, "{}"},
 	} {
 		testSetup(t)
@@ -265,6 +265,36 @@ func TestTemplateDelete(t *testing.T) {
 			t.Errorf("TemplateDelete[%d] => err %q want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("TemplateDelete[%d] => err %q want %q", idx, err, test.err)
+		}
+	}
+}
+
+func TestTemplatePreview(t *testing.T) {
+	for idx, test := range []struct {
+		id     string
+		opts   *sp.PreviewOptions
+		err    error
+		status int
+		json   string
+	}{
+		{"", nil, errors.New("Preview called with blank id"), 200, ""},
+		{"id", &sp.PreviewOptions{map[string]interface{}{
+			"func": func() { return }},
+		}, errors.New("json: unsupported type: func()"), 200, ""},
+		{"id", nil, errors.New("parsing api response: unexpected end of JSON input"), 200, "{"},
+		{"nope", nil, errors.New(`[{"message":"Resource could not be found","code":"","description":""}]`), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`},
+
+		{"id", nil, nil, 200, ""},
+	} {
+		testSetup(t)
+		defer testTeardown()
+		mockRestResponseBuilderFormat(t, "POST", test.status, sp.TemplatesPathFormat+"/"+test.id+"/preview", test.json)
+
+		_, err := testClient.TemplatePreview(test.id, test.opts)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("TemplatePreview[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("TemplatePreview[%d] => err %q want %q", idx, err, test.err)
 		}
 	}
 }

@@ -396,19 +396,8 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "preview")
-		if err != nil {
-			return
-		}
-
-		if res.HTTP.StatusCode == 422 { // preview payload error
-			eobj := res.Errors[0]
-			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	if res.HTTP.StatusCode != 200 {
+		err = res.Errors
 	}
 
 	return
