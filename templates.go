@@ -266,17 +266,16 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 		return
 	}
 
-	if res.AssertJson() == nil {
-		if err = res.ParseResponse(); err != nil {
-			return
-		}
+	if err = res.AssertJson(); err != nil {
+		return
 	}
 
 	if res.HTTP.StatusCode == 200 {
 		return
-
 	} else {
-		err = res.Errors
+		if err = res.ParseResponse(); err == nil {
+			err = res.Errors
+		}
 	}
 
 	return
@@ -290,7 +289,7 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 // TemplatesContext is the same as Templates, and it allows the caller to provide a context
 func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, error) {
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
-	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	url := c.Config.BaseUrl + path
 	res, err := c.HttpGet(ctx, url)
 	if err != nil {
 		return nil, nil, err
@@ -319,13 +318,7 @@ func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, e
 		if err != nil {
 			return nil, res, err
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Template", "list")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return nil, res, err

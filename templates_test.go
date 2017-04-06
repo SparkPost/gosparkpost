@@ -139,7 +139,7 @@ func TestTemplateValidation(t *testing.T) {
 	}
 }
 
-var templatePostSuccessTests = []struct {
+var templateCreateTests = []struct {
 	in     *sp.Template
 	err    error
 	status int
@@ -154,6 +154,9 @@ var templatePostSuccessTests = []struct {
 	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
 		errors.New("Unexpected response to Template creation"),
 		200, `{"results":{"ID":"new-template"}}`, ""},
+	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+		errors.New("parsing api response: unexpected end of JSON input"),
+		200, `{"results":{"ID":"new-template"}`, ""},
 
 	{&sp.Template{Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
 		sp.SPErrors([]sp.SPError{{
@@ -169,7 +172,7 @@ var templatePostSuccessTests = []struct {
 }
 
 func TestTemplateCreate(t *testing.T) {
-	for idx, test := range templatePostSuccessTests {
+	for idx, test := range templateCreateTests {
 		testSetup(t)
 		defer testTeardown()
 
@@ -201,7 +204,7 @@ var templateUpdateTests = []struct {
 	{nil, errors.New("Update called with nil Template"), 0, ""},
 	{&sp.Template{ID: ""}, errors.New("Update called with blank id"), 0, ""},
 	{&sp.Template{ID: "id", Content: sp.Content{}}, errors.New("Template requires a non-empty Content.Subject"), 0, ""},
-	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil, 200, ""},
+	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
 
 	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
 		sp.SPErrors([]sp.SPError{{
@@ -211,6 +214,8 @@ var templateUpdateTests = []struct {
 			Part:        "Header:Subject",
 		}}),
 		422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`},
+
+	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil, 200, ""},
 }
 
 func TestTemplateUpdate(t *testing.T) {
@@ -230,12 +235,26 @@ func TestTemplateUpdate(t *testing.T) {
 			w.Write([]byte(test.json))
 		})
 
-		res, err := testClient.TemplateUpdate(test.in)
+		_, err := testClient.TemplateUpdate(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
-			t.Logf("%+v", res)
+			t.Logf("%+v")
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		}
+	}
+}
+
+var templatesTests = []struct {
+	err    error
+	status int
+	json   string
+}{}
+
+func TestTemplates(t *testing.T) {
+	for idx, test := range templatesTests {
+		testSetup(t)
+		defer testTeardown()
+
 	}
 }
