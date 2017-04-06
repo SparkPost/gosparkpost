@@ -14,9 +14,14 @@ SparkPost Go API client
     :target: https://travis-ci.org/SparkPost/gosparkpost
     :alt: Build Status
 
+.. image:: https://coveralls.io/repos/SparkPost/gosparkpost/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/SparkPost/gosparkpost?branch=master
+    :alt: Code Coverage
+
 .. image:: http://slack.sparkpost.com/badge.svg
     :target: http://slack.sparkpost.com
     :alt: Slack Community
+  
 
 The official Go package for using the SparkPost API.
 

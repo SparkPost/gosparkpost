@@ -1,0 +1,9 @@
+{
+    "recipients": [
+        {
+            "recipient": "john.doe@domain.com",
+            "type": "non_transactional",
+            "description": "entry description"
+        }
+    ]
+}

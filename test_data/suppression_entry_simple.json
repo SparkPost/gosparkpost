@@ -1,0 +1,9 @@
+ {
+    "recipient": "john.doe@domain.com",
+    "description": "entry description",
+    "source": "manually created",
+    "type": "non_transactional",
+    "created": "2016-05-02T16:29:56+00:00",
+    "updated": "2016-05-02T17:20:50+00:00",
+    "non_transactional": true
+}
