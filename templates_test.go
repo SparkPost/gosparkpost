@@ -228,6 +228,9 @@ func TestTemplates(t *testing.T) {
 		json   string
 	}{
 		{errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
+		{errors.New("[{\"message\":\"truncated json\",\"code\":\"\",\"description\":\"\"}]"), 0, `{ "errors": [ { "message": "truncated json" } ] }`},
+		{nil, 200, `{ "results": [ { "description": "A test message from SparkPost.com", "id": "my-first-email", "last_update_time": "2006-01-02T15:04:05+00:00", "name": "My First Email", "published": false } ] }`},
+		{errors.New("Unexpected response to Template list"), 200, `{ "foo": [ { "description": "A malformed message from SparkPost.com" } ] }`},
 	} {
 		testSetup(t)
 		defer testTeardown()
