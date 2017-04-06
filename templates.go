@@ -352,22 +352,8 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
-		return
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "delete")
-		if err != nil {
-			return
-		}
-
-		// handle template-specific ones
-		if res.HTTP.StatusCode == 409 {
-			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	if res.HTTP.StatusCode != 200 {
+		err = res.Errors
 	}
 
 	return

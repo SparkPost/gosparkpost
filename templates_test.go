@@ -244,3 +244,27 @@ func TestTemplates(t *testing.T) {
 		}
 	}
 }
+
+func TestTemplateDelete(t *testing.T) {
+	for idx, test := range []struct {
+		id     string
+		err    error
+		status int
+		json   string
+	}{
+		{"", errors.New("Delete called with blank id"), 0, ""},
+		{"nope", errors.New("[{\"message\":\"Resource could not be found\",\"code\":\"\",\"description\":\"\"}]"), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`},
+		{"id", nil, 200, "{}"},
+	} {
+		testSetup(t)
+		defer testTeardown()
+		mockRestResponseBuilderFormat(t, "DELETE", test.status, sp.TemplatesPathFormat+"/"+test.id, test.json)
+
+		_, err := testClient.TemplateDelete(test.id)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("TemplateDelete[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("TemplateDelete[%d] => err %q want %q", idx, err, test.err)
+		}
+	}
+}
