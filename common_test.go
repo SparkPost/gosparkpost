@@ -2,9 +2,13 @@ package gosparkpost_test
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -52,4 +56,31 @@ func testFailVerbose(t *testing.T, res *sp.Response, fmt string, args ...interfa
 		}
 	}
 	t.Fatalf(fmt, args...)
+}
+
+func loadTestFile(t *testing.T, fileToLoad string) string {
+	b, err := ioutil.ReadFile(fileToLoad)
+
+	if err != nil {
+		t.Fatalf("Failed to load test data: %v", err)
+	}
+
+	return string(b)
+}
+
+func AreEqualJSON(s1, s2 string) (bool, error) {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 1 :: %s", err.Error())
+	}
+	err = json.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
+	}
+
+	return reflect.DeepEqual(o1, o2), nil
 }
