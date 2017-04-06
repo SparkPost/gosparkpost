@@ -3,10 +3,8 @@ package gosparkpost
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -14,7 +12,6 @@ import (
 	"regexp"
 	"strings"
 
-	certifi "github.com/certifi/gocertifi"
 	"github.com/pkg/errors"
 )
 
@@ -31,10 +28,12 @@ type Config struct {
 // Client contains connection, configuration, and authentication information.
 // Specifying your own http.Client gives you lots of control over how connections are made.
 // Clients are safe for concurrent (read-only) reuse by multiple goroutines.
+// Headers is useful to set subaccount (X-MSYS-SUBACCOUNT header) and any other custom headers.
+// All changes to Headers must happen before Client is exposed to possible concurrent use.
 type Client struct {
 	Config  *Config
 	Client  *http.Client
-	headers map[string]string
+	Headers *http.Header
 }
 
 var nonDigit *regexp.Regexp = regexp.MustCompile(`\D`)
@@ -66,11 +65,14 @@ type Response struct {
 	Body    []byte
 	Verbose map[string]string
 	Results interface{} `json:"results,omitempty"`
-	Errors  []Error     `json:"errors,omitempty"`
+	Errors  SPErrors    `json:"errors,omitempty"`
 }
 
-// Error mirrors the error format returned by SparkPost APIs.
-type Error struct {
+// SPErrors is the plural of SPError
+type SPErrors []SPError
+
+// SPError mirrors the error format returned by SparkPost APIs.
+type SPError struct {
 	Message     string `json:"message"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
@@ -78,12 +80,11 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
-func (e Error) Json() (string, error) {
-	jsonBytes, err := json.Marshal(e)
-	if err != nil {
-		return "", errors.Wrap(err, "marshaling json")
-	}
-	return string(jsonBytes), nil
+// Error satisfies the builtin Error interface
+func (e SPErrors) Error() string {
+	// safe to ignore errors when Marshaling a constant type
+	jsonb, _ := json.Marshal(e)
+	return string(jsonb)
 }
 
 // Init pulls together everything necessary to make an API request.
@@ -99,41 +100,9 @@ func (api *Client) Init(cfg *Config) error {
 		cfg.ApiVersion = 1
 	}
 	api.Config = cfg
-	api.headers = make(map[string]string)
-
-	if api.Client == nil {
-		// Ran into an issue where USERTrust was not recognized on OSX.
-		// The rest of this block was the fix.
-
-		// load Mozilla cert pool
-		pool, err := certifi.CACerts()
-		if err != nil {
-			return errors.Wrap(err, "loading certifi cert pool")
-		}
-
-		// configure transport using Mozilla cert pool
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: pool},
-		}
-
-		// configure http client using transport
-		api.Client = &http.Client{Transport: transport}
-	}
+	api.Headers = &http.Header{}
 
 	return nil
-}
-
-// SetHeader adds additional HTTP headers for every API request made from client.
-// Useful to set subaccount X-MSYS-SUBACCOUNT header and etc.
-// All calls to SetHeader must happen before Client is exposed to possible concurrent use.
-func (c *Client) SetHeader(header string, value string) {
-	c.headers[header] = value
-}
-
-// RemoveHeader removes a header set in SetHeader function
-// All calls to RemoveHeader must happen before Client is exposed to possible concurrent use.
-func (c *Client) RemoveHeader(header string) {
-	delete(c.headers, header)
 }
 
 // HttpPost sends a Post request with the provided JSON payload to the specified url.
@@ -196,8 +165,10 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	}
 
 	// Forward additional headers set in client to request
-	for header, value := range c.headers {
-		req.Header.Set(header, value)
+	for header, values := range map[string][]string(*c.Headers) {
+		for _, value := range values {
+			req.Header.Add(header, value)
+		}
 	}
 
 	if ctx == nil {
@@ -206,15 +177,9 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	// set any headers provided in context
 	if header, ok := ctx.Value("http.Header").(http.Header); ok {
 		for key, vals := range map[string][]string(header) {
-			if len(vals) >= 1 {
-				// replace existing headers, default, or from Client.headers
-				req.Header.Set(key, vals[0])
-			}
-			if len(vals) > 2 {
-				for _, val := range vals[1:] {
-					// allow setting multiple values because why not
-					req.Header.Add(key, val)
-				}
+			req.Header.Del(key)
+			for _, val := range vals {
+				req.Header.Add(key, val)
 			}
 		}
 	}
@@ -234,7 +199,7 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	if c.Config.Verbose {
 		ares.Verbose["http_status"] = ares.HTTP.Status
 		bodyBytes, dumpErr := httputil.DumpResponse(res, true)
-		if err != nil {
+		if dumpErr != nil {
 			ares.Verbose["http_responsedump_err"] = dumpErr.Error()
 		} else {
 			ares.Verbose["http_responsedump"] = string(bodyBytes)
@@ -278,6 +243,10 @@ func (r *Response) ParseResponse() error {
 	if err != nil {
 		return err
 	}
+	// Don't try to unmarshal an empty response
+	if bytes.Compare(body, []byte("")) == 0 {
+		return nil
+	}
 
 	err = json.Unmarshal(body, r)
 	if err != nil {
@@ -292,6 +261,15 @@ func (r *Response) AssertJson() error {
 	if r.HTTP == nil {
 		return errors.New("AssertJson got nil http.Response")
 	}
+	body, err := r.ReadBody()
+	if err != nil {
+		return err
+	}
+	// Don't fail on an empty response
+	if bytes.Compare(body, []byte("")) == 0 {
+		return nil
+	}
+
 	ctype := r.HTTP.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(ctype)
 	if err != nil {
@@ -299,7 +277,7 @@ func (r *Response) AssertJson() error {
 	}
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
 	if mediaType != "application/json" {
-		return fmt.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
+		return errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
 	}
 	return nil
 }
@@ -313,12 +291,12 @@ func (r *Response) PrettyError(noun, verb string) error {
 	}
 	code := r.HTTP.StatusCode
 	if code == 404 {
-		return fmt.Errorf("%s does not exist, %s failed.", noun, verb)
+		return errors.Errorf("%s does not exist, %s failed.", noun, verb)
 	} else if code == 401 {
-		return fmt.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
+		return errors.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
 	} else if code == 403 {
 		// This is what happens if an endpoint URL gets typo'd.
-		return fmt.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
+		return errors.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
 	}
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // https://www.sparkpost.com/api#/reference/templates
-var templatesPathFormat = "/api/v%d/templates"
+var TemplatesPathFormat = "/api/v%d/templates"
 
 // Template is the JSON structure accepted by and returned from the SparkPost Templates API.
 // It's mostly metadata at this level - see Content and Options for more detail.
@@ -179,11 +179,6 @@ func (t *Template) Validate() error {
 	return nil
 }
 
-// SetHeaders is a convenience method which sets Template.Content.Headers to the provided map.
-func (t *Template) SetHeaders(headers map[string]string) {
-	t.Content.Headers = headers
-}
-
 // TemplateCreate accepts a populated Template object, validates its Contents,
 // and performs an API call against the configured endpoint.
 func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err error) {
@@ -202,12 +197,10 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		return
 	}
 
-	jsonBytes, err := json.Marshal(t)
-	if err != nil {
-		return
-	}
+	// A Template that makes it past Validate() will always Marshal
+	jsonBytes, _ := json.Marshal(t)
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
@@ -233,20 +226,8 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "create")
-		if err != nil {
-			return
-		}
-
-		if res.HTTP.StatusCode == 422 { // template syntax error
-			eobj := res.Errors[0]
-			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	} else {
+		err = res.Errors
 	}
 
 	return
@@ -259,6 +240,11 @@ func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
 
 // TemplateUpdateContext is the same as TemplateUpdate, and it allows the caller to provide a context
 func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *Response, err error) {
+	if t == nil {
+		err = fmt.Errorf("Update called with nil Template")
+		return
+	}
+
 	if t.ID == "" {
 		err = fmt.Errorf("Update called with blank id")
 		return
@@ -269,12 +255,10 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 		return
 	}
 
-	jsonBytes, err := json.Marshal(t)
-	if err != nil {
-		return
-	}
+	// A Template that makes it past Validate() will always Marshal
+	jsonBytes, _ := json.Marshal(t)
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
 
 	res, err = c.HttpPut(ctx, url, jsonBytes)
@@ -286,26 +270,11 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 		return
 	}
 
-	err = res.ParseResponse()
-	if err != nil {
-		return
-	}
-
 	if res.HTTP.StatusCode == 200 {
 		return
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "update")
-		if err != nil {
-			return
-		}
-
-		// handle template-specific ones
-		if res.HTTP.StatusCode == 409 {
-			err = fmt.Errorf("Template with id [%s] is in use by msg generation", t.ID)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+	} else {
+		if err = res.ParseResponse(); err == nil {
+			err = res.Errors
 		}
 	}
 
@@ -319,8 +288,8 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 
 // TemplatesContext is the same as Templates, and it allows the caller to provide a context
 func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, error) {
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
-	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
+	url := c.Config.BaseUrl + path
 	res, err := c.HttpGet(ctx, url)
 	if err != nil {
 		return nil, nil, err
@@ -349,13 +318,7 @@ func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, e
 		if err != nil {
 			return nil, res, err
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Template", "list")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return nil, res, err
@@ -373,7 +336,7 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
 	res, err = c.HttpDelete(ctx, url)
 	if err != nil {
@@ -389,22 +352,8 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
-		return
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "delete")
-		if err != nil {
-			return
-		}
-
-		// handle template-specific ones
-		if res.HTTP.StatusCode == 409 {
-			err = fmt.Errorf("Template with id [%s] is in use by msg generation", id)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	if res.HTTP.StatusCode != 200 {
+		err = res.Errors
 	}
 
 	return
@@ -431,7 +380,7 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	path := fmt.Sprintf(templatesPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s/preview", c.Config.BaseUrl, path, id)
 	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
@@ -447,19 +396,8 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "preview")
-		if err != nil {
-			return
-		}
-
-		if res.HTTP.StatusCode == 422 { // preview payload error
-			eobj := res.Errors[0]
-			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	if res.HTTP.StatusCode != 200 {
+		err = res.Errors
 	}
 
 	return
