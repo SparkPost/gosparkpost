@@ -270,8 +270,12 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 		}
 
 		// Unwrap the returned Template
-		if err = json.Unmarshal(body, &map[string]*Template{"results": t}); err != nil {
-			return res, err
+		tmp := map[string]*json.RawMessage{}
+		if err = json.Unmarshal(body, &tmp); err != nil {
+		} else if results, ok := tmp["results"]; ok {
+			err = json.Unmarshal(*results, t)
+		} else {
+			err = errors.New("Unexpected response to TemplateGet")
 		}
 	} else {
 		err = res.ParseResponse()
