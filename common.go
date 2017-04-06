@@ -261,6 +261,15 @@ func (r *Response) AssertJson() error {
 	if r.HTTP == nil {
 		return errors.New("AssertJson got nil http.Response")
 	}
+	body, err := r.ReadBody()
+	if err != nil {
+		return err
+	}
+	// Don't fail on an empty response
+	if bytes.Compare(body, []byte("")) == 0 {
+		return nil
+	}
+
 	ctype := r.HTTP.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(ctype)
 	if err != nil {

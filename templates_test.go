@@ -3,8 +3,6 @@ package gosparkpost_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -169,14 +167,7 @@ func TestTemplateCreate(t *testing.T) {
 	} {
 		testSetup(t)
 		defer testTeardown()
-
-		path := fmt.Sprintf(sp.TemplatesPathFormat, testClient.Config.ApiVersion)
-		testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-			testMethod(t, r, "POST")
-			w.Header().Set("Content-Type", "application/json; charset=utf8")
-			w.WriteHeader(test.status)
-			w.Write([]byte(test.json))
-		})
+		mockRestResponseBuilderFormat(t, "POST", test.status, sp.TemplatesPathFormat, test.json)
 
 		id, _, err := testClient.TemplateCreate(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
@@ -219,19 +210,12 @@ func TestTemplateUpdate(t *testing.T) {
 		if test.in != nil {
 			id = test.in.ID
 		}
-		path := fmt.Sprintf(sp.TemplatesPathFormat+"/"+id, testClient.Config.ApiVersion)
-		testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-			testMethod(t, r, "PUT")
-			w.Header().Set("Content-Type", "application/json; charset=utf8")
-			w.WriteHeader(test.status)
-			w.Write([]byte(test.json))
-		})
+		mockRestResponseBuilderFormat(t, "PUT", test.status, sp.TemplatesPathFormat+"/"+id, test.json)
 
 		_, err := testClient.TemplateUpdate(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
-			t.Logf("%+v")
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		}
 	}
@@ -247,14 +231,7 @@ func TestTemplates(t *testing.T) {
 	} {
 		testSetup(t)
 		defer testTeardown()
-
-		path := fmt.Sprintf(sp.TemplatesPathFormat, testClient.Config.ApiVersion)
-		testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-			testMethod(t, r, "GET")
-			w.Header().Set("Content-Type", "application/json; charset=utf8")
-			w.WriteHeader(test.status)
-			w.Write([]byte(test.json))
-		})
+		mockRestResponseBuilderFormat(t, "GET", test.status, sp.TemplatesPathFormat, test.json)
 
 		_, _, err := testClient.Templates()
 		if err == nil && test.err != nil || err != nil && test.err == nil {
