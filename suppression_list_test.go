@@ -2,6 +2,7 @@ package gosparkpost_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -418,8 +419,9 @@ func TestClient_SuppressionUpsert_1_entry(t *testing.T) {
 	testSetup(t)
 	defer testTeardown()
 
+	var expectedRequest = loadTestFile(t, "test_data/suppression_entry_simple_request.json")
 	var mockResponse = "{}"
-	mockRestBuilderFormat(t, "PUT", sp.SuppressionListsPathFormat, mockResponse)
+	mockRestRequestResponseBuilderFormat(t, "PUT", http.StatusOK, sp.SuppressionListsPathFormat, expectedRequest, mockResponse)
 
 	entry := sp.WritableSuppressionEntry{
 		Recipient:   "john.doe@domain.com",
@@ -565,7 +567,32 @@ func mockRestResponseBuilderFormat(t *testing.T, method string, status int, path
 }
 
 func mockRestResponseBuilder(t *testing.T, method string, status int, path string, mockResponse string) {
+	mockRestRequestResponseBuilder(t, method, status, path, "", mockResponse)
+}
+
+func mockRestRequestResponseBuilderFormat(t *testing.T, method string, status int, pathFormat string, expectedBody string, mockResponse string) {
+	path := fmt.Sprintf(pathFormat, testClient.Config.ApiVersion)
+	mockRestRequestResponseBuilder(t, method, status, path, expectedBody, mockResponse)
+}
+
+func mockRestRequestResponseBuilder(t *testing.T, method string, status int, path string, expectedBody string, mockResponse string) {
 	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if expectedBody != "" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				testFailVerbose(t, nil, "error: %v", err)
+			}
+
+			ok, err := AreEqualJSON(expectedBody, string(body[:]))
+			if err != nil {
+				testFailVerbose(t, nil, "error: %v", err)
+			}
+
+			if !ok {
+				testFailVerbose(t, nil, "Request did not match expected. \nExpected: \n%s\n\nActual:\n%s\n\n", err)
+			}
+		}
+
 		testMethod(t, r, method)
 		if mockResponse != "" {
 			w.Header().Set("Content-Type", "application/json; charset=utf8")
