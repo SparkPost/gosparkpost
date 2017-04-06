@@ -65,11 +65,14 @@ type Response struct {
 	Body    []byte
 	Verbose map[string]string
 	Results interface{} `json:"results,omitempty"`
-	Errors  []Error     `json:"errors,omitempty"`
+	Errors  SPErrors    `json:"errors,omitempty"`
 }
 
-// Error mirrors the error format returned by SparkPost APIs.
-type Error struct {
+// SPErrors is the plural of SPError
+type SPErrors []SPError
+
+// SPError mirrors the error format returned by SparkPost APIs.
+type SPError struct {
 	Message     string `json:"message"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
@@ -77,7 +80,8 @@ type Error struct {
 	Line        int    `json:"line,omitempty"`
 }
 
-func (e Error) Json() string {
+// Error satisfies the builtin Error interface
+func (e SPErrors) Error() string {
 	// safe to ignore errors when Marshaling a constant type
 	jsonb, _ := json.Marshal(e)
 	return string(jsonb)

@@ -156,7 +156,12 @@ var templatePostSuccessTests = []struct {
 		200, `{"results":{"ID":"new-template"}}`, ""},
 
 	{&sp.Template{Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
-		errors.New("3000: substitution language syntax error in template content\nError while compiling header Subject: substitution statement missing ending '}}'"),
+		sp.SPErrors([]sp.SPError{{
+			Message:     "substitution language syntax error in template content",
+			Description: "Error while compiling header Subject: substitution statement missing ending '}}'",
+			Code:        "3000",
+			Part:        "Header:Subject",
+		}}),
 		422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`, ""},
 
 	{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil,
@@ -197,6 +202,15 @@ var templateUpdateTests = []struct {
 	{&sp.Template{ID: ""}, errors.New("Update called with blank id"), 0, ""},
 	{&sp.Template{ID: "id", Content: sp.Content{}}, errors.New("Template requires a non-empty Content.Subject"), 0, ""},
 	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil, 200, ""},
+
+	{&sp.Template{ID: "id", Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
+		sp.SPErrors([]sp.SPError{{
+			Message:     "substitution language syntax error in template content",
+			Description: "Error while compiling header Subject: substitution statement missing ending '}}'",
+			Code:        "3000",
+			Part:        "Header:Subject",
+		}}),
+		422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`},
 }
 
 func TestTemplateUpdate(t *testing.T) {
@@ -216,10 +230,11 @@ func TestTemplateUpdate(t *testing.T) {
 			w.Write([]byte(test.json))
 		})
 
-		_, err := testClient.TemplateUpdate(test.in)
+		res, err := testClient.TemplateUpdate(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
+			t.Logf("%+v", res)
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		}
 	}

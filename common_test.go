@@ -79,11 +79,11 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestJson(t *testing.T) {
-	var e = &sp.Error{Message: "This is fine."}
-	var exp = `{"message":"This is fine.","code":"","description":""}`
-	str := e.Json()
+	var e = sp.SPErrors([]sp.SPError{{Message: "This is fine."}})
+	var exp = `[{"message":"This is fine.","code":"","description":""}]`
+	str := e.Error()
 	if str != exp {
-		t.Errorf("*Error.Json => %q, want %q", str, exp)
+		t.Errorf("*SPError.Stringify => %q, want %q", str, exp)
 	}
 }
 

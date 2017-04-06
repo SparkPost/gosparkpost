@@ -226,20 +226,8 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		if !ok {
 			err = fmt.Errorf("Unexpected response to Template creation")
 		}
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "create")
-		if err != nil {
-			return
-		}
-
-		if res.HTTP.StatusCode == 422 { // template syntax error
-			eobj := res.Errors[0]
-			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	} else {
+		err = res.Errors
 	}
 
 	return
@@ -287,19 +275,8 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 	if res.HTTP.StatusCode == 200 {
 		return
 
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Template", "update")
-		if err != nil {
-			return
-		}
-
-		// handle template-specific ones
-		if res.HTTP.StatusCode == 409 {
-			err = fmt.Errorf("Template with id [%s] is in use by msg generation", t.ID)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+	} else {
+		err = res.Errors
 	}
 
 	return
