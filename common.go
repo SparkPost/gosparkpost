@@ -239,6 +239,10 @@ func (r *Response) ParseResponse() error {
 	if err != nil {
 		return err
 	}
+	// Don't try to unmarshal an empty response
+	if bytes.Compare(body, []byte("")) == 0 {
+		return nil
+	}
 
 	err = json.Unmarshal(body, r)
 	if err != nil {

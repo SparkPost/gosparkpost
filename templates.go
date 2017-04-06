@@ -279,8 +279,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 	}
 
 	if res.AssertJson() == nil {
-		err = res.ParseResponse()
-		if err != nil {
+		if err = res.ParseResponse(); err != nil {
 			return
 		}
 	}
