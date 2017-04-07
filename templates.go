@@ -277,6 +277,7 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 		} else {
 			err = errors.New("Unexpected response to TemplateGet")
 		}
+		return res, err
 	} else {
 		err = res.ParseResponse()
 		if err != nil {
@@ -284,8 +285,6 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 		}
 		return res, res.Errors
 	}
-
-	return res, nil
 }
 
 // TemplateUpdate updates a draft/published template with the specified id

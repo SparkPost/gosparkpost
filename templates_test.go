@@ -193,8 +193,11 @@ func TestTemplateGet(t *testing.T) {
 		{nil, false, errors.New("TemplateGet called with nil Template"), 200, "", nil},
 		{&sp.Template{ID: ""}, false, errors.New("TemplateGet called with blank id"), 200, "", nil},
 		{&sp.Template{ID: "nope"}, false, errors.New(`[{"message":"Resource could not be found","code":"","description":""}]`), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`, nil},
+		{&sp.Template{ID: "nope"}, false, errors.New("parsing api response: unexpected end of JSON input"), 404, `{ "errors": [ { "message": "Resource could not be found" } ]`, nil},
+		{&sp.Template{ID: "id"}, false, errors.New("Unexpected response to TemplateGet"), 200, `{"foo":{}}`, nil},
+		{&sp.Template{ID: "id"}, false, errors.New("unexpected end of JSON input"), 200, `{"foo":{}`, nil},
 
-		{&sp.Template{ID: "id"}, false, nil, 200, `{"results":{"content":{"from":{"email":"a@b.com","name": "a b"},"html":"<blink>hi!</blink>","subject":"blink","text":"no blink ;_;"},"id":"id"}}`, &sp.Template{ID: "id", Content: sp.Content{From: map[string]string{"email": "a@b.com", "name": "a b"}, HTML: "<blink>hi!</blink>", Text: "no blink ;_;", Subject: "blink"}}},
+		{&sp.Template{ID: "id"}, false, nil, 200, `{"results":{"content":{"from":{"email":"a@b.com","name": "a b"},"html":"<blink>hi!</blink>","subject":"blink","text":"no blink ;_;"},"id":"id"}}`, &sp.Template{ID: "id", Content: sp.Content{From: map[string]interface{}{"email": "a@b.com", "name": "a b"}, HTML: "<blink>hi!</blink>", Text: "no blink ;_;", Subject: "blink"}}},
 	} {
 		testSetup(t)
 		defer testTeardown()
@@ -211,9 +214,14 @@ func TestTemplateGet(t *testing.T) {
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		} else if test.out != nil {
-			var t_in = *test.in
-			var t_out = *test.out
-			if !reflect.DeepEqual(t_in, t_out) {
+			var b bool
+			if test.in.Options == nil {
+				test.in.Options = &sp.TmplOptions{&b, &b, &b}
+			}
+			if test.out.Options == nil {
+				test.out.Options = &sp.TmplOptions{&b, &b, &b}
+			}
+			if !reflect.DeepEqual(test.out, test.in) {
 				t.Errorf("TemplateUpdate[%d] => template got/want:\n%q\n%q", idx, test.in, test.out)
 			}
 		}
