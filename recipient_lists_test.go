@@ -79,3 +79,44 @@ func TestRecipientListValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestRecipientListCreate(t *testing.T) {
+	for idx, test := range []struct {
+		in     *sp.RecipientList
+		err    error
+		status int
+		json   string
+		id     string
+	}{
+		{nil, errors.New("Create called with nil RecipientList"), 0, "", ""},
+		{&sp.RecipientList{}, errors.New("RecipientList requires at least one Recipient"), 0, "", ""},
+		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+			errors.New("Unexpected response to Recipient List creation (results)"), 200, `{"foo":{"id":"id"}}`, ""},
+		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+			errors.New("Unexpected response to Recipient List creation (id)"), 200, `{"results":{"ID":"id"}}`, ""},
+		{&sp.RecipientList{ID: "id", Attributes: func() { return }, Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+			errors.New("json: unsupported type: func()"), 200, `{"results":{"ID":"id"}}`, ""},
+		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+			errors.New("parsing api response: unexpected end of JSON input"), 200, `{"results":{"ID":"id"}`, ""},
+
+		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+			errors.New(`[{"message":"List already exists","code":"5001","description":"List 'id' already exists"}]`), 400,
+			`{"errors":[{"message":"List already exists","code":"5001","description":"List 'id' already exists"}]}`, ""},
+
+		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}}, nil, 200,
+			`{"results":{"total_rejected_recipients": 0,"total_accepted_recipients":1,"id":"id"}}`, "id"},
+	} {
+		testSetup(t)
+		defer testTeardown()
+		mockRestResponseBuilderFormat(t, "POST", test.status, sp.RecipientListsPathFormat, test.json)
+
+		id, _, err := testClient.RecipientListCreate(test.in)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("RecipientListCreate[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("RecipientListCreate[%d] => err %q want %q", idx, err, test.err)
+		} else if id != test.id {
+			t.Errorf("RecipientListCreate[%d] => id %q want %q", idx, id, test.id)
+		}
+	}
+}
