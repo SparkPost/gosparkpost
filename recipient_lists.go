@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // https://www.sparkpost.com/api#/reference/recipient-lists
@@ -21,17 +23,6 @@ type RecipientList struct {
 	Recipients  *[]Recipient `json:"recipients"`
 
 	Accepted *int `json:"total_accepted_recipients,omitempty"`
-}
-
-func (rl *RecipientList) String() string {
-	n := 0
-	if rl.Recipients != nil {
-		n = len(*rl.Recipients)
-	} else if rl.Accepted != nil {
-		n = *rl.Accepted
-	}
-	return fmt.Sprintf("ID:\t%s\nName:\t%s\nDesc:\t%s\nCount:\t%d\n",
-		rl.ID, rl.Name, rl.Description, n)
 }
 
 // Recipient represents one email (you guessed it) recipient.
@@ -105,18 +96,22 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 // Validate runs sanity checks on a RecipientList struct. This should
 // catch most errors before attempting a doomed API call.
 func (rl *RecipientList) Validate() error {
+	if rl == nil {
+		return errors.New("Can't validate a nil RecipientList")
+	}
+
 	// enforce required parameters
 	if rl.Recipients == nil || len(*rl.Recipients) <= 0 {
-		return fmt.Errorf("RecipientList requires at least one Recipient")
+		return errors.New("RecipientList requires at least one Recipient")
 	}
 
 	// enforce max lengths
 	if len(rl.ID) > 64 {
-		return fmt.Errorf("RecipientList id may not be longer than 64 bytes")
+		return errors.New("RecipientList id may not be longer than 64 bytes")
 	} else if len(rl.Name) > 64 {
-		return fmt.Errorf("RecipientList name may not be longer than 64 bytes")
+		return errors.New("RecipientList name may not be longer than 64 bytes")
 	} else if len(rl.Description) > 1024 {
-		return fmt.Errorf("RecipientList description may not be longer than 1024 bytes")
+		return errors.New("RecipientList description may not be longer than 1024 bytes")
 	}
 
 	var err error

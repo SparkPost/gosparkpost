@@ -2,6 +2,7 @@ package gosparkpost_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
@@ -29,6 +30,52 @@ func TestAddressValidation(t *testing.T) {
 			t.Errorf("ParseAddress[%d] => err %q, want %q", idx, err, test.err)
 		} else if !reflect.DeepEqual(a, test.out) {
 			t.Errorf("ParseAddress[%d] => got/want:\n%q\n%q", idx, a, test.out)
+		}
+	}
+}
+
+func TestRecipientValidation(t *testing.T) {
+	for idx, test := range []struct {
+		in  sp.Recipient
+		err error
+	}{
+		{sp.Recipient{}, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]")},
+		{sp.Recipient{Address: "a@b.com"}, nil},
+	} {
+		err := test.in.Validate()
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("Recipient.Validate[%d] => err %q, want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("Recipient.Validate[%d] => err %q, want %q", idx, err, test.err)
+		}
+	}
+}
+
+func TestRecipientListValidation(t *testing.T) {
+	for idx, test := range []struct {
+		in  *sp.RecipientList
+		err error
+	}{
+		{nil, errors.New("Can't validate a nil RecipientList")},
+		{&sp.RecipientList{}, errors.New("RecipientList requires at least one Recipient")},
+
+		{&sp.RecipientList{ID: strings.Repeat("id", 33),
+			Recipients: &[]sp.Recipient{{}}}, errors.New("RecipientList id may not be longer than 64 bytes")},
+		{&sp.RecipientList{ID: "id", Name: strings.Repeat("name", 17),
+			Recipients: &[]sp.Recipient{{}}}, errors.New("RecipientList name may not be longer than 64 bytes")},
+		{&sp.RecipientList{ID: "id", Name: "name", Description: strings.Repeat("desc", 257),
+			Recipients: &[]sp.Recipient{{}}}, errors.New("RecipientList description may not be longer than 1024 bytes")},
+
+		{&sp.RecipientList{ID: "id", Name: "name", Description: "desc",
+			Recipients: &[]sp.Recipient{{}}}, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]")},
+		{&sp.RecipientList{ID: "id", Name: "name", Description: "desc",
+			Recipients: &[]sp.Recipient{{Address: "a@b.com"}}}, nil},
+	} {
+		err := test.in.Validate()
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("RecipientList.Validate[%d] => err %q, want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("RecipientList.Validate[%d] => err %q, want %q", idx, err, test.err)
 		}
 	}
 }
