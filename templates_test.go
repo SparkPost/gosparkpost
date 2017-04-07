@@ -214,13 +214,6 @@ func TestTemplateGet(t *testing.T) {
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		} else if test.out != nil {
-			var b bool
-			if test.in.Options == nil {
-				test.in.Options = &sp.TmplOptions{&b, &b, &b}
-			}
-			if test.out.Options == nil {
-				test.out.Options = &sp.TmplOptions{&b, &b, &b}
-			}
 			if !reflect.DeepEqual(test.out, test.in) {
 				t.Errorf("TemplateUpdate[%d] => template got/want:\n%q\n%q", idx, test.in, test.out)
 			}
