@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // https://www.sparkpost.com/api#/reference/templates
@@ -231,6 +233,58 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 	}
 
 	return
+}
+
+// TemplateGet fills out the provided template, using the specified id.
+func (c *Client) TemplateGet(t *Template, draft bool) (*Response, error) {
+	return c.TemplateGetContext(context.Background(), t, draft)
+}
+
+// TemplateGetContext is the same as TemplateGet, and it allows the caller to provide a context
+func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool) (*Response, error) {
+	if t == nil {
+		return nil, errors.New("TemplateGet called with nil Template")
+	}
+
+	if t.ID == "" {
+		return nil, errors.New("TemplateGet called with blank id")
+	}
+
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s/%s?draft=%t", c.Config.BaseUrl, path, t.ID, draft)
+
+	res, err := c.HttpGet(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = res.AssertJson(); err != nil {
+		return res, err
+	}
+
+	if res.HTTP.StatusCode == 200 {
+		var body []byte
+		body, err = res.ReadBody()
+		if err != nil {
+			return res, err
+		}
+
+		// Unwrap the returned Template
+		tmp := map[string]*json.RawMessage{}
+		if err = json.Unmarshal(body, &tmp); err != nil {
+		} else if results, ok := tmp["results"]; ok {
+			err = json.Unmarshal(*results, t)
+		} else {
+			err = errors.New("Unexpected response to TemplateGet")
+		}
+		return res, err
+	} else {
+		err = res.ParseResponse()
+		if err != nil {
+			return res, err
+		}
+		return res, res.Errors
+	}
 }
 
 // TemplateUpdate updates a draft/published template with the specified id

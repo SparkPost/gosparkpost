@@ -3,6 +3,7 @@ package gosparkpost_test
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -176,6 +177,46 @@ func TestTemplateCreate(t *testing.T) {
 			t.Errorf("TemplateCreate[%d] => err %q want %q", idx, err, test.err)
 		} else if id != test.id {
 			t.Errorf("TemplateCreate[%d] => id %q want %q", idx, id, test.id)
+		}
+	}
+}
+
+func TestTemplateGet(t *testing.T) {
+	for idx, test := range []struct {
+		in     *sp.Template
+		draft  bool
+		err    error
+		status int
+		json   string
+		out    *sp.Template
+	}{
+		{nil, false, errors.New("TemplateGet called with nil Template"), 200, "", nil},
+		{&sp.Template{ID: ""}, false, errors.New("TemplateGet called with blank id"), 200, "", nil},
+		{&sp.Template{ID: "nope"}, false, errors.New(`[{"message":"Resource could not be found","code":"","description":""}]`), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`, nil},
+		{&sp.Template{ID: "nope"}, false, errors.New("parsing api response: unexpected end of JSON input"), 404, `{ "errors": [ { "message": "Resource could not be found" } ]`, nil},
+		{&sp.Template{ID: "id"}, false, errors.New("Unexpected response to TemplateGet"), 200, `{"foo":{}}`, nil},
+		{&sp.Template{ID: "id"}, false, errors.New("unexpected end of JSON input"), 200, `{"foo":{}`, nil},
+
+		{&sp.Template{ID: "id"}, false, nil, 200, `{"results":{"content":{"from":{"email":"a@b.com","name": "a b"},"html":"<blink>hi!</blink>","subject":"blink","text":"no blink ;_;"},"id":"id"}}`, &sp.Template{ID: "id", Content: sp.Content{From: map[string]interface{}{"email": "a@b.com", "name": "a b"}, HTML: "<blink>hi!</blink>", Text: "no blink ;_;", Subject: "blink"}}},
+	} {
+		testSetup(t)
+		defer testTeardown()
+
+		id := ""
+		if test.in != nil {
+			id = test.in.ID
+		}
+		mockRestResponseBuilderFormat(t, "GET", test.status, sp.TemplatesPathFormat+"/"+id, test.json)
+
+		_, err := testClient.TemplateGet(test.in, test.draft)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
+		} else if test.out != nil {
+			if !reflect.DeepEqual(test.out, test.in) {
+				t.Errorf("TemplateUpdate[%d] => template got/want:\n%q\n%q", idx, test.in, test.out)
+			}
 		}
 	}
 }
