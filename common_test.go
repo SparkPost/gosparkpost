@@ -59,18 +59,16 @@ func testFailVerbose(t *testing.T, res *sp.Response, fmt string, args ...interfa
 	t.Fatalf(fmt, args...)
 }
 
-var newConfigTests = []struct {
-	in  map[string]string
-	cfg *sp.Config
-	err error
-}{
-	{map[string]string{}, nil, errors.New("BaseUrl is required for api config")},
-	{map[string]string{"baseurl": "http://example.com"}, nil, errors.New("ApiKey is required for api config")},
-	{map[string]string{"baseurl": "http://example.com", "apikey": "foo"}, &sp.Config{BaseUrl: "http://example.com", ApiKey: "foo"}, nil},
-}
-
 func TestNewConfig(t *testing.T) {
-	for idx, test := range newConfigTests {
+	for idx, test := range []struct {
+		in  map[string]string
+		cfg *sp.Config
+		err error
+	}{
+		{map[string]string{}, nil, errors.New("BaseUrl is required for api config")},
+		{map[string]string{"baseurl": "http://example.com"}, nil, errors.New("ApiKey is required for api config")},
+		{map[string]string{"baseurl": "http://example.com", "apikey": "foo"}, &sp.Config{BaseUrl: "http://example.com", ApiKey: "foo"}, nil},
+	} {
 		cfg, err := sp.NewConfig(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("NewConfig[%d] => err %q, want %q", idx, err, test.err)
@@ -101,18 +99,16 @@ func TestDoRequest_BadMethod(t *testing.T) {
 	}
 }
 
-var initTests = []struct {
-	api *sp.Client
-	cfg *sp.Config
-	out *sp.Config
-	err error
-}{
-	{&sp.Client{}, &sp.Config{BaseUrl: ""}, &sp.Config{BaseUrl: "https://api.sparkpost.com"}, nil},
-	{&sp.Client{}, &sp.Config{BaseUrl: "http://api.sparkpost.com"}, nil, errors.New("API base url must be https!")},
-}
-
 func TestInit(t *testing.T) {
-	for idx, test := range initTests {
+	for idx, test := range []struct {
+		api *sp.Client
+		cfg *sp.Config
+		out *sp.Config
+		err error
+	}{
+		{&sp.Client{}, &sp.Config{BaseUrl: ""}, &sp.Config{BaseUrl: "https://api.sparkpost.com"}, nil},
+		{&sp.Client{}, &sp.Config{BaseUrl: "http://api.sparkpost.com"}, nil, errors.New("API base url must be https!")},
+	} {
 		err := test.api.Init(test.cfg)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("Init[%d] => err %q, want %q", idx, err, test.err)
