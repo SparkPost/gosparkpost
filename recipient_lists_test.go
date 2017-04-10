@@ -60,16 +60,16 @@ func TestRecipientListValidation(t *testing.T) {
 		{&sp.RecipientList{}, errors.New("RecipientList requires at least one Recipient")},
 
 		{&sp.RecipientList{ID: strings.Repeat("id", 33),
-			Recipients: &[]sp.Recipient{{}}}, errors.New("RecipientList id may not be longer than 64 bytes")},
+			Recipients: []sp.Recipient{{}}}, errors.New("RecipientList id may not be longer than 64 bytes")},
 		{&sp.RecipientList{ID: "id", Name: strings.Repeat("name", 17),
-			Recipients: &[]sp.Recipient{{}}}, errors.New("RecipientList name may not be longer than 64 bytes")},
+			Recipients: []sp.Recipient{{}}}, errors.New("RecipientList name may not be longer than 64 bytes")},
 		{&sp.RecipientList{ID: "id", Name: "name", Description: strings.Repeat("desc", 257),
-			Recipients: &[]sp.Recipient{{}}}, errors.New("RecipientList description may not be longer than 1024 bytes")},
+			Recipients: []sp.Recipient{{}}}, errors.New("RecipientList description may not be longer than 1024 bytes")},
 
 		{&sp.RecipientList{ID: "id", Name: "name", Description: "desc",
-			Recipients: &[]sp.Recipient{{}}}, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]")},
+			Recipients: []sp.Recipient{{}}}, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]")},
 		{&sp.RecipientList{ID: "id", Name: "name", Description: "desc",
-			Recipients: &[]sp.Recipient{{Address: "a@b.com"}}}, nil},
+			Recipients: []sp.Recipient{{Address: "a@b.com"}}}, nil},
 	} {
 		err := test.in.Validate()
 		if err == nil && test.err != nil || err != nil && test.err == nil {
@@ -90,20 +90,20 @@ func TestRecipientListCreate(t *testing.T) {
 	}{
 		{nil, errors.New("Create called with nil RecipientList"), 0, "", ""},
 		{&sp.RecipientList{}, errors.New("RecipientList requires at least one Recipient"), 0, "", ""},
-		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+		{&sp.RecipientList{ID: "id", Recipients: []sp.Recipient{{Address: "a@b.com"}}},
 			errors.New("Unexpected response to Recipient List creation (results)"), 200, `{"foo":{"id":"id"}}`, ""},
-		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+		{&sp.RecipientList{ID: "id", Recipients: []sp.Recipient{{Address: "a@b.com"}}},
 			errors.New("Unexpected response to Recipient List creation (id)"), 200, `{"results":{"ID":"id"}}`, ""},
-		{&sp.RecipientList{ID: "id", Attributes: func() { return }, Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+		{&sp.RecipientList{ID: "id", Attributes: func() { return }, Recipients: []sp.Recipient{{Address: "a@b.com"}}},
 			errors.New("json: unsupported type: func()"), 200, `{"results":{"ID":"id"}}`, ""},
-		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+		{&sp.RecipientList{ID: "id", Recipients: []sp.Recipient{{Address: "a@b.com"}}},
 			errors.New("parsing api response: unexpected end of JSON input"), 200, `{"results":{"ID":"id"}`, ""},
 
-		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}},
+		{&sp.RecipientList{ID: "id", Recipients: []sp.Recipient{{Address: "a@b.com"}}},
 			errors.New(`[{"message":"List already exists","code":"5001","description":"List 'id' already exists"}]`), 400,
 			`{"errors":[{"message":"List already exists","code":"5001","description":"List 'id' already exists"}]}`, ""},
 
-		{&sp.RecipientList{ID: "id", Recipients: &[]sp.Recipient{{Address: "a@b.com"}}}, nil, 200,
+		{&sp.RecipientList{ID: "id", Recipients: []sp.Recipient{{Address: "a@b.com"}}}, nil, 200,
 			`{"results":{"total_rejected_recipients": 0,"total_accepted_recipients":1,"id":"id"}}`, "id"},
 	} {
 		testSetup(t)

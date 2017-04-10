@@ -16,11 +16,11 @@ var RecipientListsPathFormat = "/api/v%d/recipient-lists"
 // RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
 // It's mostly metadata at this level - see Recipients for more detail.
 type RecipientList struct {
-	ID          string       `json:"id,omitempty"`
-	Name        string       `json:"name,omitempty"`
-	Description string       `json:"description,omitempty"`
-	Attributes  interface{}  `json:"attributes,omitempty"`
-	Recipients  *[]Recipient `json:"recipients"`
+	ID          string      `json:"id,omitempty"`
+	Name        string      `json:"name,omitempty"`
+	Description string      `json:"description,omitempty"`
+	Attributes  interface{} `json:"attributes,omitempty"`
+	Recipients  []Recipient `json:"recipients"`
 
 	Accepted *int `json:"total_accepted_recipients,omitempty"`
 }
@@ -101,7 +101,7 @@ func (rl *RecipientList) Validate() error {
 	}
 
 	// enforce required parameters
-	if rl.Recipients == nil || len(*rl.Recipients) <= 0 {
+	if rl.Recipients == nil || len(rl.Recipients) <= 0 {
 		return errors.New("RecipientList requires at least one Recipient")
 	}
 
@@ -115,7 +115,7 @@ func (rl *RecipientList) Validate() error {
 	}
 
 	var err error
-	for _, r := range *rl.Recipients {
+	for _, r := range rl.Recipients {
 		err = r.Validate()
 		if err != nil {
 			return err
@@ -193,12 +193,12 @@ func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientLi
 }
 
 // RecipientLists returns all recipient lists
-func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
+func (c *Client) RecipientLists() ([]RecipientList, *Response, error) {
 	return c.RecipientListsContext(context.Background())
 }
 
 // RecipientListsContext is the same as RecipientLists, and it accepts a context.Context
-func (c *Client) RecipientListsContext(ctx context.Context) (*[]RecipientList, *Response, error) {
+func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *Response, error) {
 	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	res, err := c.HttpGet(ctx, url)
@@ -220,7 +220,7 @@ func (c *Client) RecipientListsContext(ctx context.Context) (*[]RecipientList, *
 		if err = json.Unmarshal(body, &rllist); err != nil {
 			return nil, res, err
 		} else if list, ok := rllist["results"]; ok {
-			return &list, res, nil
+			return list, res, nil
 		}
 		return nil, res, fmt.Errorf("Unexpected response to RecipientList list")
 
