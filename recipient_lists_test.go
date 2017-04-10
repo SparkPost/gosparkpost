@@ -120,3 +120,25 @@ func TestRecipientListCreate(t *testing.T) {
 		}
 	}
 }
+
+func TestRecipientLists(t *testing.T) {
+	for idx, test := range []struct {
+		err    error
+		status int
+		json   string
+		//out []sp.RecipientList
+	}{
+		{nil, 200, `{"results":[{}]}`},
+	} {
+		testSetup(t)
+		defer testTeardown()
+		mockRestResponseBuilderFormat(t, "GET", test.status, sp.RecipientListsPathFormat, test.json)
+
+		_, _, err := testClient.RecipientLists()
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("RecipientLists[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("RecipientLists[%d] => err %q want %q", idx, err, test.err)
+		}
+	}
+}
