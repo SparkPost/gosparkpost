@@ -89,7 +89,7 @@ func (e SPErrors) Error() string {
 
 // Init pulls together everything necessary to make an API request.
 // Caller may provide their own http.Client by setting it in the provided API object.
-func (api *Client) Init(cfg *Config) error {
+func (c *Client) Init(cfg *Config) error {
 	// Set default values
 	if cfg.BaseUrl == "" {
 		cfg.BaseUrl = "https://api.sparkpost.com"
@@ -99,8 +99,11 @@ func (api *Client) Init(cfg *Config) error {
 	if cfg.ApiVersion == 0 {
 		cfg.ApiVersion = 1
 	}
-	api.Config = cfg
-	api.Headers = &http.Header{}
+	c.Config = cfg
+	c.Headers = &http.Header{}
+	if c.Client == nil {
+		c.Client = http.DefaultClient
+	}
 
 	return nil
 }
@@ -134,6 +137,12 @@ func (c *Client) HttpDelete(ctx context.Context, url string) (*Response, error) 
 }
 
 func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []byte) (*Response, error) {
+	if c.Client == nil {
+		return nil, errors.New("Client.Client (http.Client) must be non-nil!")
+	} else if c.Config == nil {
+		return nil, errors.New("Client.Config must be non-nil!")
+	}
+
 	req, err := http.NewRequest(method, urlStr, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, errors.Wrap(err, "building request")
@@ -165,9 +174,11 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	}
 
 	// Forward additional headers set in client to request
-	for header, values := range map[string][]string(*c.Headers) {
-		for _, value := range values {
-			req.Header.Add(header, value)
+	if c.Headers != nil {
+		for header, values := range map[string][]string(*c.Headers) {
+			for _, value := range values {
+				req.Header.Add(header, value)
+			}
 		}
 	}
 
