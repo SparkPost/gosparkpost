@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -48,7 +47,7 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 	switch addrVal := addr.(type) {
 	case string: // simple string value
 		if addrVal == "" {
-			err = fmt.Errorf("Recipient.Address may not be empty")
+			err = errors.New("Recipient.Address may not be empty")
 		} else {
 			a.Email = addrVal
 		}
@@ -69,7 +68,7 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 					a.HeaderTo = vVal
 				}
 			default:
-				err = fmt.Errorf("strings are required for all Recipient.Address values")
+				err = errors.New("strings are required for all Recipient.Address values")
 				break
 			}
 		}
@@ -87,7 +86,7 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 		}
 
 	default:
-		err = fmt.Errorf("unsupported Recipient.Address value type [%s]", reflect.TypeOf(addrVal))
+		err = errors.Errorf("unsupported Recipient.Address value type [%T]", addrVal)
 	}
 
 	return
@@ -144,7 +143,7 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 // RecipientListCreateContext is the same as RecipientListCreate, and it accepts a context.Context
 func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientList) (id string, res *Response, err error) {
 	if rl == nil {
-		err = fmt.Errorf("Create called with nil RecipientList")
+		err = errors.New("Create called with nil RecipientList")
 		return
 	}
 
@@ -178,11 +177,11 @@ func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientLi
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			return id, res, fmt.Errorf("Unexpected response to Recipient List creation (results)")
+			return id, res, errors.New("Unexpected response to Recipient List creation (results)")
 		}
 		id, ok = results["id"].(string)
 		if !ok {
-			return id, res, fmt.Errorf("Unexpected response to Recipient List creation (id)")
+			return id, res, errors.New("Unexpected response to Recipient List creation (id)")
 		}
 
 	} else if len(res.Errors) > 0 {
@@ -222,20 +221,14 @@ func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *R
 		} else if list, ok := rllist["results"]; ok {
 			return list, res, nil
 		}
-		return nil, res, fmt.Errorf("Unexpected response to RecipientList list")
+		err = errors.New("Unexpected response to RecipientList list")
 
 	} else {
 		err = res.ParseResponse()
 		if err != nil {
 			return nil, res, err
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("RecipientList", "list")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return nil, res, err

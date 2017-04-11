@@ -15,7 +15,7 @@ func TestAddressValidation(t *testing.T) {
 		err error
 		out sp.Address
 	}{
-		{nil, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]"), sp.Address{}},
+		{nil, errors.New("unsupported Recipient.Address value type [<nil>]"), sp.Address{}},
 		{"", errors.New("Recipient.Address may not be empty"), sp.Address{}},
 		{"a@b.com", nil, sp.Address{Email: "a@b.com"}},
 		{sp.Address{"a@b.com", "A B", "c@d.com"}, nil, sp.Address{"a@b.com", "A B", "c@d.com"}},
@@ -39,7 +39,7 @@ func TestRecipientValidation(t *testing.T) {
 		in  sp.Recipient
 		err error
 	}{
-		{sp.Recipient{}, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]")},
+		{sp.Recipient{}, errors.New("unsupported Recipient.Address value type [<nil>]")},
 		{sp.Recipient{Address: "a@b.com"}, nil},
 	} {
 		err := test.in.Validate()
@@ -67,7 +67,7 @@ func TestRecipientListValidation(t *testing.T) {
 			Recipients: []sp.Recipient{{}}}, errors.New("RecipientList description may not be longer than 1024 bytes")},
 
 		{&sp.RecipientList{ID: "id", Name: "name", Description: "desc",
-			Recipients: []sp.Recipient{{}}}, errors.New("unsupported Recipient.Address value type [%!s(<nil>)]")},
+			Recipients: []sp.Recipient{{}}}, errors.New("unsupported Recipient.Address value type [<nil>]")},
 		{&sp.RecipientList{ID: "id", Name: "name", Description: "desc",
 			Recipients: []sp.Recipient{{Address: "a@b.com"}}}, nil},
 	} {
@@ -129,6 +129,10 @@ func TestRecipientLists(t *testing.T) {
 		//out []sp.RecipientList
 	}{
 		{nil, 200, `{"results":[{}]}`},
+		{errors.New("Unexpected response to RecipientList list"), 200, `{"foo":[{}]}`},
+		{errors.New("unexpected end of JSON input"), 200, `{"results":[{}]`},
+		{errors.New(`[{"message":"No RecipientList for you!","code":"","description":""}]`), 401, `{"errors":[{"message":"No RecipientList for you!"}]}`},
+		{errors.New("parsing api response: unexpected end of JSON input"), 401, `{"errors":[]`},
 	} {
 		testSetup(t)
 		defer testTeardown()
