@@ -122,27 +122,52 @@ func TestRecipientListCreate(t *testing.T) {
 }
 
 func TestRecipientLists(t *testing.T) {
+	var res200 = loadTestFile(t, "test/json/recipient_lists_200.json")
+	var acc200 = []int{3, 8}
+	var rl200 = []sp.RecipientList{{
+		ID:          "unique_id_4_graduate_students_list",
+		Name:        "graduate_students",
+		Description: "An email list of graduate students at UMBC",
+		Attributes: map[string]interface{}{
+			"internal_id":   float64(112),
+			"list_group_id": float64(12321),
+		},
+		Accepted: &acc200[0],
+	}, {
+		ID:          "unique_id_4_undergraduates",
+		Name:        "undergraduate_students",
+		Description: "An email list of undergraduate students at UMBC",
+		Attributes: map[string]interface{}{
+			"internal_id":   float64(111),
+			"list_group_id": float64(11321),
+		},
+		Accepted: &acc200[1],
+	}}
+
 	for idx, test := range []struct {
 		err    error
 		status int
 		json   string
-		//out []sp.RecipientList
+		out    []sp.RecipientList
 	}{
-		{nil, 200, `{"results":[{}]}`},
-		{errors.New("Unexpected response to RecipientList list"), 200, `{"foo":[{}]}`},
-		{errors.New("unexpected end of JSON input"), 200, `{"results":[{}]`},
-		{errors.New(`[{"message":"No RecipientList for you!","code":"","description":""}]`), 401, `{"errors":[{"message":"No RecipientList for you!"}]}`},
-		{errors.New("parsing api response: unexpected end of JSON input"), 401, `{"errors":[]`},
+		{nil, 200, `{"results":[{}]}`, []sp.RecipientList{{}}},
+		{errors.New("Unexpected response to RecipientList list"), 200, `{"foo":[{}]}`, nil},
+		{errors.New("unexpected end of JSON input"), 200, `{"results":[{}]`, nil},
+		{errors.New(`[{"message":"No RecipientList for you!","code":"","description":""}]`), 401, `{"errors":[{"message":"No RecipientList for you!"}]}`, nil},
+		{errors.New("parsing api response: unexpected end of JSON input"), 401, `{"errors":[]`, nil},
+		{nil, 200, res200, rl200},
 	} {
 		testSetup(t)
 		defer testTeardown()
 		mockRestResponseBuilderFormat(t, "GET", test.status, sp.RecipientListsPathFormat, test.json)
 
-		_, _, err := testClient.RecipientLists()
+		lists, _, err := testClient.RecipientLists()
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("RecipientLists[%d] => err %q want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("RecipientLists[%d] => err %q want %q", idx, err, test.err)
+		} else if test.out != nil && !reflect.DeepEqual(lists, test.out) {
+			t.Errorf("RecipientLists[%d] => got/want:\n%q\n%q", idx, lists, test.out)
 		}
 	}
 }
