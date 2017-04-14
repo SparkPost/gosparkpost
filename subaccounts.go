@@ -122,10 +122,14 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 
 // SubaccountUpdateContext is the same as SubaccountUpdate, and it allows the caller to provide a context
 func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
-	if s.ID == 0 {
+	if s == nil {
+		err = errors.New("Subaccount Update called with nil Subaccount")
+	} else if s.ID == 0 {
 		err = errors.New("Subaccount Update called with zero id")
 	} else if len(s.Name) > 1024 {
 		err = errors.New("Subaccount name may not be longer than 1024 bytes")
+	} else if len(s.IPPool) > 20 {
+		err = errors.New("Subaccount ip pool may not be longer than 20 bytes")
 	} else if s.Status != "" {
 		found := false
 		for _, v := range SubaccountStatuses {
@@ -142,13 +146,11 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	jsonBytes, err := json.Marshal(s)
-	if err != nil {
-		return
-	}
+	// Marshaling a static type won't fail
+	jsonBytes, _ := json.Marshal(s)
 
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
-	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, s.ID)
+	url := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, s.ID)
 
 	res, err = c.HttpPut(ctx, url, jsonBytes)
 	if err != nil {

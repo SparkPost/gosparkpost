@@ -2,6 +2,7 @@ package gosparkpost_test
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -66,6 +67,50 @@ func TestSubaccountCreate(t *testing.T) {
 			t.Errorf("SubaccountCreate[%d] => err %q want %q", idx, err, test.err)
 		} else if test.out != nil && !reflect.DeepEqual(test.in, test.out) {
 			t.Errorf("SubaccountCreate[%d] => got/want:\n%q\n%q", idx, test.in, test.out)
+		}
+	}
+}
+
+func TestSubaccountUpdate(t *testing.T) {
+	for idx, test := range []struct {
+		in     *sp.Subaccount
+		err    error
+		status int
+		json   string
+	}{
+		{nil, errors.New("Subaccount Update called with nil Subaccount"), 0, ""},
+		{&sp.Subaccount{}, errors.New("Subaccount Update called with zero id"), 0, ""},
+		{&sp.Subaccount{ID: 42, Name: strings.Repeat("name", 257)},
+			errors.New("Subaccount name may not be longer than 1024 bytes"), 0, ""},
+		{&sp.Subaccount{ID: 42, Name: "n", IPPool: strings.Repeat("ip", 11)},
+			errors.New("Subaccount ip pool may not be longer than 20 bytes"), 0, ""},
+		{&sp.Subaccount{ID: 42, Name: "n", Status: "super"},
+			errors.New("Not a valid subaccount status"), 0, ""},
+
+		{&sp.Subaccount{ID: 42, Name: "n"},
+			errors.New("parsing api response: unexpected end of JSON input"), 200,
+			`{"foo":{"message":"syntax error"}`},
+		{&sp.Subaccount{ID: 42, Name: "n"},
+			errors.New(`[{"message":"error","code":"","description":""}]`), 400,
+			`{"errors":[{"message":"error"}]}`},
+
+		{&sp.Subaccount{ID: 42, Name: "n", Status: "active"}, nil, 200,
+			`{"results":{"message":"Successfully updated subaccount information"}}`},
+	} {
+		testSetup(t)
+		defer testTeardown()
+
+		id := "0"
+		if test.in != nil {
+			id = strconv.Itoa(test.in.ID)
+		}
+		mockRestResponseBuilderFormat(t, "PUT", test.status, sp.SubaccountsPathFormat+"/"+id, test.json)
+
+		_, err := testClient.SubaccountUpdate(test.in)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("SubaccountUpdate[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("SubaccountUpdate[%d] => err %q want %q", idx, err, test.err)
 		}
 	}
 }
