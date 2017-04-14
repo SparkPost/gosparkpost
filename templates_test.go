@@ -74,9 +74,9 @@ func TestTemplateOptions(t *testing.T) {
 
 func TestTemplateValidation(t *testing.T) {
 	for idx, test := range []struct {
-		te  *sp.Template
+		in  *sp.Template
 		err error
-		cmp func(te *sp.Template) bool
+		out *sp.Template
 	}{
 		{nil, errors.New("Can't Validate a nil Template"), nil},
 		{&sp.Template{}, errors.New("Template requires a non-empty Content.Subject"), nil},
@@ -117,19 +117,16 @@ func TestTemplateValidation(t *testing.T) {
 			}},
 			errors.New("InlineImage data may not contain line breaks [\\r\\n]"), nil},
 
-		{
-			&sp.Template{Content: sp.Content{EmailRFC822: "From:foo@example.com\r\n", Subject: "removeme"}},
-			nil,
-			func(te *sp.Template) bool { return te.Content.Subject == "" },
-		},
+		{&sp.Template{Content: sp.Content{EmailRFC822: "From:foo@example.com\r\n", Subject: "removeme"}},
+			nil, &sp.Template{Content: sp.Content{EmailRFC822: "From:foo@example.com\r\n"}}},
 	} {
-		err := test.te.Validate()
+		err := test.in.Validate()
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("Template.Validate[%d] => err %q, want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("Template.Validate[%d] => err %q, want %q", idx, err, test.err)
-		} else if test.cmp != nil && test.cmp(test.te) == false {
-			t.Errorf("Template.Validate[%d] => failed post-condition check for %q", test.te)
+		} else if test.out != nil && !reflect.DeepEqual(test.in, test.out) {
+			t.Errorf("Template.Validate[%d] => failed post-condition check for %q", test.in)
 		}
 	}
 }
