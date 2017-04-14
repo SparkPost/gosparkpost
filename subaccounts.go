@@ -28,7 +28,7 @@ var SubaccountStatuses = []string{
 
 // Subaccount is the JSON structure accepted by and returned from the SparkPost Subaccounts API.
 type Subaccount struct {
-	ID               int      `json:"subaccount_id,omitempty"`
+	ID               int      `json:"id,omitempty"`
 	Name             string   `json:"name,omitempty"`
 	Key              string   `json:"key,omitempty"`
 	KeyLabel         string   `json:"key_label,omitempty"`
@@ -204,16 +204,17 @@ func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccou
 		slist := map[string][]Subaccount{}
 		err = json.Unmarshal(body, &slist)
 		if err != nil {
-			return
 		} else if list, ok := slist["results"]; ok {
 			subaccounts = list
-			return
+		} else {
+			err = errors.New("Unexpected response to Subaccount list")
 		}
-		err = errors.New("Unexpected response to Subaccount list")
-		return
 
 	} else {
-		err = res.Errors
+		err = res.ParseResponse()
+		if err == nil {
+			err = res.Errors
+		}
 	}
 
 	return
