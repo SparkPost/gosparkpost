@@ -4,19 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // https://www.sparkpost.com/api#/reference/subaccounts
 var SubaccountsPathFormat = "/api/v%d/subaccounts"
-var availableGrants = []string{
+var SubaccountGrants = []string{
 	"smtp/inject",
 	"sending_domains/manage",
 	"message_events/view",
 	"suppression_lists/manage",
+	"tracking_domains/view",
+	"tracking_domains/manage",
 	"transmissions/view",
 	"transmissions/modify",
 }
-var validStatuses = []string{
+var SubaccountStatuses = []string{
 	"active",
 	"suspended",
 	"terminated",
@@ -32,6 +36,7 @@ type Subaccount struct {
 	ShortKey         string   `json:"short_key,omitempty"`
 	Status           string   `json:"status,omitempty"`
 	ComplianceStatus string   `json:"compliance_status,omitempty"`
+	IPPool           string   `json:"ip_pool,omitempty"`
 }
 
 // SubaccountCreate accepts a populated Subaccount object, validates it,
@@ -44,30 +49,30 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
 	// enforce required parameters
 	if s == nil {
-		err = fmt.Errorf("Create called with nil Subaccount")
+		err = errors.New("Create called with nil Subaccount")
 	} else if s.Name == "" {
-		err = fmt.Errorf("Subaccount requires a non-empty Name")
+		err = errors.New("Subaccount requires a non-empty Name")
 	} else if s.KeyLabel == "" {
-		err = fmt.Errorf("Subaccount requires a non-empty Key Label")
+		err = errors.New("Subaccount requires a non-empty Key Label")
 	} else
 	// enforce max lengths
 	if len(s.Name) > 1024 {
-		err = fmt.Errorf("Subaccount name may not be longer than 1024 bytes")
+		err = errors.New("Subaccount name may not be longer than 1024 bytes")
 	} else if len(s.KeyLabel) > 1024 {
-		err = fmt.Errorf("Subaccount key label may not be longer than 1024 bytes")
+		err = errors.New("Subaccount key label may not be longer than 1024 bytes")
+	} else if s.IPPool != "" && len(s.IPPool) > 20 {
+		err = errors.New("Subaccount ip pool may not be longer than 20 bytes")
 	}
 	if err != nil {
 		return
 	}
 
 	if len(s.Grants) == 0 {
-		s.Grants = availableGrants
+		s.Grants = SubaccountGrants
 	}
 
-	jsonBytes, err := json.Marshal(s)
-	if err != nil {
-		return
-	}
+	// Marshaling a static type won't fail
+	jsonBytes, _ := json.Marshal(s)
 
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
@@ -89,31 +94,20 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			return res, fmt.Errorf("Unexpected response to Subaccount creation (results)")
+			return res, errors.New("Unexpected response to Subaccount creation (results)")
 		}
 		f, ok := results["subaccount_id"].(float64)
 		if !ok {
-			err = fmt.Errorf("Unexpected response to Subaccount creation")
+			err = errors.New("Unexpected response to Subaccount creation (subaccount_id)")
 		}
 		s.ID = int(f)
 		s.ShortKey, ok = results["short_key"].(string)
 		if !ok {
-			err = fmt.Errorf("Unexpected response to Subaccount creation")
+			err = errors.New("Unexpected response to Subaccount creation (short_key)")
 		}
 
 	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Subaccount", "create")
-		if err != nil {
-			return
-		}
-
-		if res.HTTP.StatusCode == 422 { // subaccount syntax error
-			eobj := res.Errors[0]
-			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+		err = res.Errors
 	}
 
 	return
@@ -129,18 +123,18 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 // SubaccountUpdateContext is the same as SubaccountUpdate, and it allows the caller to provide a context
 func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
 	if s.ID == 0 {
-		err = fmt.Errorf("Subaccount Update called with zero id")
+		err = errors.New("Subaccount Update called with zero id")
 	} else if len(s.Name) > 1024 {
-		err = fmt.Errorf("Subaccount name may not be longer than 1024 bytes")
+		err = errors.New("Subaccount name may not be longer than 1024 bytes")
 	} else if s.Status != "" {
 		found := false
-		for _, v := range validStatuses {
+		for _, v := range SubaccountStatuses {
 			if s.Status == v {
 				found = true
 			}
 		}
 		if !found {
-			err = fmt.Errorf("Not a valid subaccount status")
+			err = errors.New("Not a valid subaccount status")
 		}
 	}
 
@@ -174,18 +168,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 		return
 
 	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Subaccount", "update")
-		if err != nil {
-			return
-		}
-
-		// handle template-specific ones
-		if res.HTTP.StatusCode == 409 {
-			err = fmt.Errorf("Subaccount with id [%s] is in use by msg generation", s.ID)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		}
+		err = res.Errors
 	}
 
 	return
@@ -224,22 +207,11 @@ func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccou
 			subaccounts = list
 			return
 		}
-		err = fmt.Errorf("Unexpected response to Subaccount list")
+		err = errors.New("Unexpected response to Subaccount list")
 		return
 
 	} else {
-		err = res.ParseResponse()
-		if err != nil {
-			return
-		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Subaccount", "list")
-			if err != nil {
-				return
-			}
-		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		return
+		err = res.Errors
 	}
 
 	return
@@ -279,22 +251,11 @@ func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Sub
 				subaccount = &s
 				return
 			}
-			err = fmt.Errorf("Unexpected response to Subaccount")
+			err = errors.New("Unexpected response to Subaccount")
 			return
 		}
 	} else {
-		err = res.ParseResponse()
-		if err != nil {
-			return
-		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Subaccount", "retrieve")
-			if err != nil {
-				return
-			}
-		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-		return
+		err = res.Errors
 	}
 
 	return
