@@ -249,16 +249,17 @@ func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Sub
 			slist := map[string]Subaccount{}
 			err = json.Unmarshal(body, &slist)
 			if err != nil {
-				return
 			} else if s, ok := slist["results"]; ok {
 				subaccount = &s
-				return
+			} else {
+				err = errors.New("Unexpected response to Subaccount")
 			}
-			err = errors.New("Unexpected response to Subaccount")
-			return
 		}
 	} else {
-		err = res.Errors
+		err = res.ParseResponse()
+		if err == nil {
+			err = res.Errors
+		}
 	}
 
 	return

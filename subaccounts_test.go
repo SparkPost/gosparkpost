@@ -163,3 +163,44 @@ func TestSubaccounts(t *testing.T) {
 		}
 	}
 }
+
+func TestSubaccount(t *testing.T) {
+	var res200 = loadTestFile(t, "test/json/subaccount_200.json")
+	var sub200 = &sp.Subaccount{
+		ID:               123,
+		Name:             "Joe's Garage",
+		Status:           "active",
+		IPPool:           "assigned_ip_pool",
+		ComplianceStatus: "active",
+	}
+
+	for idx, test := range []struct {
+		in     int
+		err    error
+		status int
+		json   string
+		out    *sp.Subaccount
+	}{
+		{42, errors.New("unexpected end of JSON input"), 200, "{", nil},
+		{42, errors.New("Unexpected response to Subaccount"), 200, `{"foo":{}}`, nil},
+		{42, errors.New(`[{"message":"error","code":"","description":""}]`), 400,
+			`{"errors":[{"message":"error"}]}`, nil},
+
+		{123, nil, 200, res200, sub200},
+	} {
+		testSetup(t)
+		defer testTeardown()
+
+		id := strconv.Itoa(test.in)
+		mockRestResponseBuilderFormat(t, "GET", test.status, sp.SubaccountsPathFormat+"/"+id, test.json)
+
+		sub, _, err := testClient.Subaccount(test.in)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("SubaccountCreate[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("SubaccountCreate[%d] => err %q want %q", idx, err, test.err)
+		} else if test.out != nil && !reflect.DeepEqual(sub, test.out) {
+			t.Errorf("SubaccountCreate[%d] => got/want:\n%q\n%q", idx, sub, test.out)
+		}
+	}
+}
