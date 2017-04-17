@@ -23,12 +23,6 @@ func TestSubaccountCreate(t *testing.T) {
 		{nil, errors.New("Create called with nil Subaccount"), 0, "", nil},
 		{&sp.Subaccount{}, errors.New("Subaccount requires a non-empty Name"), 0, "", nil},
 		{&sp.Subaccount{Name: "n"}, errors.New("Subaccount requires a non-empty Key Label"), 0, "", nil},
-		{&sp.Subaccount{Name: strings.Repeat("name", 257), KeyLabel: "kl"},
-			errors.New("Subaccount name may not be longer than 1024 bytes"), 0, "", nil},
-		{&sp.Subaccount{Name: "n", KeyLabel: strings.Repeat("klkl", 257)},
-			errors.New("Subaccount key label may not be longer than 1024 bytes"), 0, "", nil},
-		{&sp.Subaccount{Name: "n", KeyLabel: "kl", IPPool: strings.Repeat("ip", 11)},
-			errors.New("Subaccount ip pool may not be longer than 20 bytes"), 0, "", nil},
 
 		{&sp.Subaccount{Name: "n", KeyLabel: "kl"},
 			errors.New("Unexpected response to Subaccount creation (results)"), 200,
@@ -80,10 +74,6 @@ func TestSubaccountUpdate(t *testing.T) {
 	}{
 		{nil, errors.New("Subaccount Update called with nil Subaccount"), 0, ""},
 		{&sp.Subaccount{}, errors.New("Subaccount Update called with zero id"), 0, ""},
-		{&sp.Subaccount{ID: 42, Name: strings.Repeat("name", 257)},
-			errors.New("Subaccount name may not be longer than 1024 bytes"), 0, ""},
-		{&sp.Subaccount{ID: 42, Name: "n", IPPool: strings.Repeat("ip", 11)},
-			errors.New("Subaccount ip pool may not be longer than 20 bytes"), 0, ""},
 		{&sp.Subaccount{ID: 42, Name: "n", Status: "super"},
 			errors.New("Not a valid subaccount status"), 0, ""},
 

@@ -54,14 +54,6 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 		err = errors.New("Subaccount requires a non-empty Name")
 	} else if s.KeyLabel == "" {
 		err = errors.New("Subaccount requires a non-empty Key Label")
-	} else
-	// enforce max lengths
-	if len(s.Name) > 1024 {
-		err = errors.New("Subaccount name may not be longer than 1024 bytes")
-	} else if len(s.KeyLabel) > 1024 {
-		err = errors.New("Subaccount key label may not be longer than 1024 bytes")
-	} else if s.IPPool != "" && len(s.IPPool) > 20 {
-		err = errors.New("Subaccount ip pool may not be longer than 20 bytes")
 	}
 	if err != nil {
 		return
