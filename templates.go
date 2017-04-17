@@ -288,12 +288,13 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 }
 
 // TemplateUpdate updates a draft/published template with the specified id
-func (c *Client) TemplateUpdate(t *Template) (res *Response, err error) {
-	return c.TemplateUpdateContext(context.Background(), t)
+// The `updatePublished` parameter controls which version (draft/false vs published/true) of the template will be updated.
+func (c *Client) TemplateUpdate(t *Template, updatePublished bool) (res *Response, err error) {
+	return c.TemplateUpdateContext(context.Background(), t, updatePublished)
 }
 
 // TemplateUpdateContext is the same as TemplateUpdate, and it allows the caller to provide a context
-func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *Response, err error) {
+func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updatePublished bool) (res *Response, err error) {
 	if t == nil {
 		err = fmt.Errorf("Update called with nil Template")
 		return
@@ -313,7 +314,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template) (res *R
 	jsonBytes, _ := json.Marshal(t)
 
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
-	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, t.Published)
+	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, updatePublished)
 
 	res, err = c.HttpPut(ctx, url, jsonBytes)
 	if err != nil {

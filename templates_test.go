@@ -221,16 +221,17 @@ func TestTemplateGet(t *testing.T) {
 func TestTemplateUpdate(t *testing.T) {
 	for idx, test := range []struct {
 		in     *sp.Template
+		pub    bool
 		err    error
 		status int
 		json   string
 	}{
-		{nil, errors.New("Update called with nil Template"), 0, ""},
-		{&sp.Template{ID: ""}, errors.New("Update called with blank id"), 0, ""},
-		{&sp.Template{ID: "id", Content: sp.Content{}}, errors.New("Template requires a non-empty Content.Subject"), 0, ""},
-		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
+		{nil, false, errors.New("Update called with nil Template"), 0, ""},
+		{&sp.Template{ID: ""}, false, errors.New("Update called with blank id"), 0, ""},
+		{&sp.Template{ID: "id", Content: sp.Content{}}, false, errors.New("Template requires a non-empty Content.Subject"), 0, ""},
+		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, false, errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
 
-		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
+		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}}, false,
 			sp.SPErrors([]sp.SPError{{
 				Message:     "substitution language syntax error in template content",
 				Description: "Error while compiling header Subject: substitution statement missing ending '}}'",
@@ -239,7 +240,7 @@ func TestTemplateUpdate(t *testing.T) {
 			}}),
 			422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`},
 
-		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil, 200, ""},
+		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, false, nil, 200, ""},
 	} {
 		testSetup(t)
 		defer testTeardown()
@@ -250,7 +251,7 @@ func TestTemplateUpdate(t *testing.T) {
 		}
 		mockRestResponseBuilderFormat(t, "PUT", test.status, sp.TemplatesPathFormat+"/"+id, test.json)
 
-		_, err := testClient.TemplateUpdate(test.in)
+		_, err := testClient.TemplateUpdate(test.in, test.pub)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
