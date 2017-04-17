@@ -1,0 +1,9 @@
+{
+  "results": {
+    "id": 123,
+    "name": "Joe's Garage",
+    "status": "active",
+    "compliance_status": "active",
+    "ip_pool": "assigned_ip_pool"
+  }
+}
