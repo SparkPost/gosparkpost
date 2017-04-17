@@ -8,8 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// https://www.sparkpost.com/api#/reference/subaccounts
+// SubaccountsPathFormat provides an easy way to fill out the path including the version.
 var SubaccountsPathFormat = "/api/v%d/subaccounts"
+
+// SubaccountGrants contains the grants that will be given to new subaccounts by default.
 var SubaccountGrants = []string{
 	"smtp/inject",
 	"sending_domains/manage",
@@ -20,6 +22,8 @@ var SubaccountGrants = []string{
 	"transmissions/view",
 	"transmissions/modify",
 }
+
+// SubaccountStatuses contains valid subaccount statuses.
 var SubaccountStatuses = []string{
 	"active",
 	"suspended",
@@ -39,8 +43,7 @@ type Subaccount struct {
 	IPPool           string   `json:"ip_pool,omitempty"`
 }
 
-// SubaccountCreate accepts a populated Subaccount object, validates it,
-// and performs an API call against the configured endpoint.
+// SubaccountCreate attempts to create a subaccount using the provided object
 func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 	return c.SubaccountCreateContext(context.Background(), s)
 }
@@ -106,8 +109,7 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 }
 
 // SubaccountUpdate updates a subaccount with the specified id.
-// Actually it will marshal and send all the subaccount fields, but that must not be a problem,
-// as fields not supposed for update will be omitted
+// It marshals and sends all the subaccount fields, ignoring the read-only ones.
 func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 	return c.SubaccountUpdateContext(context.Background(), s)
 }
@@ -168,7 +170,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 	return
 }
 
-// Subaccounts returns metadata for all Templates in the system.
+// Subaccounts returns metadata for all Subaccounts in the system.
 func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err error) {
 	return c.SubaccountsContext(context.Background())
 }
@@ -212,7 +214,7 @@ func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccou
 	return
 }
 
-// Subaccount looks up a subaccount by its id
+// Subaccount looks up a subaccount using the provided id
 func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err error) {
 	return c.SubaccountContext(context.Background(), id)
 }
