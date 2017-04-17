@@ -21,8 +21,6 @@ func TestSubaccountCreate(t *testing.T) {
 		out    *sp.Subaccount
 	}{
 		{nil, errors.New("Create called with nil Subaccount"), 0, "", nil},
-		{&sp.Subaccount{}, errors.New("Subaccount requires a non-empty Name"), 0, "", nil},
-		{&sp.Subaccount{Name: "n"}, errors.New("Subaccount requires a non-empty Key Label"), 0, "", nil},
 
 		{&sp.Subaccount{Name: "n", KeyLabel: "kl"},
 			errors.New("Unexpected response to Subaccount creation (results)"), 200,
@@ -73,7 +71,6 @@ func TestSubaccountUpdate(t *testing.T) {
 		json   string
 	}{
 		{nil, errors.New("Subaccount Update called with nil Subaccount"), 0, ""},
-		{&sp.Subaccount{}, errors.New("Subaccount Update called with zero id"), 0, ""},
 		{&sp.Subaccount{ID: 42, Name: "n", Status: "super"},
 			errors.New("Not a valid subaccount status"), 0, ""},
 

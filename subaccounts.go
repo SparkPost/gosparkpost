@@ -49,16 +49,11 @@ func (c *Client) SubaccountCreate(s *Subaccount) (res *Response, err error) {
 }
 
 // SubaccountCreateContext is the same as SubaccountCreate, and it allows the caller to pass in a context
+// New subaccounts will have all grants in SubaccountGrants, unless s.Grants is non-nil.
 func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
 	// enforce required parameters
 	if s == nil {
 		err = errors.New("Create called with nil Subaccount")
-	} else if s.Name == "" {
-		err = errors.New("Subaccount requires a non-empty Name")
-	} else if s.KeyLabel == "" {
-		err = errors.New("Subaccount requires a non-empty Key Label")
-	}
-	if err != nil {
 		return
 	}
 
@@ -117,12 +112,6 @@ func (c *Client) SubaccountUpdate(s *Subaccount) (res *Response, err error) {
 func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (res *Response, err error) {
 	if s == nil {
 		err = errors.New("Subaccount Update called with nil Subaccount")
-	} else if s.ID == 0 {
-		err = errors.New("Subaccount Update called with zero id")
-	} else if len(s.Name) > 1024 {
-		err = errors.New("Subaccount name may not be longer than 1024 bytes")
-	} else if len(s.IPPool) > 20 {
-		err = errors.New("Subaccount ip pool may not be longer than 20 bytes")
 	} else if s.Status != "" {
 		found := false
 		for _, v := range SubaccountStatuses {
