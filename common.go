@@ -223,6 +223,13 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	return ares, nil
 }
 
+func Is2XX(code int) bool {
+	if code < 300 && code >= 200 {
+		return true
+	}
+	return false
+}
+
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))

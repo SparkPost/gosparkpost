@@ -79,7 +79,7 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
@@ -148,7 +148,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		return
 
 	} else if len(res.Errors) > 0 {
@@ -176,7 +176,7 @@ func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccou
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
@@ -220,21 +220,19 @@ func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Sub
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
-		if res.HTTP.StatusCode == 200 {
-			var body []byte
-			body, err = res.ReadBody()
-			if err != nil {
-				return
-			}
-			slist := map[string]Subaccount{}
-			err = json.Unmarshal(body, &slist)
-			if err != nil {
-			} else if s, ok := slist["results"]; ok {
-				subaccount = &s
-			} else {
-				err = errors.New("Unexpected response to Subaccount")
-			}
+	if Is2XX(res.HTTP.StatusCode) {
+		var body []byte
+		body, err = res.ReadBody()
+		if err != nil {
+			return
+		}
+		slist := map[string]Subaccount{}
+		err = json.Unmarshal(body, &slist)
+		if err != nil {
+		} else if s, ok := slist["results"]; ok {
+			subaccount = &s
+		} else {
+			err = errors.New("Unexpected response to Subaccount")
 		}
 	} else {
 		err = res.ParseResponse()
