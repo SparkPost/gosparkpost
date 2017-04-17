@@ -250,13 +250,7 @@ func (c *Client) SendContext(ctx context.Context, t *Transmission) (id string, r
 		}
 
 	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "create")
-		if err != nil {
-			return
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return
@@ -311,12 +305,8 @@ func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Res
 			return res, err
 		}
 		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "retrieve")
-			if err != nil {
-				return res, err
-			}
+			err = res.Errors
 		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return res, err
@@ -359,16 +349,10 @@ func (c *Client) TransmissionDeleteContext(ctx context.Context, t *Transmission)
 		return res, nil
 
 	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "delete")
-		if err != nil {
-			return res, err
-		}
-
-		return res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
-	return res, nil
+	return res, err
 }
 
 // Transmissions returns Transmission summary information for matching Transmissions.
@@ -425,12 +409,8 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 			return nil, res, err
 		}
 		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "list")
-			if err != nil {
-				return nil, res, err
-			}
+			err = res.Errors
 		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return nil, res, err

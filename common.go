@@ -301,22 +301,3 @@ func (r *Response) AssertJson() error {
 	}
 	return nil
 }
-
-// PrettyError returns a human-readable error message for common http errors returned by the API.
-// The string parameters are used to customize the generated error message
-// (example: noun=template, verb=create).
-func (r *Response) PrettyError(noun, verb string) error {
-	if r.HTTP == nil {
-		return nil
-	}
-	code := r.HTTP.StatusCode
-	if code == 404 {
-		return errors.Errorf("%s does not exist, %s failed.", noun, verb)
-	} else if code == 401 {
-		return errors.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
-	} else if code == 403 {
-		// This is what happens if an endpoint URL gets typo'd.
-		return errors.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
-	}
-	return nil
-}

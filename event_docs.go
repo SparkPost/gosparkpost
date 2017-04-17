@@ -60,18 +60,13 @@ func (c *Client) EventDocumentationContext(ctx context.Context) (g map[string]*E
 			return groups, res, err
 		}
 		return nil, res, errors.New("Unexpected response format")
+
 	} else {
 		err = res.ParseResponse()
 		if err != nil {
 			return nil, res, err
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("EventDocumentation", "retrieve")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		return nil, res, errors.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return nil, res, err

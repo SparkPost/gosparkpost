@@ -164,13 +164,7 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 		return res, err
 
 	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("SuppressionEntry", "delete")
-		if err != nil {
-			return res, err
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return res, err
@@ -218,13 +212,7 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Writabl
 	if res.HTTP.StatusCode == 200 {
 
 	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "create")
-		if err != nil {
-			return res, err
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+		err = res.Errors
 	}
 
 	return res, err
