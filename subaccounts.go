@@ -70,8 +70,7 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 	jsonBytes, _ := json.Marshal(s)
 
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
-	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(ctx, url, jsonBytes)
+	res, err = c.HttpPost(ctx, c.Config.BaseUrl+path, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -178,8 +177,7 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 // SubaccountsContext is the same as Subaccounts, and it allows the caller to provide a context
 func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
-	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpGet(ctx, url)
+	res, err = c.HttpGet(ctx, c.Config.BaseUrl+path)
 	if err != nil {
 		return
 	}
