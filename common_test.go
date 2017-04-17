@@ -89,13 +89,31 @@ func TestJson(t *testing.T) {
 	}
 }
 
-func TestDoRequest_BadMethod(t *testing.T) {
+func TestDoRequest(t *testing.T) {
 	testSetup(t)
 	defer testTeardown()
 
 	_, err := testClient.DoRequest(nil, "💩", "", nil)
 	if err == nil {
-		t.Fatalf("bogus request method should fail")
+		t.Fatal("bogus request method should fail")
+	}
+
+	var nullClient *sp.Client
+	_, err = nullClient.DoRequest(nil, "", "", nil)
+	if err == nil {
+		t.Fatal("null client should fail")
+	}
+
+	var blankClient = &sp.Client{}
+	_, err = blankClient.DoRequest(nil, "", "", nil)
+	if err == nil {
+		t.Fatal("null http client should fail")
+	}
+
+	blankClient.Client = http.DefaultClient
+	_, err = blankClient.DoRequest(nil, "", "", nil)
+	if err == nil {
+		t.Fatal("null client config should fail")
 	}
 }
 

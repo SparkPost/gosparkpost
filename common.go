@@ -137,7 +137,9 @@ func (c *Client) HttpDelete(ctx context.Context, url string) (*Response, error) 
 }
 
 func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []byte) (*Response, error) {
-	if c.Client == nil {
+	if c == nil {
+		return nil, errors.New("Client must be non-nil!")
+	} else if c.Client == nil {
 		return nil, errors.New("Client.Client (http.Client) must be non-nil!")
 	} else if c.Config == nil {
 		return nil, errors.New("Client.Config must be non-nil!")
