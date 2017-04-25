@@ -93,27 +93,36 @@ func TestDoRequest(t *testing.T) {
 	testSetup(t)
 	defer testTeardown()
 
-	_, err := testClient.DoRequest(nil, "💩", "", nil)
+	for idx, test := range []struct {
+		client *sp.Client
+		method string
+		err    error
+	}{
+		{nil, "", errors.New("Client must be non-nil!")},
+		{&sp.Client{}, "", errors.New("Client.Client (http.Client) must be non-nil!")},
+		{&sp.Client{Client: http.DefaultClient}, "", errors.New("Client.Config must be non-nil!")},
+		{testClient, "💩", errors.New(`building request: net/http: invalid method "💩"`)},
+	} {
+		_, err := test.client.DoRequest(nil, test.method, "", nil)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("DoRequest[%d] => err %v, want %v", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("DoRequest[%d] => err %v, want %v", idx, err, test.err)
+		}
+	}
+}
+
+func TestHTTPError(t *testing.T) {
+	var res *sp.Response
+	err := res.HTTPError()
 	if err == nil {
-		t.Fatal("bogus request method should fail")
+		t.Error("nil response should fail")
 	}
 
-	var nullClient *sp.Client
-	_, err = nullClient.DoRequest(nil, "", "", nil)
+	res = &sp.Response{}
+	err = res.HTTPError()
 	if err == nil {
-		t.Fatal("null client should fail")
-	}
-
-	var blankClient = &sp.Client{}
-	_, err = blankClient.DoRequest(nil, "", "", nil)
-	if err == nil {
-		t.Fatal("null http client should fail")
-	}
-
-	blankClient.Client = http.DefaultClient
-	_, err = blankClient.DoRequest(nil, "", "", nil)
-	if err == nil {
-		t.Fatal("null client config should fail")
+		t.Error("nil http should fail")
 	}
 }
 
@@ -131,7 +140,7 @@ func TestInit(t *testing.T) {
 		if err == nil && test.err != nil || err != nil && test.err == nil {
 			t.Errorf("Init[%d] => err %q, want %q", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
-			t.Errorf("NewConfig[%d] => err %q, want %q", idx, err, test.err)
+			t.Errorf("Init[%d] => err %q, want %q", idx, err, test.err)
 		} else if test.out != nil && test.api.Config.BaseUrl != test.out.BaseUrl {
 			t.Errorf("Init[%d] => BaseUrl %q, want %q", idx, test.api.Config.BaseUrl, test.out.BaseUrl)
 		}

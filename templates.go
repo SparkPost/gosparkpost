@@ -209,29 +209,21 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if err = res.ParseResponse(); err != nil {
 		return
 	}
 
-	err = res.ParseResponse()
-	if err != nil {
-		return
-	}
-
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			return id, res, fmt.Errorf("Unexpected response to Template creation (results)")
-		}
-		id, ok = results["id"].(string)
-		if !ok {
-			err = fmt.Errorf("Unexpected response to Template creation")
+			err = fmt.Errorf("Unexpected response to Template creation (results)")
+		} else if id, ok = results["id"].(string); !ok {
+			err = fmt.Errorf("Unexpected response to Template creation (id)")
 		}
 	} else {
-		err = res.Errors
+		err = res.HTTPError()
 	}
-
 	return
 }
 
@@ -258,17 +250,17 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 		return nil, err
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	body, err = res.ReadBody()
+	if err != nil {
+		return res, err
+	}
+
+	if err = res.ParseResponse(); err != nil {
 		return res, err
 	}
 
 	if res.HTTP.StatusCode == 200 {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return res, err
-		}
-
 		// Unwrap the returned Template
 		tmp := map[string]*json.RawMessage{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
@@ -277,14 +269,11 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 		} else {
 			err = errors.New("Unexpected response to TemplateGet")
 		}
-		return res, err
 	} else {
-		err = res.ParseResponse()
-		if err != nil {
-			return res, err
-		}
-		return res, res.Errors
+		err = res.HTTPError()
 	}
+
+	return res, err
 }
 
 // TemplateUpdate updates a draft/published template with the specified id
@@ -327,10 +316,10 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updateP
 
 	if res.HTTP.StatusCode == 200 {
 		return
-	} else {
-		if err = res.ParseResponse(); err == nil {
-			err = res.Errors
-		}
+	}
+
+	if err = res.ParseResponse(); err == nil {
+		err = res.HTTPError()
 	}
 
 	return
@@ -342,41 +331,36 @@ func (c *Client) Templates() ([]Template, *Response, error) {
 }
 
 // TemplatesContext is the same as Templates, and it allows the caller to provide a context
-func (c *Client) TemplatesContext(ctx context.Context) ([]Template, *Response, error) {
+func (c *Client) TemplatesContext(ctx context.Context) (tl []Template, res *Response, err error) {
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := c.Config.BaseUrl + path
-	res, err := c.HttpGet(ctx, url)
+	res, err = c.HttpGet(ctx, url)
 	if err != nil {
-		return nil, nil, err
+		return
 	}
 
 	if err = res.AssertJson(); err != nil {
-		return nil, res, err
+		return
 	}
 
 	if res.HTTP.StatusCode == 200 {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
-			return nil, res, err
+			return
 		}
 		tlist := map[string][]Template{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
-			return nil, res, err
-		} else if list, ok := tlist["results"]; ok {
-			return list, res, nil
+			return
 		}
-		err = fmt.Errorf("Unexpected response to Template list")
-
-	} else {
-		err = res.ParseResponse()
-		if err != nil {
-			return nil, res, err
-		}
-		err = res.Errors
+		return tlist["results"], res, nil
 	}
 
-	return nil, res, err
+	if err = res.ParseResponse(); err == nil {
+		err = res.HTTPError()
+	}
+
+	return
 }
 
 // TemplateDelete removes the Template with the specified id.
@@ -402,13 +386,8 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	err = res.ParseResponse()
-	if err != nil {
-		return
-	}
-
-	if res.HTTP.StatusCode != 200 {
-		err = res.Errors
+	if err = res.ParseResponse(); err == nil {
+		err = res.HTTPError()
 	}
 
 	return
@@ -446,13 +425,8 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	err = res.ParseResponse()
-	if err != nil {
-		return
-	}
-
-	if res.HTTP.StatusCode != 200 {
-		err = res.Errors
+	if err = res.ParseResponse(); err == nil {
+		err = res.HTTPError()
 	}
 
 	return

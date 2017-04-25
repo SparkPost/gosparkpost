@@ -68,6 +68,29 @@ type Response struct {
 	Errors  SPErrors    `json:"errors,omitempty"`
 }
 
+// HTTPError returns nil when the HTTP response code is in the range 200-299.
+// If the API has returned a JSON error in the expected format, return that.
+// Otherwise, return an error containing the HTTP code and response body.
+func (res *Response) HTTPError() error {
+	if res == nil {
+		return errors.New("Internal error: Response may not be nil")
+	} else if res.HTTP == nil {
+		return errors.New("Internal error: Response.HTTP may not be nil")
+	}
+
+	if Is2XX(res.HTTP.StatusCode) {
+		return nil
+	} else if len(res.Errors) > 0 {
+		return res.Errors
+	}
+
+	return SPErrors{{
+		Code:        res.HTTP.Status,
+		Message:     string(res.Body),
+		Description: "HTTP/JSON Error",
+	}}
+}
+
 // SPErrors is the plural of SPError
 type SPErrors []SPError
 
@@ -225,6 +248,7 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	return ares, nil
 }
 
+// Is2XX returns true if the provided HTTP response code is in the range 200-299.
 func Is2XX(code int) bool {
 	if code < 300 && code >= 200 {
 		return true

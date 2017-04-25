@@ -168,24 +168,20 @@ func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientLi
 		return
 	}
 
-	err = res.ParseResponse()
-	if err != nil {
+	if err = res.ParseResponse(); err != nil {
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			return id, res, errors.New("Unexpected response to Recipient List creation (results)")
+			err = errors.New("Unexpected response to Recipient List creation (results)")
+		} else if id, ok = results["id"].(string); !ok {
+			err = errors.New("Unexpected response to Recipient List creation (id)")
 		}
-		id, ok = results["id"].(string)
-		if !ok {
-			return id, res, errors.New("Unexpected response to Recipient List creation (id)")
-		}
-
-	} else if len(res.Errors) > 0 {
-		err = res.Errors
+	} else {
+		err = res.HTTPError()
 	}
 
 	return
@@ -209,7 +205,7 @@ func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *R
 		return nil, res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
@@ -217,18 +213,16 @@ func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *R
 		}
 		rllist := map[string][]RecipientList{}
 		if err = json.Unmarshal(body, &rllist); err != nil {
-			return nil, res, err
 		} else if list, ok := rllist["results"]; ok {
 			return list, res, nil
+		} else {
+			err = errors.New("Unexpected response to RecipientList list")
 		}
-		err = errors.New("Unexpected response to RecipientList list")
 
 	} else {
-		err = res.ParseResponse()
-		if err != nil {
-			return nil, res, err
+		if err = res.ParseResponse(); err == nil {
+			err = res.HTTPError()
 		}
-		err = res.Errors
 	}
 
 	return nil, res, err
