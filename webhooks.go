@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"net/url"
+
+	"github.com/pkg/errors"
 )
 
-// https://www.sparkpost.com/api#/reference/message-events
-var WebhookListPathFormat = "/api/v%d/webhooks"
-var WebhookQueryPathFormat = "/api/v%d/webhooks/%s"
-var WebhookStatusPathFormat = "/api/v%d/webhooks/%s/batch-status"
+// WebhooksPathFormat is the path prefix used for webhook-related requests, with a format string for the API version.
+var WebhooksPathFormat = "/api/v%d/webhooks"
 
+// WebhookItem defines how webhook objects will be returned, as well as how they must be sent.
 type WebhookItem struct {
 	ID       string   `json:"id,omitempty"`
 	Name     string   `json:"name,omitempty"`
@@ -46,32 +46,38 @@ type WebhookItem struct {
 	} `json:"links,omitempty"`
 }
 
+// WebhookStatus defines how the status of a webhook will be returned.
 type WebhookStatus struct {
 	BatchID      string `json:"batch_id,omitempty"`
 	Timestamp    string `json:"ts,omitempty"`
 	Attempts     int    `json:"attempts,omitempty"`
 	ResponseCode string `json:"response_code,omitempty"`
+	FailureCode  string `json:"failure_code,omitempty"`
 }
 
+// WebhookCommon contains fields common to all response types.
 type WebhookCommon struct {
 	Errors []interface{}     `json:"errors,omitempty"`
 	Params map[string]string `json:"-"`
 }
 
+// WebhookListWrapper is returned by the Webhooks method.
 type WebhookListWrapper struct {
 	Results []*WebhookItem `json:"results,omitempty"`
 	WebhookCommon
 }
 
-type WebhookQueryWrapper struct {
+// WebhookDetailWrapper is returned by the WebhookDetail method.
+type WebhookDetailWrapper struct {
 	ID      string       `json:"-"`
 	Results *WebhookItem `json:"results,omitempty"`
 	WebhookCommon
 }
 
+// WebhookStatusWrapper is updated by the WebhookStatus method, using results returned from the API.
 type WebhookStatusWrapper struct {
-	ID      string           `json:"-"`
-	Results []*WebhookStatus `json:"results,omitempty"`
+	ID      string          `json:"-"`
+	Results []WebhookStatus `json:"results,omitempty"`
 	WebhookCommon
 }
 
@@ -90,14 +96,20 @@ func buildUrl(c *Client, path string, parameters map[string]string) string {
 	return path
 }
 
+// WebhookStatus returns details of batch delivery to the specified webhook.
 // https://developers.sparkpost.com/api/#/reference/webhooks/batch-status/retrieve-status-information
 func (c *Client) WebhookStatus(s *WebhookStatusWrapper) (*Response, error) {
 	return c.WebhookStatusContext(context.Background(), s)
 }
 
+// WebhookStatusContext is the same as WebhookStatus, and allows the caller to specify their own context.
 func (c *Client) WebhookStatusContext(ctx context.Context, s *WebhookStatusWrapper) (*Response, error) {
-	path := fmt.Sprintf(WebhookStatusPathFormat, c.Config.ApiVersion, s.ID)
-	finalUrl := buildUrl(c, path, s.Params)
+	if s == nil {
+		return nil, errors.New("WebhookStatus called with nil WebhookStatusWrapper")
+	}
+
+	path := fmt.Sprintf(WebhooksPathFormat, c.Config.ApiVersion)
+	finalUrl := buildUrl(c, path+"/"+s.ID+"/batch-status", s.Params)
 
 	bodyBytes, res, err := doRequest(c, finalUrl, ctx)
 	if err != nil {
@@ -106,20 +118,22 @@ func (c *Client) WebhookStatusContext(ctx context.Context, s *WebhookStatusWrapp
 
 	err = json.Unmarshal(bodyBytes, s)
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "parsing api response")
 	}
 
 	return res, err
 }
 
+// WebhookDetail returns details for the specified webhook.
 // https://developers.sparkpost.com/api/#/reference/webhooks/retrieve/retrieve-webhook-details
-func (c *Client) QueryWebhook(q *WebhookQueryWrapper) (*Response, error) {
-	return c.QueryWebhookContext(context.Background(), q)
+func (c *Client) WebhookDetail(q *WebhookDetailWrapper) (*Response, error) {
+	return c.WebhookDetailContext(context.Background(), q)
 }
 
-func (c *Client) QueryWebhookContext(ctx context.Context, q *WebhookQueryWrapper) (*Response, error) {
-	path := fmt.Sprintf(WebhookQueryPathFormat, c.Config.ApiVersion, q.ID)
-	finalUrl := buildUrl(c, path, q.Params)
+// WebhookDetailContext is the same as WebhookDetail, and allows the caller to specify their own context.
+func (c *Client) WebhookDetailContext(ctx context.Context, q *WebhookDetailWrapper) (*Response, error) {
+	path := fmt.Sprintf(WebhooksPathFormat, c.Config.ApiVersion)
+	finalUrl := buildUrl(c, path+"/"+q.ID, q.Params)
 
 	bodyBytes, res, err := doRequest(c, finalUrl, ctx)
 	if err != nil {
@@ -134,13 +148,15 @@ func (c *Client) QueryWebhookContext(ctx context.Context, q *WebhookQueryWrapper
 	return res, err
 }
 
+// Webhooks returns a list of all configured webhooks.
 // https://developers.sparkpost.com/api/#/reference/webhooks/list/list-all-webhooks
 func (c *Client) Webhooks(l *WebhookListWrapper) (*Response, error) {
 	return c.WebhooksContext(context.Background(), l)
 }
 
+// WebhooksContext is the same as Webhooks, and allows the caller to specify their own context.
 func (c *Client) WebhooksContext(ctx context.Context, l *WebhookListWrapper) (*Response, error) {
-	path := fmt.Sprintf(WebhookListPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(WebhooksPathFormat, c.Config.ApiVersion)
 	finalUrl := buildUrl(c, path, l.Params)
 
 	bodyBytes, res, err := doRequest(c, finalUrl, ctx)
