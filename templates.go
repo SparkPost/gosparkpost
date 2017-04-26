@@ -260,7 +260,7 @@ func (c *Client) TemplateGetContext(ctx context.Context, t *Template, draft bool
 		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		// Unwrap the returned Template
 		tmp := map[string]*json.RawMessage{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
@@ -314,7 +314,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updateP
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		return
 	}
 
@@ -343,7 +343,7 @@ func (c *Client) TemplatesContext(ctx context.Context) (tl []Template, res *Resp
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
