@@ -155,25 +155,15 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 		return res, err
 	}
 
-	// If there are errors the response has JSON otherwise it is empty
+	// We get an empty response on success. If there are errors we get JSON.
 	if res.AssertJson() == nil {
-		res.ParseResponse()
-	}
-
-	if res.HTTP.StatusCode >= 200 && res.HTTP.StatusCode <= 299 {
-		return res, err
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("SuppressionEntry", "delete")
+		err = res.ParseResponse()
 		if err != nil {
 			return res, err
 		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return res, err
+	return res, res.HTTPError()
 }
 
 // SuppressionUpsert adds an entry to the suppression, or updates the existing entry
@@ -195,10 +185,8 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Writabl
 
 	entriesWrapper := EntriesWrapper{entries}
 
-	jsonBytes, err := json.Marshal(entriesWrapper)
-	if err != nil {
-		return nil, err
-	}
+	// Marshaling a static type won't fail
+	jsonBytes, _ := json.Marshal(entriesWrapper)
 
 	finalURL := c.Config.BaseUrl + path
 	res, err := c.HttpPut(ctx, finalURL, jsonBytes)
@@ -215,19 +203,7 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Writabl
 		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "create")
-		if err != nil {
-			return res, err
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-	}
-
-	return res, err
+	return res, res.HTTPError()
 }
 
 // Wraps call to server and unmarshals response

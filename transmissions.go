@@ -238,25 +238,16 @@ func (c *Client) SendContext(ctx context.Context, t *Transmission) (id string, r
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			return id, res, fmt.Errorf("Unexpected response to Transmission creation (results)")
+			err = fmt.Errorf("Unexpected response to Transmission creation (results)")
+		} else if id, ok = results["id"].(string); !ok {
+			err = fmt.Errorf("Unexpected response to Transmission creation (id)")
 		}
-		id, ok = results["id"].(string)
-		if !ok {
-			err = fmt.Errorf("Unexpected response to Transmission creation")
-		}
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "create")
-		if err != nil {
-			return
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+	} else {
+		err = res.HTTPError()
 	}
 
 	return
@@ -283,7 +274,7 @@ func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Res
 		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
@@ -293,30 +284,21 @@ func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Res
 		// Unwrap the returned Transmission
 		tmp := map[string]map[string]json.RawMessage{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
-			return res, err
 		} else if results, ok := tmp["results"]; ok {
 			if raw, ok := results["transmission"]; ok {
-				if err = json.Unmarshal(raw, t); err != nil {
-					return res, err
-				}
-				return res, nil
+				err = json.Unmarshal(raw, t)
+			} else {
+				err = fmt.Errorf("Unexpected response to Transmission (transmission)")
 			}
-			return res, fmt.Errorf("Unexpected results structure in response")
+		} else {
+			err = fmt.Errorf("Unexpected response to Transmission (results)")
 		}
-		err = fmt.Errorf("Unexpected response to Transmission.Retrieve")
 
 	} else {
 		err = res.ParseResponse()
-		if err != nil {
-			return res, err
+		if err == nil {
+			err = res.HTTPError()
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "retrieve")
-			if err != nil {
-				return res, err
-			}
-		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return res, err
@@ -355,20 +337,7 @@ func (c *Client) TransmissionDeleteContext(ctx context.Context, t *Transmission)
 		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
-		return res, nil
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "delete")
-		if err != nil {
-			return res, err
-		}
-
-		return res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-	}
-
-	return res, nil
+	return res, res.HTTPError()
 }
 
 // Transmissions returns Transmission summary information for matching Transmissions.
@@ -394,6 +363,7 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 		qstr = strings.Join(qp, "&")
 	}
 	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
+	// FIXME: redo this using net/url
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
 	res, err := c.HttpGet(ctx, u)
@@ -405,7 +375,7 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 		return nil, res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
@@ -413,24 +383,17 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 		}
 		tlist := map[string][]Transmission{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
-			return nil, res, err
 		} else if list, ok := tlist["results"]; ok {
 			return list, res, nil
+		} else {
+			err = fmt.Errorf("Unexpected response to Transmission list (results)")
 		}
-		err = fmt.Errorf("Unexpected response to Transmission list")
 
 	} else {
 		err = res.ParseResponse()
-		if err != nil {
-			return nil, res, err
+		if err == nil {
+			err = res.HTTPError()
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "list")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return nil, res, err

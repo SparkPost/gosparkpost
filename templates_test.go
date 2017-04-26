@@ -11,6 +11,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ExampleTemplate builds a native Go Template structure from a JSON string
+func ExampleTemplate() {
+	template := &sp.Template{}
+	jsonStr := `{
+		"name": "testy template",
+		"content": {
+			"html": "this is a <b>test</b> email!",
+			"subject": "test email",
+			"from": {
+				"name": "tester",
+				"email": "tester@example.com"
+			},
+			"reply_to": "tester@example.com"
+		}
+	}`
+	err := json.Unmarshal([]byte(jsonStr), template)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func TestTemplateFromValidation(t *testing.T) {
 	for idx, test := range []struct {
 		in  interface{}
@@ -145,11 +166,11 @@ func TestTemplateCreate(t *testing.T) {
 			errors.New("Unexpected response to Template creation (results)"),
 			200, `{"foo":{"id":"new-template"}}`, ""},
 		{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
-			errors.New("Unexpected response to Template creation"),
+			errors.New("Unexpected response to Template creation (id)"),
 			200, `{"results":{"ID":"new-template"}}`, ""},
 		{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
 			errors.New("parsing api response: unexpected end of JSON input"),
-			200, `{"results":{"ID":"new-template"}`, ""},
+			200, `{"truncated":{}`, ""},
 
 		{&sp.Template{Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}},
 			sp.SPErrors([]sp.SPError{{
@@ -159,6 +180,10 @@ func TestTemplateCreate(t *testing.T) {
 				Part:        "Header:Subject",
 			}}),
 			422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`, ""},
+
+		{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}},
+			errors.New(`parsing api response: invalid character 'B' looking for beginning of value`),
+			503, `Bad Gateway`, ""},
 
 		{&sp.Template{Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, nil,
 			200, `{"results":{"id":"new-template"}}`, "new-template"},
@@ -190,9 +215,11 @@ func TestTemplateGet(t *testing.T) {
 		{nil, false, errors.New("TemplateGet called with nil Template"), 200, "", nil},
 		{&sp.Template{ID: ""}, false, errors.New("TemplateGet called with blank id"), 200, "", nil},
 		{&sp.Template{ID: "nope"}, false, errors.New(`[{"message":"Resource could not be found","code":"","description":""}]`), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`, nil},
-		{&sp.Template{ID: "nope"}, false, errors.New("parsing api response: unexpected end of JSON input"), 404, `{ "errors": [ { "message": "Resource could not be found" } ]`, nil},
+		{&sp.Template{ID: "nope"}, false, errors.New(`parsing api response: unexpected end of JSON input`), 400, `{`, nil},
 		{&sp.Template{ID: "id"}, false, errors.New("Unexpected response to TemplateGet"), 200, `{"foo":{}}`, nil},
-		{&sp.Template{ID: "id"}, false, errors.New("unexpected end of JSON input"), 200, `{"foo":{}`, nil},
+		{&sp.Template{ID: "id"}, false, errors.New("parsing api response: unexpected end of JSON input"), 200, `{"foo":{}`, nil},
+
+		{&sp.Template{ID: "id"}, false, errors.New(`parsing api response: invalid character 'B' looking for beginning of value`), 503, `Bad Gateway`, nil},
 
 		{&sp.Template{ID: "id"}, false, nil, 200, `{"results":{"content":{"from":{"email":"a@b.com","name": "a b"},"html":"<blink>hi!</blink>","subject":"blink","text":"no blink ;_;"},"id":"id"}}`, &sp.Template{ID: "id", Content: sp.Content{From: map[string]interface{}{"email": "a@b.com", "name": "a b"}, HTML: "<blink>hi!</blink>", Text: "no blink ;_;", Subject: "blink"}}},
 	} {
@@ -207,12 +234,12 @@ func TestTemplateGet(t *testing.T) {
 
 		_, err := testClient.TemplateGet(test.in, test.draft)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
-			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
+			t.Errorf("TemplateGet[%d] => err %v want %v", idx, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
-			t.Errorf("TemplateUpdate[%d] => err %q want %q", idx, err, test.err)
+			t.Errorf("TemplateGet[%d] => err %v want %v", idx, err, test.err)
 		} else if test.out != nil {
 			if !reflect.DeepEqual(test.out, test.in) {
-				t.Errorf("TemplateUpdate[%d] => template got/want:\n%q\n%q", idx, test.in, test.out)
+				t.Errorf("TemplateGet[%d] => template got/want:\n%q\n%q", idx, test.in, test.out)
 			}
 		}
 	}
@@ -269,7 +296,6 @@ func TestTemplates(t *testing.T) {
 		{errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
 		{errors.New("[{\"message\":\"truncated json\",\"code\":\"\",\"description\":\"\"}]"), 0, `{ "errors": [ { "message": "truncated json" } ] }`},
 		{nil, 200, `{ "results": [ { "description": "A test message from SparkPost.com", "id": "my-first-email", "last_update_time": "2006-01-02T15:04:05+00:00", "name": "My First Email", "published": false } ] }`},
-		{errors.New("Unexpected response to Template list"), 200, `{ "foo": [ { "description": "A malformed message from SparkPost.com" } ] }`},
 	} {
 		testSetup(t)
 		defer testTeardown()

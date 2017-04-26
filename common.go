@@ -68,6 +68,29 @@ type Response struct {
 	Errors  SPErrors    `json:"errors,omitempty"`
 }
 
+// HTTPError returns nil when the HTTP response code is in the range 200-299.
+// If the API has returned a JSON error in the expected format, return that.
+// Otherwise, return an error containing the HTTP code and response body.
+func (res *Response) HTTPError() error {
+	if res == nil {
+		return errors.New("Internal error: Response may not be nil")
+	} else if res.HTTP == nil {
+		return errors.New("Internal error: Response.HTTP may not be nil")
+	}
+
+	if Is2XX(res.HTTP.StatusCode) {
+		return nil
+	} else if len(res.Errors) > 0 {
+		return res.Errors
+	}
+
+	return SPErrors{{
+		Code:        res.HTTP.Status,
+		Message:     string(res.Body),
+		Description: "HTTP/JSON Error",
+	}}
+}
+
 // SPErrors is the plural of SPError
 type SPErrors []SPError
 
@@ -225,6 +248,7 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	return ares, nil
 }
 
+// Is2XX returns true if the provided HTTP response code is in the range 200-299.
 func Is2XX(code int) bool {
 	if code < 300 && code >= 200 {
 		return true
@@ -298,25 +322,6 @@ func (r *Response) AssertJson() error {
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
 	if mediaType != "application/json" {
 		return errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
-	}
-	return nil
-}
-
-// PrettyError returns a human-readable error message for common http errors returned by the API.
-// The string parameters are used to customize the generated error message
-// (example: noun=template, verb=create).
-func (r *Response) PrettyError(noun, verb string) error {
-	if r.HTTP == nil {
-		return nil
-	}
-	code := r.HTTP.StatusCode
-	if code == 404 {
-		return errors.Errorf("%s does not exist, %s failed.", noun, verb)
-	} else if code == 401 {
-		return errors.Errorf("%s %s failed, permission denied. Check your API key.", noun, verb)
-	} else if code == 403 {
-		// This is what happens if an endpoint URL gets typo'd.
-		return errors.Errorf("%s %s failed. Are you using the right API path?", noun, verb)
 	}
 	return nil
 }

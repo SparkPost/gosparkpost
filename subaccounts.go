@@ -83,20 +83,17 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			return res, errors.New("Unexpected response to Subaccount creation (results)")
-		}
-		f, ok := results["subaccount_id"].(float64)
-		if !ok {
+			err = errors.New("Unexpected response to Subaccount creation (results)")
+		} else if f, ok := results["subaccount_id"].(float64); !ok {
 			err = errors.New("Unexpected response to Subaccount creation (subaccount_id)")
+		} else {
+			s.ID = int(f)
+			if s.ShortKey, ok = results["short_key"].(string); !ok {
+				err = errors.New("Unexpected response to Subaccount creation (short_key)")
+			}
 		}
-		s.ID = int(f)
-		s.ShortKey, ok = results["short_key"].(string)
-		if !ok {
-			err = errors.New("Unexpected response to Subaccount creation (short_key)")
-		}
-
-	} else if len(res.Errors) > 0 {
-		err = res.Errors
+	} else {
+		err = res.HTTPError()
 	}
 
 	return
@@ -148,13 +145,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	if Is2XX(res.HTTP.StatusCode) {
-		return
-
-	} else if len(res.Errors) > 0 {
-		err = res.Errors
-	}
-
+	err = res.HTTPError()
 	return
 }
 
@@ -194,7 +185,7 @@ func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccou
 	} else {
 		err = res.ParseResponse()
 		if err == nil {
-			err = res.Errors
+			err = res.HTTPError()
 		}
 	}
 
@@ -237,7 +228,7 @@ func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Sub
 	} else {
 		err = res.ParseResponse()
 		if err == nil {
-			err = res.Errors
+			err = res.HTTPError()
 		}
 	}
 
