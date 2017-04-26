@@ -63,7 +63,7 @@ type WebhookCommon struct {
 
 // WebhookListWrapper is returned by the Webhooks method.
 type WebhookListWrapper struct {
-	Results []*WebhookItem `json:"results,omitempty"`
+	Results []WebhookItem `json:"results,omitempty"`
 	WebhookCommon
 }
 
@@ -131,18 +131,22 @@ func (c *Client) WebhookDetail(q *WebhookDetailWrapper) (*Response, error) {
 }
 
 // WebhookDetailContext is the same as WebhookDetail, and allows the caller to specify their own context.
-func (c *Client) WebhookDetailContext(ctx context.Context, q *WebhookDetailWrapper) (*Response, error) {
+func (c *Client) WebhookDetailContext(ctx context.Context, d *WebhookDetailWrapper) (*Response, error) {
+	if d == nil {
+		return nil, errors.New("WebhookDetail called with nil WebhookDetailWrapper")
+	}
+
 	path := fmt.Sprintf(WebhooksPathFormat, c.Config.ApiVersion)
-	finalUrl := buildUrl(c, path+"/"+q.ID, q.Params)
+	finalUrl := buildUrl(c, path+"/"+d.ID, d.Params)
 
 	bodyBytes, res, err := doRequest(c, finalUrl, ctx)
 	if err != nil {
 		return res, err
 	}
 
-	err = json.Unmarshal(bodyBytes, q)
+	err = json.Unmarshal(bodyBytes, d)
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "parsing api response")
 	}
 
 	return res, err
@@ -156,6 +160,10 @@ func (c *Client) Webhooks(l *WebhookListWrapper) (*Response, error) {
 
 // WebhooksContext is the same as Webhooks, and allows the caller to specify their own context.
 func (c *Client) WebhooksContext(ctx context.Context, l *WebhookListWrapper) (*Response, error) {
+	if l == nil {
+		return nil, errors.New("Webhooks called with nil WebhookListWrapper")
+	}
+
 	path := fmt.Sprintf(WebhooksPathFormat, c.Config.ApiVersion)
 	finalUrl := buildUrl(c, path, l.Params)
 
@@ -166,7 +174,7 @@ func (c *Client) WebhooksContext(ctx context.Context, l *WebhookListWrapper) (*R
 
 	err = json.Unmarshal(bodyBytes, l)
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "parsing api response")
 	}
 
 	return res, err
