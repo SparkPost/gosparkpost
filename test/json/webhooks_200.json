@@ -1,0 +1,96 @@
+{
+  "results": [
+    {
+      "id": "a2b83490-10df-11e4-b670-c1ffa86371ff",
+      "name": "Some webhook",
+      "target": "http://client.example.com/some-webhook",
+      "events": [
+        "delivery",
+        "injection",
+        "open",
+        "click"
+      ],
+      "auth_type": "basic",
+      "auth_request_details": {},
+      "auth_credentials": {
+        "username": "basicuser",
+        "password": "somepass"
+      },
+      "auth_token": "",
+      "last_successful": "2014-08-01 16:09:15",
+      "last_failure": "2014-06-01 15:15:45",
+      "active": true,
+      "links": [
+        {
+          "href": "http://www.messagesystems-api-url.com/api/v1/webhooks/a2b83490-10df-11e4-b670-c1ffa86371ff",
+          "rel": "urn.msys.webhooks.webhook",
+          "method": [
+            "GET",
+            "PUT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12affc24-f183-11e3-9234-3c15c2c818c2",
+      "name": "Example webhook",
+      "target": "http://client.example.com/example-webhook",
+      "events": [
+        "delivery",
+        "injection",
+        "open",
+        "click"
+      ],
+      "auth_type": "oauth2",
+      "auth_request_details": {
+        "url": "https://oauth.myurl.com/tokens",
+        "body": {
+          "client_id": "<oauth client id>",
+          "client_secret": "<oauth client secret>"
+        }
+      },
+      "auth_credentials": {
+        "access_token": "<oauth token>",
+        "expires_in": 3600
+      },
+      "auth_token": "",
+      "last_successful": "2014-07-01 16:09:15",
+      "last_failure": "2014-08-01 15:15:45",
+      "active": true,
+      "links": [
+        {
+          "href": "http://www.messagesystems-api-url.com/api/v1/webhooks/12affc24-f183-11e3-9234-3c15c2c818c2",
+          "rel": "urn.msys.webhooks.webhook",
+          "method": [
+            "GET",
+            "PUT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "123456-abcd-efgh-7890-123445566778",
+      "name": "Another webhook",
+      "target": "http://client.example.com/another-example",
+      "events": [
+        "generation_rejection",
+        "generation_failure"
+      ],
+      "auth_type": "none",
+      "auth_request_details": {},
+      "auth_credentials": {},
+      "auth_token": "5ebe2294ecd0e0f08eab7690d2a6ee69",
+      "active": true,
+      "links": [
+        {
+          "href": "http://www.messagesystems-api-url.com/api/v1/webhooks/123456-abcd-efgh-7890-123445566778",
+          "rel": "urn.msys.webhooks.webhook",
+          "method": [
+            "GET",
+            "PUT"
+          ]
+        }
+      ]
+    }
+  ]
+}
