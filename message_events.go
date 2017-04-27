@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/SparkPost/gosparkpost/events"
+	"github.com/pkg/errors"
 )
 
 // https://www.sparkpost.com/api#/reference/message-events
@@ -38,6 +39,10 @@ func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
 
 // MessageEventsSearchContext is the same as MessageEventsSearch, and it accepts a context.Context
 func (c *Client) MessageEventsSearchContext(ctx context.Context, ep *EventsPage) (*Response, error) {
+	if ep == nil {
+		return nil, errors.New("MessageEventsSearch called with nil EventsPage!")
+	}
+
 	path := fmt.Sprintf(MessageEventsPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {

@@ -2,12 +2,11 @@ package gosparkpost_test
 
 import (
 	"fmt"
-	"net/http"
+	"reflect"
 	"testing"
 
 	sp "github.com/SparkPost/gosparkpost"
-	"github.com/SparkPost/gosparkpost/events"
-	"github.com/SparkPost/gosparkpost/test"
+	"github.com/pkg/errors"
 )
 
 var msgEventsEmpty string = `{
@@ -16,197 +15,67 @@ var msgEventsEmpty string = `{
 	"total_count": 0
 }`
 
-func TestMsgEvents_Get_Empty(t *testing.T) {
-	testSetup(t)
-	defer testTeardown()
-
-	path := fmt.Sprintf(sp.MessageEventsPathFormat, testClient.Config.ApiVersion)
-	testMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, "GET")
-		w.Header().Set("Content-Type", "application/json; charset=utf8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(msgEventsEmpty))
-	})
-
-	ep := &sp.EventsPage{Params: map[string]string{
-		"from":   "1970-01-01T00:00",
-		"events": "injection",
-	}}
-	res, err := testClient.MessageEventsSearch(ep)
-	if err != nil {
-		testFailVerbose(t, res, "Message Events GET returned error: %v", err)
-	}
+type EventsPageResult struct {
+	err    error
+	status int
+	json   string
+	out    *sp.EventsPage
 }
 
-func TestMessageEvents(t *testing.T) {
-	if true {
-		// Temporarily disable test so TravisCI reports build success instead of test failure.
-		return
-	}
+func TestMessageEventsSearch(t *testing.T) {
+	var err error
+	var next *sp.EventsPage
 
-	cfgMap, err := test.LoadConfig()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	cfg, err := sp.NewConfig(cfgMap)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	// Each test can return multiple pages of results
+	for idx, _test := range []struct {
+		in  *sp.EventsPage
+		res []EventsPageResult
+	}{
+		{nil, []EventsPageResult{
+			{errors.New("MessageEventsSearch called with nil EventsPage!"), 400, `{}`, nil},
+		}},
 
-	var client sp.Client
-	err = client.Init(cfg)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+		{&sp.EventsPage{
+			Params: map[string]string{
+				"from":   "1970-01-01T00:00",
+				"events": "injection",
+			}},
+			[]EventsPageResult{
+				{nil, 200, msgEventsEmpty, nil},
+				{nil, 200, `{`, nil},
+			},
+		},
+	} {
+		for j, test := range _test.res {
+			testSetup(t)
+			defer testTeardown()
 
-	ep := &sp.EventsPage{Params: map[string]string{
-		"per_page": "10",
-	}}
-	_, err = client.MessageEventsSearch(ep)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+			path := sp.MessageEventsPathFormat
+			if j > 0 {
+				path = path + fmt.Sprintf("?page=%d", j)
+			}
+			mockRestResponseBuilderFormat(t, "GET", test.status, path, test.json)
 
-	if len(ep.Events) == 0 {
-		t.Error("expected non-empty result")
-	}
-
-	for _, ev := range ep.Events {
-		switch event := ev.(type) {
-		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
-			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
-			*events.RelayInjection, *events.RelayRejection, *events.RelayDelivery,
-			*events.RelayTempfail, *events.RelayPermfail, *events.SpamComplaint, *events.SMSStatus:
-			if len(fmt.Sprintf("%v", event)) == 0 {
-				t.Errorf("Empty output of %T.String()", event)
+			if j == 0 {
+				_, err = testClient.MessageEventsSearch(_test.in)
+			} else {
+				_test.in.NextPage = fmt.Sprintf(path, testClient.Config.ApiVersion)
+				next, _, err = _test.in.Next()
 			}
 
-		case *events.Bounce, *events.Delay, *events.Delivery, *events.Injection, *events.OutOfBand:
-			if len(events.ECLog(event)) == 0 {
-				t.Errorf("Empty output of %T.ECLog()", event)
+			if err == nil && test.err != nil || err != nil && test.err == nil {
+				t.Errorf("MessageEventsSearch[%d.%d] => err %#v want %#v", idx, j, err, test.err)
+			} else if err != nil && err.Error() != test.err.Error() {
+				t.Errorf("MessageEventsSearch[%d.%d] => err %#v want %#v", idx, j, err, test.err)
+			} else if test.out != nil {
+				if !reflect.DeepEqual(test.out, _test.in) {
+					t.Errorf("MessageEventsSearch[%d.%d] => events got/want:\n%#v\n%#v", idx, j, _test.in, test.out)
+				}
 			}
 
-		case *events.Unknown:
-			t.Errorf("Uknown type: %v", event)
-
-		default:
-			t.Errorf("Uknown type: %T", event)
-		}
-	}
-
-	ep, _, err = ep.Next()
-	if err != nil {
-		t.Error(err)
-	} else if ep != nil {
-		if len(ep.Events) == 0 {
-			t.Error("expected non-empty result")
-		}
-	}
-}
-
-func TestAllEventsSamples(t *testing.T) {
-	if true {
-		// Temporarily disable test so TravisCI reports build success instead of test failure.
-		return
-	}
-
-	cfgMap, err := test.LoadConfig()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	cfg, err := sp.NewConfig(cfgMap)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	var client sp.Client
-	err = client.Init(cfg)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	e, _, err := client.EventSamples(nil)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if len(*e) == 0 {
-		t.Error("expected non-empty result")
-	}
-
-	for _, ev := range *e {
-		switch event := ev.(type) {
-		case *events.Click, *events.Open, *events.GenerationFailure, *events.GenerationRejection,
-			*events.ListUnsubscribe, *events.LinkUnsubscribe, *events.PolicyRejection,
-			*events.RelayInjection, *events.RelayRejection, *events.RelayDelivery,
-			*events.RelayTempfail, *events.RelayPermfail, *events.SpamComplaint, *events.SMSStatus:
-			if len(fmt.Sprintf("%v", event)) == 0 {
-				t.Errorf("Empty output of %T.String()", event)
+			if j > 0 {
+				_test.in = next
 			}
-
-		case *events.Bounce, *events.Delay, *events.Delivery, *events.Injection, *events.OutOfBand:
-			if len(events.ECLog(event)) == 0 {
-				t.Errorf("Empty output of %T.ECLog()", event)
-			}
-
-		case *events.Unknown:
-			t.Errorf("Uknown type: %v", event)
-
-		default:
-			t.Errorf("Uknown type: %T", event)
-		}
-	}
-}
-
-func TestFilteredEventsSamples(t *testing.T) {
-	if true {
-		// Temporarily disable test so TravisCI reports build success instead of test failure.
-		return
-	}
-
-	cfgMap, err := test.LoadConfig()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	cfg, err := sp.NewConfig(cfgMap)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	var client sp.Client
-	err = client.Init(cfg)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	types := []string{"open", "click", "bounce"}
-	e, _, err := client.EventSamples(&types)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if len(*e) == 0 {
-		t.Error("expected non-empty result")
-	}
-
-	for _, ev := range *e {
-		switch event := ev.(type) {
-		case *events.Click, *events.Open, *events.Bounce:
-			// Expected, ok.
-		default:
-			t.Errorf("Unexpected type %T, should have been filtered out.", event)
 		}
 	}
 }
