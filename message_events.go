@@ -18,8 +18,6 @@ var (
 )
 
 type EventsPage struct {
-	client *Client
-
 	Events     events.Events
 	TotalCount int
 	Errors     []interface{}
@@ -29,29 +27,26 @@ type EventsPage struct {
 	FirstPage string
 	LastPage  string
 
+	Client *Client           `json:"-"`
 	Params map[string]string `json:"-"`
 }
 
 // https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
-func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
-	return c.MessageEventsSearchContext(context.Background(), ep)
+func (c *Client) MessageEventsSearch(page *EventsPage) (*Response, error) {
+	return c.MessageEventsSearchContext(context.Background(), page)
 }
 
 // MessageEventsSearchContext is the same as MessageEventsSearch, and it accepts a context.Context
-func (c *Client) MessageEventsSearchContext(ctx context.Context, ep *EventsPage) (*Response, error) {
-	if ep == nil {
-		return nil, errors.New("MessageEventsSearch called with nil EventsPage!")
-	}
-
+func (c *Client) MessageEventsSearchContext(ctx context.Context, page *EventsPage) (*Response, error) {
 	path := fmt.Sprintf(MessageEventsPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parsing url")
 	}
 
-	if len(ep.Params) > 0 {
+	if len(page.Params) > 0 {
 		q := url.Query()
-		for k, v := range ep.Params {
+		for k, v := range page.Params {
 			q.Add(k, v)
 		}
 		url.RawQuery = q.Encode()
@@ -74,29 +69,28 @@ func (c *Client) MessageEventsSearchContext(ctx context.Context, ep *EventsPage)
 		return res, err
 	}
 
-	err = json.Unmarshal(bodyBytes, ep)
+	err = json.Unmarshal(bodyBytes, page)
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "parsing api response")
 	}
-
-	ep.client = c
+	page.Client = c
 
 	return res, nil
 }
 
 // Next returns the next page of results from a previous MessageEventsSearch call
-func (ep *EventsPage) Next() (*EventsPage, *Response, error) {
-	return ep.NextContext(context.Background())
+func (page *EventsPage) Next() (*EventsPage, *Response, error) {
+	return page.NextContext(context.Background())
 }
 
 // NextContext is the same as Next, and it accepts a context.Context
-func (ep *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, error) {
-	if ep.NextPage == "" {
+func (page *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, error) {
+	if page.NextPage == "" {
 		return nil, nil, nil
 	}
 
 	// Send off our request
-	res, err := ep.client.HttpGet(ctx, ep.client.Config.BaseUrl+ep.NextPage)
+	res, err := page.Client.HttpGet(ctx, page.Client.Config.BaseUrl+page.NextPage)
 	if err != nil {
 		return nil, res, err
 	}
@@ -112,20 +106,20 @@ func (ep *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, 
 		return nil, res, err
 	}
 
-	var eventsPage EventsPage
-	err = json.Unmarshal(bodyBytes, &eventsPage)
+	var nextPage EventsPage
+	err = json.Unmarshal(bodyBytes, &nextPage)
 	if err != nil {
-		return nil, res, err
+		return nil, res, errors.Wrap(err, "parsing api response")
 	}
 
-	eventsPage.client = ep.client
+	nextPage.Client = page.Client
 
-	return &eventsPage, res, nil
+	return &nextPage, res, nil
 }
 
-func (ep *EventsPage) UnmarshalJSON(data []byte) error {
+func (page *EventsPage) UnmarshalJSON(data []byte) error {
 	// Clear object.
-	*ep = EventsPage{}
+	*page = EventsPage{}
 
 	// Object with array of events and cursors is being sent on Message Events.
 	var resultsWrapper struct {
@@ -142,24 +136,24 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	ep.Events, err = events.ParseRawJSONEvents(resultsWrapper.RawEvents)
+	page.Events, err = events.ParseRawJSONEvents(resultsWrapper.RawEvents)
 	if err != nil {
 		return err
 	}
 
-	ep.Errors = resultsWrapper.Errors
-	ep.TotalCount = resultsWrapper.TotalCount
+	page.Errors = resultsWrapper.Errors
+	page.TotalCount = resultsWrapper.TotalCount
 
 	for _, link := range resultsWrapper.Links {
 		switch link.Rel {
 		case "next":
-			ep.NextPage = link.Href
+			page.NextPage = link.Href
 		case "previous":
-			ep.PrevPage = link.Href
+			page.PrevPage = link.Href
 		case "first":
-			ep.FirstPage = link.Href
+			page.FirstPage = link.Href
 		case "last":
-			ep.LastPage = link.Href
+			page.LastPage = link.Href
 		}
 	}
 
