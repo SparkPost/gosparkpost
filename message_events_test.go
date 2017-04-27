@@ -1,7 +1,6 @@
 package gosparkpost_test
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -22,15 +21,10 @@ func TestMessageEventsSearch(t *testing.T) {
 	var err error
 	var page *sp.EventsPage
 
-	//var res200 = loadTestFile(t, "test/json/message-events_search_200.json")
-	var res200_1 = loadTestFile(t, "test/json/message-events_search_200-1.json")
-	var res200_2 = loadTestFile(t, "test/json/message-events_search_200-2.json")
-	var res200_3 = loadTestFile(t, "test/json/message-events_search_200-3.json")
-
-	var ts1, ts2, ts3 events.Timestamp
-	json.Unmarshal([]byte(`"2017-04-26T21:37:32.000+00:00"`), &ts1)
-	json.Unmarshal([]byte(`"2017-04-26T21:37:17.000+00:00"`), &ts2)
-	json.Unmarshal([]byte(`"2017-04-26T21:37:17.000+00:00"`), &ts3)
+	var res200 = loadTestFile(t, "test/json/message-events_search_200.json")
+	msgEventsPage1.json = loadTestFile(t, "test/json/message-events_search_200-1.json")
+	msgEventsPage2.json = loadTestFile(t, "test/json/message-events_search_200-2.json")
+	msgEventsPage3.json = loadTestFile(t, "test/json/message-events_search_200-3.json")
 
 	// Each test can return multiple pages of results
 	for idx, outer := range []struct {
@@ -41,93 +35,17 @@ func TestMessageEventsSearch(t *testing.T) {
 			{errors.New("MessageEventsSearch called with nil EventsPage!"), 400, `{}`, nil},
 		}},
 
-		//{&sp.EventsPage{
-		//	Params: map[string]string{"from": "1970-01-01T00:00"}},
-		//	[]EventsPageResult{{nil, 200, res200, nil}},
-		//},
+		{&sp.EventsPage{
+			Params: map[string]string{"from": "1970-01-01T00:00"}},
+			[]EventsPageResult{{nil, 200, res200, &sp.EventsPage{}}},
+		},
 
 		{&sp.EventsPage{
 			Params: map[string]string{
 				"from":     "1970-01-01T00:00",
 				"per_page": "1",
 			}},
-			[]EventsPageResult{
-				{nil, 200, res200_1, &sp.EventsPage{
-					TotalCount: 3,
-					Events: events.Events{&events.Click{
-						EventCommon:     events.EventCommon{Type: "click"},
-						CampaignID:      "",
-						CustomerID:      "42",
-						DeliveryMethod:  "esmtp",
-						GeoIP:           &events.GeoIP{Country: "US", Region: "NY", City: "Bronx", Latitude: 40.8499, Longitude: -73.8769},
-						IPAddress:       "66.102.8.2",
-						MessageID:       "0001441ead58afdeb21d",
-						Metadata:        map[string]interface{}{},
-						Tags:            []string{},
-						Recipient:       "developers@sparkpost.com",
-						RecipientType:   "",
-						TargetLinkName:  "",
-						TargetLinkURL:   "https://sparkpost.com",
-						TemplateID:      "best-template-ever",
-						TemplateVersion: "10",
-						Timestamp:       ts1,
-						TransmissionID:  "30494147183576458",
-						UserAgent:       "lynx",
-					}},
-					NextPage: "/api/v1/message-events?page=2&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:09&timezone=UTC",
-					LastPage: "/api/v1/message-events?page=3&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:09&timezone=UTC",
-				}},
-
-				{nil, 200, res200_2, &sp.EventsPage{
-					TotalCount: 3,
-					Events: events.Events{&events.Open{
-						EventCommon:     events.EventCommon{Type: "open"},
-						CampaignID:      "",
-						CustomerID:      "42",
-						DeliveryMethod:  "esmtp",
-						GeoIP:           &events.GeoIP{Country: "US", Region: "NY", City: "Bronx", Latitude: 40.8499, Longitude: -73.8769},
-						IPAddress:       "66.102.8.28",
-						MessageID:       "0001441ead58afdeb21d",
-						Metadata:        map[string]interface{}{},
-						Tags:            []string{},
-						Recipient:       "developers@sparkpost.com",
-						RecipientType:   "",
-						TemplateID:      "best-template-ever",
-						TemplateVersion: "10",
-						Timestamp:       ts2,
-						TransmissionID:  "30494147183576458",
-						UserAgent:       "Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)"},
-					},
-					NextPage:  "/api/v1/message-events?page=3&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
-					PrevPage:  "/api/v1/message-events?page=1&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
-					FirstPage: "/api/v1/message-events?page=1&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
-					LastPage:  "/api/v1/message-events?page=3&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
-				}},
-
-				{nil, 200, res200_3, &sp.EventsPage{
-					TotalCount: 3,
-					Events: events.Events{&events.Open{
-						EventCommon:     events.EventCommon{Type: "open"},
-						CampaignID:      "",
-						CustomerID:      "42",
-						DeliveryMethod:  "esmtp",
-						GeoIP:           &events.GeoIP{Country: "US", Region: "NY", City: "Bronx", Latitude: 40.8499, Longitude: -73.8769},
-						IPAddress:       "66.102.8.2",
-						MessageID:       "00042a25ad58fc0145e1",
-						Metadata:        map[string]interface{}{},
-						Tags:            []string{},
-						Recipient:       "sales@sparkpost.com",
-						RecipientType:   "",
-						TemplateID:      "best-template-ever",
-						TemplateVersion: "10",
-						Timestamp:       ts2,
-						TransmissionID:  "84537445295705713",
-						UserAgent:       "Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)"},
-					},
-					PrevPage:  "/api/v1/message-events?page=2&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:13&timezone=UTC",
-					FirstPage: "/api/v1/message-events?page=1&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:13&timezone=UTC",
-				}},
-			},
+			[]EventsPageResult{msgEventsPage1, msgEventsPage2, msgEventsPage3},
 		},
 	} {
 		for j, test := range outer.results {
