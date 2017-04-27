@@ -61,20 +61,20 @@ type WebhookCommon struct {
 	Params map[string]string `json:"-"`
 }
 
-// WebhookListWrapper is returned by the Webhooks method.
+// WebhookListWrapper is passed into and updated by the Webhooks method, using results returned from the API.
 type WebhookListWrapper struct {
 	Results []WebhookItem `json:"results,omitempty"`
 	WebhookCommon
 }
 
-// WebhookDetailWrapper is returned by the WebhookDetail method.
+// WebhookDetailWrapper is passed into and updated by the WebhookDetail method, using results returned from the API.
 type WebhookDetailWrapper struct {
 	ID      string       `json:"-"`
 	Results *WebhookItem `json:"results,omitempty"`
 	WebhookCommon
 }
 
-// WebhookStatusWrapper is updated by the WebhookStatus method, using results returned from the API.
+// WebhookStatusWrapper is passed into and updated by the WebhookStatus method, using results returned from the API.
 type WebhookStatusWrapper struct {
 	ID      string          `json:"-"`
 	Results []WebhookStatus `json:"results,omitempty"`
@@ -96,7 +96,7 @@ func buildUrl(c *Client, path string, parameters map[string]string) string {
 	return path
 }
 
-// WebhookStatus returns details of batch delivery to the specified webhook.
+// WebhookStatus updates its argument with details of batch delivery for the specified webhook.
 // https://developers.sparkpost.com/api/#/reference/webhooks/batch-status/retrieve-status-information
 func (c *Client) WebhookStatus(s *WebhookStatusWrapper) (*Response, error) {
 	return c.WebhookStatusContext(context.Background(), s)
@@ -124,7 +124,7 @@ func (c *Client) WebhookStatusContext(ctx context.Context, s *WebhookStatusWrapp
 	return res, err
 }
 
-// WebhookDetail returns details for the specified webhook.
+// WebhookDetail updates its argument with details for the specified webhook.
 // https://developers.sparkpost.com/api/#/reference/webhooks/retrieve/retrieve-webhook-details
 func (c *Client) WebhookDetail(q *WebhookDetailWrapper) (*Response, error) {
 	return c.WebhookDetailContext(context.Background(), q)
@@ -152,7 +152,7 @@ func (c *Client) WebhookDetailContext(ctx context.Context, d *WebhookDetailWrapp
 	return res, err
 }
 
-// Webhooks returns a list of all configured webhooks.
+// Webhooks updates its argument with a list of all configured webhooks.
 // https://developers.sparkpost.com/api/#/reference/webhooks/list/list-all-webhooks
 func (c *Client) Webhooks(l *WebhookListWrapper) (*Response, error) {
 	return c.WebhooksContext(context.Background(), l)
