@@ -232,7 +232,7 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	res, err := c.Client.Do(req)
 	ares.HTTP = res
 
-	if c.Config.Verbose {
+	if c.Config.Verbose && res != nil {
 		ares.Verbose["http_status"] = ares.HTTP.Status
 		bodyBytes, dumpErr := httputil.DumpResponse(res, true)
 		if dumpErr != nil {
