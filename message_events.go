@@ -167,12 +167,12 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 }
 
 // EventSamples requests a list of example event data.
-func (c *Client) EventSamples(types *[]string) (*events.Events, *Response, error) {
+func (c *Client) EventSamples(types []string) (*events.Events, *Response, error) {
 	return c.EventSamplesContext(context.Background(), types)
 }
 
 // EventSamplesContext is the same as EventSamples, and it accepts a context.Context
-func (c *Client) EventSamplesContext(ctx context.Context, types *[]string) (*events.Events, *Response, error) {
+func (c *Client) EventSamplesContext(ctx context.Context, types []string) (*events.Events, *Response, error) {
 	path := fmt.Sprintf(MessageEventsSamplesPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
@@ -182,7 +182,7 @@ func (c *Client) EventSamplesContext(ctx context.Context, types *[]string) (*eve
 	// Filter out types.
 	if types != nil {
 		// validate types
-		for _, etype := range *types {
+		for _, etype := range types {
 			if !events.ValidEventType(etype) {
 				return nil, nil, fmt.Errorf("Invalid event type [%s]", etype)
 			}
@@ -191,7 +191,7 @@ func (c *Client) EventSamplesContext(ctx context.Context, types *[]string) (*eve
 		// get the query string object so we can modify it
 		q := url.Query()
 		// add the requested events and re-encode
-		q.Set("events", strings.Join(*types, ","))
+		q.Set("events", strings.Join(types, ","))
 		url.RawQuery = q.Encode()
 	}
 
