@@ -33,8 +33,8 @@ func TestMessageEventsSearch(t *testing.T) {
 	}{
 		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00"}},
 			[]EventsPageResult{EventsPageResult{
-				errors.New("parsing api response: unexpected end of JSON input"),
-				200, "{", nil},
+				nil, // filled out below in the `if idx == 0` block
+				200, "{}", nil},
 			},
 		},
 		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00"}},
@@ -43,13 +43,16 @@ func TestMessageEventsSearch(t *testing.T) {
 				200, "{", nil},
 			},
 		},
+		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00", "per_page": "1"}},
+			[]EventsPageResult{msgEventsPage1, msgEventsPage2Syntax, msgEventsPage3, msgEventsPage4},
+		},
 
 		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00"}},
 			[]EventsPageResult{msgEventsPageAll},
 		},
 
 		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00", "per_page": "1"}},
-			[]EventsPageResult{msgEventsPage1, msgEventsPage2, msgEventsPage3},
+			[]EventsPageResult{msgEventsPage1, msgEventsPage2, msgEventsPage3, msgEventsPage4},
 		},
 	} {
 		var page *sp.EventsPage
@@ -87,7 +90,9 @@ func TestMessageEventsSearch(t *testing.T) {
 						t.Errorf("MessageEventsSearch[%d.%d] => template got/want:\n%q\n%q", idx, j, page, test.out)
 					}
 				} else {
-					t.Errorf("MessageEventsSearch[%d.%d] => page is nil!", idx, j)
+					if j+1 != len(outer.results) { // nil `page` is ok if we're on the last page
+						t.Errorf("MessageEventsSearch[%d.%d] => page %d is nil!", idx, j, len(outer.results))
+					}
 				}
 			}
 			testTeardown()

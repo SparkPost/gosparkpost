@@ -5,6 +5,7 @@ import (
 
 	sp "github.com/SparkPost/gosparkpost"
 	"github.com/SparkPost/gosparkpost/events"
+	"github.com/pkg/errors"
 )
 
 func init() {
@@ -90,9 +91,14 @@ var msgEventsPage2 = EventsPageResult{nil, 200, ``, &sp.EventsPage{
 	LastPage:   "/api/v1/message-events?page=3&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
 }}
 
+var msgEventsPage2Syntax = EventsPageResult{
+	errors.New("parsing api response: unexpected end of JSON input"), 200, `{`, nil}
+
 var msgEventsPage3 = EventsPageResult{nil, 200, ``, &sp.EventsPage{
 	TotalCount: 3,
 	Events:     events.Events{open2},
 	PrevPage:   "/api/v1/message-events?page=2&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:13&timezone=UTC",
 	FirstPage:  "/api/v1/message-events?page=1&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:13&timezone=UTC",
 }}
+
+var msgEventsPage4 = EventsPageResult{nil, 200, ``, &sp.EventsPage{}}
