@@ -40,18 +40,13 @@ func (c *Client) EventDocumentationContext(ctx context.Context) (groups map[stri
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
 		var ok bool
-		body, err = res.ReadBody()
-		if err != nil {
-			return
-		}
-
 		var results map[string]map[string]*EventGroup
 		if err = json.Unmarshal(body, &results); err != nil {
 		} else if groups, ok = results["results"]; ok {

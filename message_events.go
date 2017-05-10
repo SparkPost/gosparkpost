@@ -58,18 +58,13 @@ func (c *Client) MessageEventsSearchContext(ctx context.Context, page *EventsPag
 		return res, err
 	}
 
+	var body []byte
 	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
+	if body, err = res.AssertJson(); err != nil {
 		return res, err
 	}
 
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return res, err
-	}
-
-	err = json.Unmarshal(bodyBytes, page)
+	err = json.Unmarshal(body, page)
 	if err != nil {
 		return res, errors.Wrap(err, "parsing api response")
 	}
@@ -95,19 +90,14 @@ func (page *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response
 		return nil, res, err
 	}
 
+	var body []byte
 	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
-		return nil, res, err
-	}
-
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
+	if body, err = res.AssertJson(); err != nil {
 		return nil, res, err
 	}
 
 	var nextPage EventsPage
-	err = json.Unmarshal(bodyBytes, &nextPage)
+	err = json.Unmarshal(body, &nextPage)
 	if err != nil {
 		return nil, res, errors.Wrap(err, "parsing api response")
 	}
@@ -195,36 +185,17 @@ func (c *Client) EventSamplesContext(ctx context.Context, types []string) (*even
 		return nil, res, err
 	}
 
+	var body []byte
 	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
-		return nil, res, err
-	}
-
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
+	if body, err = res.AssertJson(); err != nil {
 		return nil, res, err
 	}
 
 	var events events.Events
-	err = json.Unmarshal(bodyBytes, &events)
+	err = json.Unmarshal(body, &events)
 	if err != nil {
 		return nil, res, err
 	}
 
 	return &events, res, nil
-}
-
-// ParseEvents function is left only for backward-compatibility. Events are parsed by events pkg.
-func ParseEvents(rawEventsPtr []*json.RawMessage) (*[]events.Event, error) {
-	rawEvents := make([]json.RawMessage, len(rawEventsPtr))
-	for i, ptr := range rawEventsPtr {
-		rawEvents[i] = *ptr
-	}
-
-	events, err := events.ParseRawJSONEvents(rawEvents)
-	if err != nil {
-		return nil, err
-	}
-	return &events, nil
 }

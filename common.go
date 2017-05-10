@@ -301,27 +301,28 @@ func (r *Response) ParseResponse() error {
 }
 
 // AssertJson returns an error if the provided HTTP response isn't JSON.
-func (r *Response) AssertJson() error {
+func (r *Response) AssertJson() (body []byte, err error) {
 	if r.HTTP == nil {
-		return errors.New("AssertJson got nil http.Response")
+		err = errors.New("AssertJson got nil http.Response")
+		return
 	}
-	body, err := r.ReadBody()
+	body, err = r.ReadBody()
 	if err != nil {
-		return err
+		return body, err
 	}
 	// Don't fail on an empty response
 	if bytes.Compare(body, []byte("")) == 0 {
-		return nil
+		return body, nil
 	}
 
 	ctype := r.HTTP.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(ctype)
 	if err != nil {
-		return errors.Wrap(err, "parsing content-type")
+		return body, errors.Wrap(err, "parsing content-type")
 	}
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
 	if mediaType != "application/json" {
-		return errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
+		return body, errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
 	}
-	return nil
+	return body, nil
 }

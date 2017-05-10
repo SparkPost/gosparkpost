@@ -187,16 +187,11 @@ func doRequest(c *Client, finalUrl string, ctx context.Context) ([]byte, *Respon
 		return nil, res, err
 	}
 
+	var body []byte
 	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
+	if body, err = res.AssertJson(); err != nil {
 		return nil, res, err
 	}
 
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return nil, res, err
-	}
-
-	return bodyBytes, res, err
+	return body, res, err
 }
