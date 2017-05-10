@@ -6,6 +6,7 @@ import (
 
 	sp "github.com/SparkPost/gosparkpost"
 	"github.com/SparkPost/gosparkpost/events"
+	"github.com/pkg/errors"
 )
 
 type EventsPageResult struct {
@@ -28,6 +29,13 @@ func TestMessageEventsSearch(t *testing.T) {
 		input   *sp.EventsPage
 		results []EventsPageResult
 	}{
+		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00"}},
+			[]EventsPageResult{EventsPageResult{
+				errors.New("parsing api response: unexpected end of JSON input"),
+				200, "{", nil},
+			},
+		},
+
 		{&sp.EventsPage{Params: map[string]string{"from": "1970-01-01T00:00"}},
 			[]EventsPageResult{msgEventsPageAll},
 		},
@@ -78,6 +86,8 @@ func TestEventSamples(t *testing.T) {
 		out    *events.Events
 	}{
 		{nil, nil, 200, `{}`, nil},
+		{[]string{"open"}, nil, 200, `{}`, nil},
+		{[]string{"ignore"}, errors.New("Invalid event type [ignore]"), 200, `{}`, nil},
 	} {
 		testSetup(t)
 		defer testTeardown()
