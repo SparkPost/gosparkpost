@@ -160,7 +160,7 @@ func (c *Client) EventSamplesContext(ctx context.Context, types []string) (*even
 	path := fmt.Sprintf(MessageEventsSamplesPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "parsing url")
 	}
 
 	// Filter out types.
@@ -194,7 +194,7 @@ func (c *Client) EventSamplesContext(ctx context.Context, types []string) (*even
 	var events events.Events
 	err = json.Unmarshal(body, &events)
 	if err != nil {
-		return nil, res, err
+		return nil, res, errors.Wrap(err, "parsing api response")
 	}
 
 	return &events, res, nil
