@@ -229,6 +229,9 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 		ares.Verbose["http_requestdump"] = string(reqBytes)
 	}
 
+	if c.Client == nil {
+		c.Client = http.DefaultClient
+	}
 	res, err := c.Client.Do(req)
 	ares.HTTP = res
 
