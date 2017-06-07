@@ -1,14 +1,17 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	URL "net/url"
+	"net/url"
 )
 
-// https://developers.sparkpost.com/api/#/reference/suppression-list
-var suppressionListsPathFormat = "/api/v%d/suppression-list"
+// SuppressionListsPathFormat https://developers.sparkpost.com/api/#/reference/suppression-list
+var SuppressionListsPathFormat = "/api/v%d/suppression-list"
 
+// SuppressionEntry stores a recipient’s opt-out preferences. It is a list of recipient email addresses to which you do NOT want to send email.
+// https://developers.sparkpost.com/api/suppression-list.html#header-list-entry-attributes
 type SuppressionEntry struct {
 	// Email is used when list is stored
 	Email string `json:"email,omitempty"`
@@ -19,148 +22,238 @@ type SuppressionEntry struct {
 	Transactional    bool   `json:"transactional,omitempty"`
 	NonTransactional bool   `json:"non_transactional,omitempty"`
 	Source           string `json:"source,omitempty"`
+	Type             string `json:"type,omitempty"`
 	Description      string `json:"description,omitempty"`
 	Updated          string `json:"updated,omitempty"`
 	Created          string `json:"created,omitempty"`
 }
 
-type SuppressionListWrapper struct {
+// WritableSuppressionEntry stores a recipient’s opt-out preferences. It is a list of recipient email addresses to which you do NOT want to send email.
+// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-bulk-insert-update-put
+type WritableSuppressionEntry struct {
+	// Recipient is used when a list is returned
+	Recipient   string `json:"recipient,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// SuppressionPage wraps suppression entries and response meta information
+type SuppressionPage struct {
+	client *Client
+
 	Results    []*SuppressionEntry `json:"results,omitempty"`
 	Recipients []SuppressionEntry  `json:"recipients,omitempty"`
+	Errors     []struct {
+		Message string `json:"message,omitempty"`
+	} `json:"errors,omitempty"`
+
+	TotalCount int `json:"total_count,omitempty"`
+
+	NextPage  string
+	PrevPage  string
+	FirstPage string
+	LastPage  string
+
+	Links []struct {
+		Href string `json:"href"`
+		Rel  string `json:"rel"`
+	} `json:"links,omitempty"`
+
+	Params map[string]string `json:"-"`
 }
 
-func (c *Client) SuppressionList() (*SuppressionListWrapper, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-
-	return doSuppressionRequest(c, finalUrl)
+// SuppressionList retrieves the account's suppression list.
+// Suppression lists larger than 10,000 entries will need to use cursor to retrieve more results.
+// See https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
+func (c *Client) SuppressionList(sp *SuppressionPage) (*Response, error) {
+	return c.SuppressionListContext(context.Background(), sp)
 }
 
-func (c *Client) SuppressionRetrieve(recipientEmail string) (*SuppressionListWrapper, error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
-
-	return doSuppressionRequest(c, finalUrl)
+// SuppressionListContext retrieves the account's suppression list
+func (c *Client) SuppressionListContext(ctx context.Context, sp *SuppressionPage) (*Response, error) {
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	return c.suppressionGet(ctx, c.Config.BaseUrl+path, sp)
 }
 
-func (c *Client) SuppressionSearch(parameters map[string]string) (*SuppressionListWrapper, error) {
-	var finalUrl string
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
+// SuppressionRetrieve retrieves the suppression status for a specific recipient by specifying the recipient’s email address
+// // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-retrieve,-delete,-insert-or-update-get
+func (c *Client) SuppressionRetrieve(email string, sp *SuppressionPage) (*Response, error) {
+	return c.SuppressionRetrieveContext(context.Background(), email, sp)
+}
 
-	if parameters == nil || len(parameters) == 0 {
-		finalUrl = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+//SuppressionRetrieveContext retrieves the suppression status for a specific recipient by specifying the recipient’s email address
+// // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-retrieve,-delete,-insert-or-update-get
+func (c *Client) SuppressionRetrieveContext(ctx context.Context, email string, sp *SuppressionPage) (*Response, error) {
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	finalURL := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
+
+	return c.suppressionGet(ctx, finalURL, sp)
+}
+
+// SuppressionSearch search for suppression entries. For a list of parameters see
+// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
+func (c *Client) SuppressionSearch(sp *SuppressionPage) (*Response, error) {
+	return c.SuppressionSearchContext(context.Background(), sp)
+}
+
+// SuppressionSearchContext search for suppression entries. For a list of parameters see
+// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
+func (c *Client) SuppressionSearchContext(ctx context.Context, sp *SuppressionPage) (*Response, error) {
+	var finalURL string
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+
+	if sp.Params == nil || len(sp.Params) == 0 {
+		finalURL = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
 	} else {
-		params := URL.Values{}
-		for k, v := range parameters {
-			params.Add(k, v)
+		args := url.Values{}
+		for k, v := range sp.Params {
+			args.Add(k, v)
 		}
 
-		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
+		finalURL = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, args.Encode())
 	}
 
-	return doSuppressionRequest(c, finalUrl)
+	return c.suppressionGet(ctx, finalURL, sp)
 }
 
-func (c *Client) SuppressionDelete(recipientEmail string) (res *Response, err error) {
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, recipientEmail)
+// Next returns the next page of results from a previous MessageEventsSearch call
+func (sp *SuppressionPage) Next() (*SuppressionPage, *Response, error) {
+	return sp.NextContext(context.Background())
+}
 
-	res, err = c.HttpDelete(finalUrl)
-	if err != nil {
+// NextContext is the same as Next, and it accepts a context.Context
+func (sp *SuppressionPage) NextContext(ctx context.Context) (*SuppressionPage, *Response, error) {
+	if sp.NextPage == "" {
+		return nil, nil, nil
+	}
+
+	suppressionPage := &SuppressionPage{}
+	suppressionPage.client = sp.client
+	finalURL := fmt.Sprintf("%s", sp.client.Config.BaseUrl+sp.NextPage)
+	res, err := sp.client.suppressionGet(ctx, finalURL, suppressionPage)
+
+	return suppressionPage, res, err
+}
+
+// SuppressionDelete deletes an entry from the suppression list
+func (c *Client) SuppressionDelete(email string) (res *Response, err error) {
+	return c.SuppressionDeleteContext(context.Background(), email)
+}
+
+// SuppressionDeleteContext deletes an entry from the suppression list
+func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (res *Response, err error) {
+	if email == "" {
+		err = fmt.Errorf("Deleting a suppression entry requires an email address")
 		return nil, err
 	}
 
-	if res.HTTP.StatusCode >= 200 && res.HTTP.StatusCode <= 299 {
-		return
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
+	finalURL := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, email)
 
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("SuppressionEntry", "delete")
+	res, err = c.HttpDelete(ctx, finalURL)
+	if err != nil {
+		return res, err
+	}
+
+	// We get an empty response on success. If there are errors we get JSON.
+	if res.AssertJson() == nil {
+		err = res.ParseResponse()
 		if err != nil {
-			return nil, err
+			return res, err
 		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return
+	return res, res.HTTPError()
 }
 
-func (c *Client) SuppressionInsertOrUpdate(entries []SuppressionEntry) (err error) {
+// SuppressionUpsert adds an entry to the suppression, or updates the existing entry
+func (c *Client) SuppressionUpsert(entries []WritableSuppressionEntry) (*Response, error) {
+	return c.SuppressionUpsertContext(context.Background(), entries)
+}
+
+// SuppressionUpsertContext is the same as SuppressionUpsert, and it accepts a context.Context
+func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []WritableSuppressionEntry) (*Response, error) {
 	if entries == nil {
-		err = fmt.Errorf("send `entries` cannot be nil here")
-		return
+		return nil, fmt.Errorf("`entries` cannot be nil")
 	}
 
-	path := fmt.Sprintf(suppressionListsPathFormat, c.Config.ApiVersion)
-	finalUrl := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 
-	list := SuppressionListWrapper{nil, entries}
-
-	return c.send(finalUrl, list)
-
-}
-
-func (c *Client) send(finalUrl string, recipients SuppressionListWrapper) (err error) {
-	jsonBytes, err := json.Marshal(recipients)
-	if err != nil {
-		return
+	type EntriesWrapper struct {
+		Recipients []WritableSuppressionEntry `json:"recipients,omitempty"`
 	}
 
-	res, err := c.HttpPut(finalUrl, jsonBytes)
+	entriesWrapper := EntriesWrapper{entries}
+
+	// Marshaling a static type won't fail
+	jsonBytes, _ := json.Marshal(entriesWrapper)
+
+	finalURL := c.Config.BaseUrl + path
+	res, err := c.HttpPut(ctx, finalURL, jsonBytes)
 	if err != nil {
-		return
+		return res, err
 	}
 
 	if err = res.AssertJson(); err != nil {
-		return
+		return res, err
 	}
 
 	err = res.ParseResponse()
 	if err != nil {
-		return
+		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "create")
-		if err != nil {
-			return
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-	}
-
-	return
+	return res, res.HTTPError()
 }
 
-func doSuppressionRequest(c *Client, finalUrl string) (*SuppressionListWrapper, error) {
+// Wraps call to server and unmarshals response
+func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *SuppressionPage) (*Response, error) {
+
 	// Send off our request
-	res, err := c.HttpGet(finalUrl)
+	res, err := c.HttpGet(ctx, finalURL)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	// Assert that we got a JSON Content-Type back
 	if err = res.AssertJson(); err != nil {
-		return nil, err
+		return res, err
+	}
+
+	err = res.ParseResponse()
+	if err != nil {
+		return res, err
 	}
 
 	// Get the Content
 	bodyBytes, err := res.ReadBody()
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	// Parse expected response structure
-	var resMap SuppressionListWrapper
-	err = json.Unmarshal(bodyBytes, &resMap)
-
+	err = json.Unmarshal(bodyBytes, sp)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
-	return &resMap, err
+	// For usage convenience parse out common links
+	for _, link := range sp.Links {
+		switch link.Rel {
+		case "next":
+			sp.NextPage = link.Href
+		case "previous":
+			sp.PrevPage = link.Href
+		case "first":
+			sp.FirstPage = link.Href
+		case "last":
+			sp.LastPage = link.Href
+		}
+	}
+
+	if sp.client == nil {
+		sp.client = c
+	}
+
+	return res, nil
 }

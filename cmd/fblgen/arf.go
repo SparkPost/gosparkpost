@@ -7,7 +7,7 @@ import (
 )
 
 var ArfFormat string = `From: <%s>
-Date: Thu, 8 Mar 2005 17:40:36 EDT
+Date: Mon, 02 Jan 2006 15:04:05 MST
 Subject: FW: Earn money
 To: <%s>
 MIME-Version: 1.0

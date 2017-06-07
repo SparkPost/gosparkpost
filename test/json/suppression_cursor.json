@@ -1,0 +1,31 @@
+{
+    "results": [
+        {
+            "recipient": "rcpt_1@example.com",
+            "transactional": true,
+            "non_transactional": true,
+            "source": "Manually Added",
+            "description": "User requested to not receive any non-transactional emails.",
+            "created": "2016-01-01T12:00:00+00:00",
+            "updated": "2016-01-01T12:00:00+00:00"
+        }
+    ],
+    "links": [
+        {
+            "href": "The_HREF_first",
+            "rel": "first"
+        },
+        {
+            "href": "The_HREF_next",
+            "rel": "next"
+        },{
+            "href": "The_HREF_previous",
+            "rel": "previous"
+        },
+        {
+            "href": "The_HREF_last",
+            "rel": "last"
+        }
+    ],
+    "total_count": 44
+}

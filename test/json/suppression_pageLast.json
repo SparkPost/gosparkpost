@@ -1,0 +1,28 @@
+{
+    "results": [
+        {
+            "recipient": "rcpt_3@example.com",
+            "transactional": true,
+            "non_transactional": true,
+            "source": "Manually Added",
+            "description": "User requested to not receive any non-transactional emails.",
+            "created": "2016-01-01T12:00:00+00:00",
+            "updated": "2016-01-01T12:00:00+00:00"
+        }
+    ],
+    "links": [
+        {
+            "href": "/test/json/suppression_page1.json",
+            "rel": "first"
+        },
+        {
+            "href": "/test/json/suppression_page2.json",
+            "rel": "previous"
+        },
+        {
+            "href": "/test/json/suppression_pageLast.json",
+            "rel": "last"
+        }
+    ],
+    "total_count": 3
+}

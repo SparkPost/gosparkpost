@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "id": 123,
+      "name": "Joe's Garage",
+      "status": "active",
+      "ip_pool": "my_ip_pool",
+      "compliance_status": "active"
+    },
+    {
+      "id": 456,
+      "name": "SharkPost",
+      "status": "active",
+      "compliance_status": "active"
+    },
+    {
+      "id": 789,
+      "name": "Dev Avocado",
+      "status": "suspended",
+      "compliance_status": "active"
+    }
+  ]
+}

@@ -10,9 +10,18 @@
 SparkPost Go API client
 =======================
 
+.. image:: https://travis-ci.org/SparkPost/gosparkpost.svg?branch=master
+    :target: https://travis-ci.org/SparkPost/gosparkpost
+    :alt: Build Status
+
+.. image:: https://coveralls.io/repos/SparkPost/gosparkpost/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/SparkPost/gosparkpost?branch=master
+    :alt: Code Coverage
+
 .. image:: http://slack.sparkpost.com/badge.svg
     :target: http://slack.sparkpost.com
     :alt: Slack Community
+  
 
 The official Go package for using the SparkPost API.
 
@@ -91,8 +100,12 @@ Documentation
 -------------
 
 * `SparkPost API Reference`_
+* `Code samples`_
+* `Command-line tool: sparks`_
 
-.. _SparkPost API Reference: https://www.sparkpost.com/api
+.. _SparkPost API Reference: https://developers.sparkpost.com/api
+.. _Code samples: examples/README.md
+.. _Command-line tool\: sparks: cmd/sparks/README.md
 
 Contribute
 ----------

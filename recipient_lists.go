@@ -1,36 +1,27 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // https://www.sparkpost.com/api#/reference/recipient-lists
-var recipListsPathFormat = "/api/v%d/recipient-lists"
+var RecipientListsPathFormat = "/api/v%d/recipient-lists"
 
 // RecipientList is the JSON structure accepted by and returned from the SparkPost Recipient Lists API.
 // It's mostly metadata at this level - see Recipients for more detail.
 type RecipientList struct {
-	ID          string       `json:"id,omitempty"`
-	Name        string       `json:"name,omitempty"`
-	Description string       `json:"description,omitempty"`
-	Attributes  interface{}  `json:"attributes,omitempty"`
-	Recipients  *[]Recipient `json:"recipients"`
+	ID          string      `json:"id,omitempty"`
+	Name        string      `json:"name,omitempty"`
+	Description string      `json:"description,omitempty"`
+	Attributes  interface{} `json:"attributes,omitempty"`
+	Recipients  []Recipient `json:"recipients"`
 
 	Accepted *int `json:"total_accepted_recipients,omitempty"`
-}
-
-func (rl *RecipientList) String() string {
-	n := 0
-	if rl.Recipients != nil {
-		n = len(*rl.Recipients)
-	} else if rl.Accepted != nil {
-		n = *rl.Accepted
-	}
-	return fmt.Sprintf("ID:\t%s\nName:\t%s\nDesc:\t%s\nCount:\t%d\n",
-		rl.ID, rl.Name, rl.Description, n)
 }
 
 // Recipient represents one email (you guessed it) recipient.
@@ -56,7 +47,7 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 	switch addrVal := addr.(type) {
 	case string: // simple string value
 		if addrVal == "" {
-			err = fmt.Errorf("Recipient.Address may not be empty")
+			err = errors.New("Recipient.Address may not be empty")
 		} else {
 			a.Email = addrVal
 		}
@@ -77,7 +68,7 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 					a.HeaderTo = vVal
 				}
 			default:
-				err = fmt.Errorf("strings are required for all Recipient.Address values")
+				err = errors.New("strings are required for all Recipient.Address values")
 				break
 			}
 		}
@@ -95,7 +86,7 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 		}
 
 	default:
-		err = fmt.Errorf("unsupported Recipient.Address value type [%s]", reflect.TypeOf(addrVal))
+		err = errors.Errorf("unsupported Recipient.Address value type [%T]", addrVal)
 	}
 
 	return
@@ -104,22 +95,26 @@ func ParseAddress(addr interface{}) (a Address, err error) {
 // Validate runs sanity checks on a RecipientList struct. This should
 // catch most errors before attempting a doomed API call.
 func (rl *RecipientList) Validate() error {
+	if rl == nil {
+		return errors.New("Can't validate a nil RecipientList")
+	}
+
 	// enforce required parameters
-	if rl.Recipients == nil || len(*rl.Recipients) <= 0 {
-		return fmt.Errorf("RecipientList requires at least one Recipient")
+	if rl.Recipients == nil || len(rl.Recipients) <= 0 {
+		return errors.New("RecipientList requires at least one Recipient")
 	}
 
 	// enforce max lengths
 	if len(rl.ID) > 64 {
-		return fmt.Errorf("RecipientList id may not be longer than 64 bytes")
+		return errors.New("RecipientList id may not be longer than 64 bytes")
 	} else if len(rl.Name) > 64 {
-		return fmt.Errorf("RecipientList name may not be longer than 64 bytes")
+		return errors.New("RecipientList name may not be longer than 64 bytes")
 	} else if len(rl.Description) > 1024 {
-		return fmt.Errorf("RecipientList description may not be longer than 1024 bytes")
+		return errors.New("RecipientList description may not be longer than 1024 bytes")
 	}
 
 	var err error
-	for _, r := range *rl.Recipients {
+	for _, r := range rl.Recipients {
 		err = r.Validate()
 		if err != nil {
 			return err
@@ -139,11 +134,16 @@ func (r Recipient) Validate() error {
 	return nil
 }
 
-// Create accepts a populated RecipientList object, validates it,
+// RecipientListCreate accepts a populated RecipientList object, validates it,
 // and performs an API call against the configured endpoint.
 func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Response, err error) {
+	return c.RecipientListCreateContext(context.Background(), rl)
+}
+
+// RecipientListCreateContext is the same as RecipientListCreate, and it accepts a context.Context
+func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientList) (id string, res *Response, err error) {
 	if rl == nil {
-		err = fmt.Errorf("Create called with nil RecipientList")
+		err = errors.New("Create called with nil RecipientList")
 		return
 	}
 
@@ -157,9 +157,9 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 		return
 	}
 
-	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(url, jsonBytes)
+	res, err = c.HttpPost(ctx, url, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -168,41 +168,35 @@ func (c *Client) RecipientListCreate(rl *RecipientList) (id string, res *Respons
 		return
 	}
 
-	err = res.ParseResponse()
-	if err != nil {
+	if err = res.ParseResponse(); err != nil {
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
-		id, ok = res.Results["id"].(string)
-		if !ok {
-			err = fmt.Errorf("Unexpected response to Recipient List creation")
+		var results map[string]interface{}
+		if results, ok = res.Results.(map[string]interface{}); !ok {
+			err = errors.New("Unexpected response to Recipient List creation (results)")
+		} else if id, ok = results["id"].(string); !ok {
+			err = errors.New("Unexpected response to Recipient List creation (id)")
 		}
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("RecipientList", "create")
-		if err != nil {
-			return
-		}
-
-		code := res.HTTP.StatusCode
-		if code == 400 || code == 422 {
-			eobj := res.Errors[0]
-			err = fmt.Errorf("%s: %s\n%s", eobj.Code, eobj.Message, eobj.Description)
-		} else { // everything else
-			err = fmt.Errorf("%d: %s", code, string(res.Body))
-		}
+	} else {
+		err = res.HTTPError()
 	}
 
 	return
 }
 
-func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
-	path := fmt.Sprintf(recipListsPathFormat, c.Config.ApiVersion)
+// RecipientLists returns all recipient lists
+func (c *Client) RecipientLists() ([]RecipientList, *Response, error) {
+	return c.RecipientListsContext(context.Background())
+}
+
+// RecipientListsContext is the same as RecipientLists, and it accepts a context.Context
+func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *Response, error) {
+	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(url)
+	res, err := c.HttpGet(ctx, url)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -211,7 +205,7 @@ func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
 		return nil, res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
@@ -219,24 +213,16 @@ func (c *Client) RecipientLists() (*[]RecipientList, *Response, error) {
 		}
 		rllist := map[string][]RecipientList{}
 		if err = json.Unmarshal(body, &rllist); err != nil {
-			return nil, res, err
 		} else if list, ok := rllist["results"]; ok {
-			return &list, res, nil
+			return list, res, nil
+		} else {
+			err = errors.New("Unexpected response to RecipientList list")
 		}
-		return nil, res, fmt.Errorf("Unexpected response to RecipientList list")
 
 	} else {
-		err = res.ParseResponse()
-		if err != nil {
-			return nil, res, err
+		if err = res.ParseResponse(); err == nil {
+			err = res.HTTPError()
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("RecipientList", "list")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
 	return nil, res, err

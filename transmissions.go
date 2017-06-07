@@ -1,6 +1,7 @@
 package gosparkpost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -9,8 +10,8 @@ import (
 	"time"
 )
 
-// https://www.sparkpost.com/api#/reference/transmissions
-var transmissionsPathFormat = "/api/v%d/transmissions"
+// TransmissionsPathFormat https://www.sparkpost.com/api#/reference/transmissions
+var TransmissionsPathFormat = "/api/v%d/transmissions"
 
 // Transmission is the JSON structure accepted by and returned from the SparkPost Transmissions API.
 type Transmission struct {
@@ -31,8 +32,10 @@ type Transmission struct {
 	NumInvalidRecipients *int `json:"num_invalid_recipients,omitempty"`
 }
 
+// RFC3339 formats time.Time values as expected by the SparkPost API
 type RFC3339 time.Time
 
+// MarshalJSON applies RFC3339 formatting
 func (r *RFC3339) MarshalJSON() ([]byte, error) {
 	if r == nil {
 		return json.Marshal(nil)
@@ -40,15 +43,17 @@ func (r *RFC3339) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(*r).Format(time.RFC3339))
 }
 
-// Options specifies settings to apply to this Transmission.
+// TxOptions specifies settings to apply to this Transmission.
 // If not specified, and present in TmplOptions, those values will be used.
 type TxOptions struct {
 	TmplOptions
 
 	StartTime       *RFC3339 `json:"start_time,omitempty"`
-	Sandbox         string   `json:"sandbox,omitempty"`
-	SkipSuppression string   `json:"skip_suppression,omitempty"`
-	InlineCSS       bool     `json:"inline_css,omitempty"`
+	Transactional   *bool    `json:"transactional,omitempty"`
+	Sandbox         *bool    `json:"sandbox,omitempty"`
+	SkipSuppression *bool    `json:"skip_suppression,omitempty"`
+	IPPool          string   `json:"ip_pool,omitempty"`
+	InlineCSS       *bool    `json:"inline_css,omitempty"`
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
@@ -71,7 +76,7 @@ func ParseRecipients(recips interface{}) (ra *[]Recipient, err error) {
 		return
 
 	case map[string]string:
-		for k, _ := range rVal {
+		for k := range rVal {
 			if strings.EqualFold(k, "list_id") {
 				return
 			}
@@ -136,7 +141,7 @@ func ParseContent(content interface{}) (err error) {
 		return fmt.Errorf("Transmission.Content objects must contain a key `template_id`")
 
 	case map[string]string:
-		for k, _ := range rVal {
+		for k := range rVal {
 			if strings.EqualFold(k, "template_id") {
 				return nil
 			}
@@ -193,10 +198,15 @@ func (t *Transmission) Validate() error {
 	return nil
 }
 
-// Create accepts a populated Transmission object, performs basic sanity
+// Send accepts a populated Transmission object, performs basic sanity
 // checks on it, and performs an API call against the configured endpoint.
 // Calling this function can cause email to be sent, if used correctly.
 func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
+	return c.SendContext(context.Background(), t)
+}
+
+// SendContext does the same thing as Send, and in addition it accepts a context from the caller.
+func (c *Client) SendContext(ctx context.Context, t *Transmission) (id string, res *Response, err error) {
 	if t == nil {
 		err = fmt.Errorf("Create called with nil Transmission")
 		return
@@ -212,9 +222,9 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 		return
 	}
 
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
 	u := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err = c.HttpPost(u, jsonBytes)
+	res, err = c.HttpPost(ctx, u, jsonBytes)
 	if err != nil {
 		return
 	}
@@ -228,92 +238,93 @@ func (c *Client) Send(t *Transmission) (id string, res *Response, err error) {
 		return
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
-		id, ok = res.Results["id"].(string)
-		if !ok {
-			err = fmt.Errorf("Unexpected response to Transmission creation")
+		var results map[string]interface{}
+		if results, ok = res.Results.(map[string]interface{}); !ok {
+			err = fmt.Errorf("Unexpected response to Transmission creation (results)")
+		} else if id, ok = results["id"].(string); !ok {
+			err = fmt.Errorf("Unexpected response to Transmission creation (id)")
 		}
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "create")
-		if err != nil {
-			return
-		}
-
-		err = fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
+	} else {
+		err = res.HTTPError()
 	}
 
 	return
 }
 
-// Retrieve accepts a Transmission.ID and retrieves the corresponding object.
-func (c *Client) Transmission(id string) (*Transmission, *Response, error) {
-	if nonDigit.MatchString(id) {
-		return nil, nil, fmt.Errorf("id may only contain digits")
+// Transmission accepts a Transmission, looks up the record using its ID, and fills out the provided object.
+func (c *Client) Transmission(t *Transmission) (*Response, error) {
+	return c.TransmissionContext(context.Background(), t)
+}
+
+// TransmissionContext is the same as Transmission, and it allows the caller to pass in a context.
+func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Response, error) {
+	if nonDigit.MatchString(t.ID) {
+		return nil, fmt.Errorf("id may only contain digits")
 	}
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err := c.HttpGet(u)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
+	res, err := c.HttpGet(ctx, u)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err = res.AssertJson(); err != nil {
-		return nil, res, err
+		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
-			return nil, res, err
+			return res, err
 		}
 
 		// Unwrap the returned Transmission
-		tmp := map[string]map[string]Transmission{}
+		tmp := map[string]map[string]json.RawMessage{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
-			return nil, res, err
 		} else if results, ok := tmp["results"]; ok {
-			if tr, ok := results["transmission"]; ok {
-				return &tr, res, nil
+			if raw, ok := results["transmission"]; ok {
+				err = json.Unmarshal(raw, t)
 			} else {
-				return nil, res, fmt.Errorf("Unexpected results structure in response")
+				err = fmt.Errorf("Unexpected response to Transmission (transmission)")
 			}
+		} else {
+			err = fmt.Errorf("Unexpected response to Transmission (results)")
 		}
-		return nil, res, fmt.Errorf("Unexpected response to Transmission.Retrieve")
 
 	} else {
 		err = res.ParseResponse()
-		if err != nil {
-			return nil, res, err
+		if err == nil {
+			err = res.HTTPError()
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "retrieve")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
 
-	return nil, res, err
+	return res, err
 }
 
-// Delete attempts to remove the Transmission with the specified id.
+// TransmissionDelete attempts to remove the Transmission with the specified id.
 // Only Transmissions which are scheduled for future generation may be deleted.
-func (c *Client) TransmissionDelete(id string) (*Response, error) {
-	if id == "" {
+func (c *Client) TransmissionDelete(t *Transmission) (*Response, error) {
+	return c.TransmissionDeleteContext(context.Background(), t)
+}
+
+// TransmissionDeleteContext is the same as TransmissionDelete, and it allows the caller to provide a context.
+func (c *Client) TransmissionDeleteContext(ctx context.Context, t *Transmission) (*Response, error) {
+	if t == nil {
+		return nil, nil
+	}
+	if t.ID == "" {
 		return nil, fmt.Errorf("Delete called with blank id")
 	}
-	if nonDigit.MatchString(id) {
+	if nonDigit.MatchString(t.ID) {
 		return nil, fmt.Errorf("Transmissions.Delete: id may only contain digits")
 	}
 
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
-	res, err := c.HttpDelete(u)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
+	u := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, t.ID)
+	res, err := c.HttpDelete(ctx, u)
 	if err != nil {
 		return nil, err
 	}
@@ -326,43 +337,36 @@ func (c *Client) TransmissionDelete(id string) (*Response, error) {
 		return res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
-		return res, nil
-
-	} else if len(res.Errors) > 0 {
-		// handle common errors
-		err = res.PrettyError("Transmission", "delete")
-		if err != nil {
-			return res, err
-		}
-
-		return res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
-	}
-
-	return res, nil
+	return res, res.HTTPError()
 }
 
-// List returns Transmission summary information for matching Transmissions.
-// To skip filtering by campaign or template id, use a nil param.
-func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, *Response, error) {
+// Transmissions returns Transmission summary information for matching Transmissions.
+// Filtering by CampaignID (t.CampaignID) and TemplateID (t.ID) is supported.
+func (c *Client) Transmissions(t *Transmission) ([]Transmission, *Response, error) {
+	return c.TransmissionsContext(context.Background(), t)
+}
+
+// TransmissionsContext is the same as Transmissions, and it allows the caller to provide a context.
+func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]Transmission, *Response, error) {
 	// If a query parameter is present and empty, that searches for blank IDs, as opposed
 	// to when it is omitted entirely, which returns everything.
 	qp := make([]string, 0, 2)
-	if campaignID != nil {
-		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(*campaignID)))
+	if t.CampaignID != "" {
+		qp = append(qp, fmt.Sprintf("campaign_id=%s", url.QueryEscape(t.CampaignID)))
 	}
-	if templateID != nil {
-		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(*templateID)))
+	if t.ID != "" {
+		qp = append(qp, fmt.Sprintf("template_id=%s", url.QueryEscape(t.ID)))
 	}
 
 	qstr := ""
 	if len(qp) > 0 {
 		qstr = strings.Join(qp, "&")
 	}
-	path := fmt.Sprintf(transmissionsPathFormat, c.Config.ApiVersion)
+	path := fmt.Sprintf(TransmissionsPathFormat, c.Config.ApiVersion)
+	// FIXME: redo this using net/url
 	u := fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, qstr)
 
-	res, err := c.HttpGet(u)
+	res, err := c.HttpGet(ctx, u)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -371,7 +375,7 @@ func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, 
 		return nil, res, err
 	}
 
-	if res.HTTP.StatusCode == 200 {
+	if Is2XX(res.HTTP.StatusCode) {
 		var body []byte
 		body, err = res.ReadBody()
 		if err != nil {
@@ -379,23 +383,18 @@ func (c *Client) Transmissions(campaignID, templateID *string) ([]Transmission, 
 		}
 		tlist := map[string][]Transmission{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
-			return nil, res, err
 		} else if list, ok := tlist["results"]; ok {
 			return list, res, nil
+		} else {
+			err = fmt.Errorf("Unexpected response to Transmission list (results)")
 		}
-		return nil, res, fmt.Errorf("Unexpected response to Transmission list")
 
 	} else {
 		err = res.ParseResponse()
-		if err != nil {
-			return nil, res, err
+		if err == nil {
+			err = res.HTTPError()
 		}
-		if len(res.Errors) > 0 {
-			err = res.PrettyError("Transmission", "list")
-			if err != nil {
-				return nil, res, err
-			}
-		}
-		return nil, res, fmt.Errorf("%d: %s", res.HTTP.StatusCode, string(res.Body))
 	}
+
+	return nil, res, err
 }
