@@ -55,8 +55,8 @@ type InlineImage Attachment
 // From describes the nested object way of specifying the From header.
 // Content.From can be specified this way, or as a plain string.
 type From struct {
-	Email string
-	Name  string
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 // TmplOptions specifies settings to apply to this Template.
