@@ -431,3 +431,43 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 
 	return
 }
+
+// TemplatePublish just publishes draft template
+func (c *Client) TemplatePublish(id string) (err error) {
+	return c.TemplatePublishContext(context.Background(), id)
+}
+
+// TemplatePublishContext is the same as TemplatePublish, and it allows the caller to provide a context
+func (c *Client) TemplatePublishContext(ctx context.Context, id string) (err error) {
+	if id == "" {
+		err = fmt.Errorf("Publish called with blank id")
+		return
+	}
+
+	// A Template that makes it past Validate() will always Marshal
+	jsonBytes, _ := json.Marshal(map[string]bool{
+		"published": true,
+	})
+
+	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
+	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
+
+	res, err := c.HttpPut(ctx, url, jsonBytes)
+	if err != nil {
+		return
+	}
+
+	if err = res.AssertJson(); err != nil {
+		return
+	}
+
+	if Is2XX(res.HTTP.StatusCode) {
+		return
+	}
+
+	if err = res.ParseResponse(); err == nil {
+		err = res.HTTPError()
+	}
+
+	return
+}
