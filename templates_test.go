@@ -363,3 +363,26 @@ func TestTemplatePreview(t *testing.T) {
 		}
 	}
 }
+
+func TestTemplatePublish(t *testing.T) {
+	for idx, test := range []struct {
+		id     string
+		err    error
+		status int
+		json   string
+	}{
+		{"", errors.New("Publish called with blank id"), 200, ""},
+		{"template", nil, 200, ""},
+	} {
+		testSetup(t)
+		defer testTeardown()
+		mockRestResponseBuilderFormat(t, "PUT", test.status, sp.TemplatesPathFormat+"/"+test.id, test.json)
+
+		_, err := testClient.TemplatePublish(test.id)
+		if err == nil && test.err != nil || err != nil && test.err == nil {
+			t.Errorf("TemplatePublish[%d] => err %q want %q", idx, err, test.err)
+		} else if err != nil && err.Error() != test.err.Error() {
+			t.Errorf("TemplatePublish[%d] => err %q want %q", idx, err, test.err)
+		}
+	}
+}

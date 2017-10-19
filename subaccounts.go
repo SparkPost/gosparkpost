@@ -131,22 +131,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, s.ID)
 
-	res, err = c.HttpPut(ctx, url, jsonBytes)
-	if err != nil {
-		return
-	}
-
-	if _, err = res.AssertJson(); err != nil {
-		return
-	}
-
-	err = res.ParseResponse()
-	if err != nil {
-		return
-	}
-
-	err = res.HTTPError()
-	return
+	return c.HttpPutJson(ctx, url, jsonBytes)
 }
 
 // Subaccounts returns metadata for all Subaccounts in the system.

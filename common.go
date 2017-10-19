@@ -164,7 +164,7 @@ func (c *Client) HttpGetJson(ctx context.Context, url string, ptr interface{}) (
 			return res, errors.Wrap(err, "parsing api response")
 		}
 	}
-	return res, nil
+	return res, res.HTTPError()
 }
 
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
@@ -172,6 +172,22 @@ func (c *Client) HttpGetJson(ctx context.Context, url string, ptr interface{}) (
 // Authenticate using the configured API key.
 func (c *Client) HttpPut(ctx context.Context, url string, data []byte) (*Response, error) {
 	return c.DoRequest(ctx, "PUT", url, data)
+}
+
+// HttpPutJson sends a PUT request to the specified url and returns the JSON result.
+// An error is returned if the response's Content-Type isn't JSON.
+func (c *Client) HttpPutJson(ctx context.Context, url string, data []byte) (*Response, error) {
+	res, err := c.DoRequest(ctx, "PUT", url, data)
+	if err != nil {
+		return res, err
+	}
+	if _, err = res.AssertJson(); err != nil {
+		return res, err
+	}
+	if err = res.ParseResponse(); err != nil {
+		return res, err
+	}
+	return res, res.HTTPError()
 }
 
 // HttpDelete sends a Delete request to the provided url.
