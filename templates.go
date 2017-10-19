@@ -86,7 +86,7 @@ func ParseFrom(from interface{}) (f From, err error) {
 
 	case string: // simple string value
 		if fromVal == "" {
-			err = fmt.Errorf("Content.From may not be empty")
+			err = errors.New("Content.From may not be empty")
 		} else {
 			f.Email = fromVal
 		}
@@ -102,7 +102,7 @@ func ParseFrom(from interface{}) (f From, err error) {
 					f.Email = vVal
 				}
 			default:
-				err = fmt.Errorf("strings are required for all Content.From values")
+				err = errors.New("strings are required for all Content.From values")
 				break
 			}
 		}
@@ -118,7 +118,7 @@ func ParseFrom(from interface{}) (f From, err error) {
 		}
 
 	default:
-		err = fmt.Errorf("unsupported Content.From value type [%s]", reflect.TypeOf(fromVal))
+		err = errors.Errorf("unsupported Content.From value type [%s]", reflect.TypeOf(fromVal))
 	}
 
 	return
@@ -128,7 +128,7 @@ func ParseFrom(from interface{}) (f From, err error) {
 // This should catch most errors before attempting a doomed API call.
 func (t *Template) Validate() error {
 	if t == nil {
-		return fmt.Errorf("Can't Validate a nil Template")
+		return errors.New("Can't Validate a nil Template")
 	}
 
 	if t.Content.EmailRFC822 != "" {
@@ -140,9 +140,9 @@ func (t *Template) Validate() error {
 
 	// enforce required parameters
 	if t.Content.Subject == "" {
-		return fmt.Errorf("Template requires a non-empty Content.Subject")
+		return errors.New("Template requires a non-empty Content.Subject")
 	} else if t.Content.HTML == "" && t.Content.Text == "" {
-		return fmt.Errorf("Template requires either Content.HTML or Content.Text")
+		return errors.New("Template requires either Content.HTML or Content.Text")
 	}
 	_, err := ParseFrom(t.Content.From)
 	if err != nil {
@@ -152,9 +152,9 @@ func (t *Template) Validate() error {
 	if len(t.Content.Attachments) > 0 {
 		for _, att := range t.Content.Attachments {
 			if len(att.Filename) > 255 {
-				return fmt.Errorf("Attachment name length must be <= 255: [%s]", att.Filename)
+				return errors.Errorf("Attachment name length must be <= 255: [%s]", att.Filename)
 			} else if strings.ContainsAny(att.B64Data, "\r\n") {
-				return fmt.Errorf("Attachment data may not contain line breaks [\\r\\n]")
+				return errors.New("Attachment data may not contain line breaks [\\r\\n]")
 			}
 		}
 	}
@@ -162,20 +162,20 @@ func (t *Template) Validate() error {
 	if len(t.Content.InlineImages) > 0 {
 		for _, img := range t.Content.InlineImages {
 			if len(img.Filename) > 255 {
-				return fmt.Errorf("InlineImage name length must be <= 255: [%s]", img.Filename)
+				return errors.Errorf("InlineImage name length must be <= 255: [%s]", img.Filename)
 			} else if strings.ContainsAny(img.B64Data, "\r\n") {
-				return fmt.Errorf("InlineImage data may not contain line breaks [\\r\\n]")
+				return errors.New("InlineImage data may not contain line breaks [\\r\\n]")
 			}
 		}
 	}
 
 	// enforce max lengths
 	if len(t.ID) > 64 {
-		return fmt.Errorf("Template id may not be longer than 64 bytes")
+		return errors.New("Template id may not be longer than 64 bytes")
 	} else if len(t.Name) > 1024 {
-		return fmt.Errorf("Template name may not be longer than 1024 bytes")
+		return errors.New("Template name may not be longer than 1024 bytes")
 	} else if len(t.Description) > 1024 {
-		return fmt.Errorf("Template description may not be longer than 1024 bytes")
+		return errors.New("Template description may not be longer than 1024 bytes")
 	}
 
 	return nil
@@ -190,7 +190,7 @@ func (c *Client) TemplateCreate(t *Template) (id string, res *Response, err erro
 // TemplateCreateContext is the same as TemplateCreate, and it allows the caller to provide a context.
 func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id string, res *Response, err error) {
 	if t == nil {
-		err = fmt.Errorf("Create called with nil Template")
+		err = errors.New("Create called with nil Template")
 		return
 	}
 
@@ -217,9 +217,9 @@ func (c *Client) TemplateCreateContext(ctx context.Context, t *Template) (id str
 		var ok bool
 		var results map[string]interface{}
 		if results, ok = res.Results.(map[string]interface{}); !ok {
-			err = fmt.Errorf("Unexpected response to Template creation (results)")
+			err = errors.New("Unexpected response to Template creation (results)")
 		} else if id, ok = results["id"].(string); !ok {
-			err = fmt.Errorf("Unexpected response to Template creation (id)")
+			err = errors.New("Unexpected response to Template creation (id)")
 		}
 	} else {
 		err = res.HTTPError()
@@ -285,12 +285,12 @@ func (c *Client) TemplateUpdate(t *Template, updatePublished bool) (res *Respons
 // TemplateUpdateContext is the same as TemplateUpdate, and it allows the caller to provide a context
 func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updatePublished bool) (res *Response, err error) {
 	if t == nil {
-		err = fmt.Errorf("Update called with nil Template")
+		err = errors.New("Update called with nil Template")
 		return
 	}
 
 	if t.ID == "" {
-		err = fmt.Errorf("Update called with blank id")
+		err = errors.New("Update called with blank id")
 		return
 	}
 
@@ -371,7 +371,7 @@ func (c *Client) TemplateDelete(id string) (res *Response, err error) {
 // TemplateDeleteContext is the same as TemplateDelete, and it allows the caller to provide a context
 func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Response, err error) {
 	if id == "" {
-		err = fmt.Errorf("Delete called with blank id")
+		err = errors.New("Delete called with blank id")
 		return
 	}
 
@@ -401,7 +401,7 @@ func (c *Client) TemplatePreview(id string, payload *PreviewOptions) (res *Respo
 // TemplatePreviewContext is the same as TemplatePreview, and it allows the caller to provide a context
 func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload *PreviewOptions) (res *Response, err error) {
 	if id == "" {
-		err = fmt.Errorf("Preview called with blank id")
+		err = errors.New("Preview called with blank id")
 		return
 	}
 
@@ -432,7 +432,7 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 	return
 }
 
-// TemplatePublish just publishes draft template
+// TemplatePublish publishes a draft template
 func (c *Client) TemplatePublish(id string) (err error) {
 	return c.TemplatePublishContext(context.Background(), id)
 }
@@ -440,7 +440,7 @@ func (c *Client) TemplatePublish(id string) (err error) {
 // TemplatePublishContext is the same as TemplatePublish, and it allows the caller to provide a context
 func (c *Client) TemplatePublishContext(ctx context.Context, id string) (err error) {
 	if id == "" {
-		err = fmt.Errorf("Publish called with blank id")
+		err = errors.New("Publish called with blank id")
 		return
 	}
 
