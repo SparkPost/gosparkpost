@@ -53,21 +53,11 @@ func (c *Client) MessageEventsSearchContext(ctx context.Context, page *EventsPag
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(ctx, url.String())
+	res, err := c.HttpGetJson(ctx, url.String(), page)
 	if err != nil {
 		return res, err
 	}
 
-	var body []byte
-	// Assert that we got a JSON Content-Type back
-	if body, err = res.AssertJson(); err != nil {
-		return res, err
-	}
-
-	err = json.Unmarshal(body, page)
-	if err != nil {
-		return res, errors.Wrap(err, "parsing api response")
-	}
 	page.Client = c
 
 	return res, nil
@@ -80,26 +70,15 @@ func (page *EventsPage) Next() (*EventsPage, *Response, error) {
 
 // NextContext is the same as Next, and it accepts a context.Context
 func (page *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, error) {
+	var nextPage EventsPage
 	if page.NextPage == "" {
 		return nil, nil, nil
 	}
 
 	// Send off our request
-	res, err := page.Client.HttpGet(ctx, page.Client.Config.BaseUrl+page.NextPage)
+	res, err := page.Client.HttpGetJson(ctx, page.Client.Config.BaseUrl+page.NextPage, &nextPage)
 	if err != nil {
 		return nil, res, err
-	}
-
-	var body []byte
-	// Assert that we got a JSON Content-Type back
-	if body, err = res.AssertJson(); err != nil {
-		return nil, res, err
-	}
-
-	var nextPage EventsPage
-	err = json.Unmarshal(body, &nextPage)
-	if err != nil {
-		return nil, res, errors.Wrap(err, "parsing api response")
 	}
 
 	nextPage.Client = page.Client
@@ -180,21 +159,10 @@ func (c *Client) EventSamplesContext(ctx context.Context, types []string) (*even
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(ctx, url.String())
-	if err != nil {
-		return nil, res, err
-	}
-
-	var body []byte
-	// Assert that we got a JSON Content-Type back
-	if body, err = res.AssertJson(); err != nil {
-		return nil, res, err
-	}
-
 	var events events.Events
-	err = json.Unmarshal(body, &events)
+	res, err := c.HttpGetJson(ctx, url.String(), &events)
 	if err != nil {
-		return nil, res, errors.Wrap(err, "parsing api response")
+		return nil, res, err
 	}
 
 	return &events, res, nil

@@ -145,6 +145,28 @@ func (c *Client) HttpGet(ctx context.Context, url string) (*Response, error) {
 	return c.DoRequest(ctx, "GET", url, nil)
 }
 
+// HttpGetJson sends a GET request to the specified url and returns the JSON result.
+// An error is returned if the response's Content-Type isn't JSON.
+// The JSON reponse is Unmarshalled into the provided interface{} value.
+func (c *Client) HttpGetJson(ctx context.Context, url string, ptr interface{}) (*Response, error) {
+	res, err := c.DoRequest(ctx, "GET", url, nil)
+	if err != nil {
+		return res, err
+	}
+	body, err := res.AssertJson()
+	if err != nil {
+		return res, err
+	}
+	// Don't try to unmarshal an empty response
+	if bytes.Compare(body, []byte("")) != 0 {
+		err = json.Unmarshal(body, ptr)
+		if err != nil {
+			return res, errors.Wrap(err, "parsing api response")
+		}
+	}
+	return res, nil
+}
+
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
