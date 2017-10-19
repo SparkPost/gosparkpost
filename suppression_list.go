@@ -156,7 +156,7 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 	}
 
 	// We get an empty response on success. If there are errors we get JSON.
-	if res.AssertJson() == nil {
+	if _, err = res.AssertJson(); err == nil {
 		err = res.ParseResponse()
 		if err != nil {
 			return res, err
@@ -194,7 +194,7 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Writabl
 		return res, err
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return res, err
 	}
 
@@ -215,8 +215,9 @@ func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *Suppre
 		return res, err
 	}
 
+	var body []byte
 	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
+	if body, err = res.AssertJson(); err != nil {
 		return res, err
 	}
 
@@ -225,14 +226,8 @@ func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *Suppre
 		return res, err
 	}
 
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return res, err
-	}
-
 	// Parse expected response structure
-	err = json.Unmarshal(bodyBytes, sp)
+	err = json.Unmarshal(body, sp)
 	if err != nil {
 		return res, err
 	}

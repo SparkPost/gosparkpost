@@ -55,8 +55,8 @@ type InlineImage Attachment
 // From describes the nested object way of specifying the From header.
 // Content.From can be specified this way, or as a plain string.
 type From struct {
-	Email string
-	Name  string
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 // TmplOptions specifies settings to apply to this Template.
@@ -310,7 +310,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updateP
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -339,16 +339,12 @@ func (c *Client) TemplatesContext(ctx context.Context) (tl []Template, res *Resp
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return
-		}
 		tlist := map[string][]Template{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
 			return
@@ -382,7 +378,7 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -421,7 +417,7 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 

@@ -229,7 +229,7 @@ func (c *Client) SendContext(ctx context.Context, t *Transmission) (id string, r
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -270,17 +270,12 @@ func (c *Client) TransmissionContext(ctx context.Context, t *Transmission) (*Res
 		return nil, err
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return res, err
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return res, err
-		}
-
 		// Unwrap the returned Transmission
 		tmp := map[string]map[string]json.RawMessage{}
 		if err = json.Unmarshal(body, &tmp); err != nil {
@@ -329,7 +324,7 @@ func (c *Client) TransmissionDeleteContext(ctx context.Context, t *Transmission)
 		return nil, err
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return res, err
 	}
 
@@ -371,16 +366,12 @@ func (c *Client) TransmissionsContext(ctx context.Context, t *Transmission) ([]T
 		return nil, nil, err
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return nil, res, err
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return nil, res, err
-		}
 		tlist := map[string][]Transmission{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
 		} else if list, ok := tlist["results"]; ok {

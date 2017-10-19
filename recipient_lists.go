@@ -164,7 +164,7 @@ func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientLi
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -201,16 +201,12 @@ func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *R
 		return nil, nil, err
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return nil, res, err
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return nil, res, err
-		}
 		rllist := map[string][]RecipientList{}
 		if err = json.Unmarshal(body, &rllist); err != nil {
 		} else if list, ok := rllist["results"]; ok {

@@ -27,7 +27,9 @@ func testSetup(t *testing.T) {
 	testServer = httptest.NewTLSServer(testMux)
 	// our client configured to hit the https test server with self-signed cert
 	tx := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	testClient = &sp.Client{Client: &http.Client{Transport: tx}}
+	if testClient == nil {
+		testClient = &sp.Client{Client: &http.Client{Transport: tx}}
+	}
 	testClient.Config = &sp.Config{Verbose: true}
 	testUrl, err := url.Parse(testServer.URL)
 	if err != nil {

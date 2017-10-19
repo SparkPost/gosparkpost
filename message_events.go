@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/SparkPost/gosparkpost/events"
+	"github.com/pkg/errors"
 )
 
 // https://www.sparkpost.com/api#/reference/message-events
@@ -17,8 +18,6 @@ var (
 )
 
 type EventsPage struct {
-	client *Client
-
 	Events     events.Events
 	TotalCount int
 	Errors     []interface{}
@@ -28,99 +27,68 @@ type EventsPage struct {
 	FirstPage string
 	LastPage  string
 
+	Client *Client           `json:"-"`
 	Params map[string]string `json:"-"`
 }
 
 // https://developers.sparkpost.com/api/#/reference/message-events/events-samples/search-for-message-events
-func (c *Client) MessageEventsSearch(ep *EventsPage) (*Response, error) {
-	return c.MessageEventsSearchContext(context.Background(), ep)
+func (c *Client) MessageEventsSearch(page *EventsPage) (*Response, error) {
+	return c.MessageEventsSearchContext(context.Background(), page)
 }
 
 // MessageEventsSearchContext is the same as MessageEventsSearch, and it accepts a context.Context
-func (c *Client) MessageEventsSearchContext(ctx context.Context, ep *EventsPage) (*Response, error) {
+func (c *Client) MessageEventsSearchContext(ctx context.Context, page *EventsPage) (*Response, error) {
 	path := fmt.Sprintf(MessageEventsPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parsing url")
 	}
 
-	if len(ep.Params) > 0 {
+	if len(page.Params) > 0 {
 		q := url.Query()
-		for k, v := range ep.Params {
+		for k, v := range page.Params {
 			q.Add(k, v)
 		}
 		url.RawQuery = q.Encode()
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(ctx, url.String())
+	res, err := c.HttpGetJson(ctx, url.String(), page)
 	if err != nil {
 		return res, err
 	}
 
-	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
-		return res, err
-	}
-
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return res, err
-	}
-
-	err = json.Unmarshal(bodyBytes, ep)
-	if err != nil {
-		return res, err
-	}
-
-	ep.client = c
+	page.Client = c
 
 	return res, nil
 }
 
 // Next returns the next page of results from a previous MessageEventsSearch call
-func (ep *EventsPage) Next() (*EventsPage, *Response, error) {
-	return ep.NextContext(context.Background())
+func (page *EventsPage) Next() (*EventsPage, *Response, error) {
+	return page.NextContext(context.Background())
 }
 
 // NextContext is the same as Next, and it accepts a context.Context
-func (ep *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, error) {
-	if ep.NextPage == "" {
+func (page *EventsPage) NextContext(ctx context.Context) (*EventsPage, *Response, error) {
+	var nextPage EventsPage
+	if page.NextPage == "" {
 		return nil, nil, nil
 	}
 
 	// Send off our request
-	res, err := ep.client.HttpGet(ctx, ep.client.Config.BaseUrl+ep.NextPage)
+	res, err := page.Client.HttpGetJson(ctx, page.Client.Config.BaseUrl+page.NextPage, &nextPage)
 	if err != nil {
 		return nil, res, err
 	}
 
-	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
-		return nil, res, err
-	}
+	nextPage.Client = page.Client
 
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return nil, res, err
-	}
-
-	var eventsPage EventsPage
-	err = json.Unmarshal(bodyBytes, &eventsPage)
-	if err != nil {
-		return nil, res, err
-	}
-
-	eventsPage.client = ep.client
-
-	return &eventsPage, res, nil
+	return &nextPage, res, nil
 }
 
-func (ep *EventsPage) UnmarshalJSON(data []byte) error {
+func (page *EventsPage) UnmarshalJSON(data []byte) error {
 	// Clear object.
-	*ep = EventsPage{}
+	*page = EventsPage{}
 
 	// Object with array of events and cursors is being sent on Message Events.
 	var resultsWrapper struct {
@@ -137,24 +105,24 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	ep.Events, err = events.ParseRawJSONEvents(resultsWrapper.RawEvents)
+	page.Events, err = events.ParseRawJSONEvents(resultsWrapper.RawEvents)
 	if err != nil {
 		return err
 	}
 
-	ep.Errors = resultsWrapper.Errors
-	ep.TotalCount = resultsWrapper.TotalCount
+	page.Errors = resultsWrapper.Errors
+	page.TotalCount = resultsWrapper.TotalCount
 
 	for _, link := range resultsWrapper.Links {
 		switch link.Rel {
 		case "next":
-			ep.NextPage = link.Href
+			page.NextPage = link.Href
 		case "previous":
-			ep.PrevPage = link.Href
+			page.PrevPage = link.Href
 		case "first":
-			ep.FirstPage = link.Href
+			page.FirstPage = link.Href
 		case "last":
-			ep.LastPage = link.Href
+			page.LastPage = link.Href
 		}
 	}
 
@@ -162,22 +130,22 @@ func (ep *EventsPage) UnmarshalJSON(data []byte) error {
 }
 
 // EventSamples requests a list of example event data.
-func (c *Client) EventSamples(types *[]string) (*events.Events, *Response, error) {
+func (c *Client) EventSamples(types []string) (*events.Events, *Response, error) {
 	return c.EventSamplesContext(context.Background(), types)
 }
 
 // EventSamplesContext is the same as EventSamples, and it accepts a context.Context
-func (c *Client) EventSamplesContext(ctx context.Context, types *[]string) (*events.Events, *Response, error) {
+func (c *Client) EventSamplesContext(ctx context.Context, types []string) (*events.Events, *Response, error) {
 	path := fmt.Sprintf(MessageEventsSamplesPathFormat, c.Config.ApiVersion)
 	url, err := url.Parse(c.Config.BaseUrl + path)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "parsing url")
 	}
 
 	// Filter out types.
 	if types != nil {
 		// validate types
-		for _, etype := range *types {
+		for _, etype := range types {
 			if !events.ValidEventType(etype) {
 				return nil, nil, fmt.Errorf("Invalid event type [%s]", etype)
 			}
@@ -186,46 +154,16 @@ func (c *Client) EventSamplesContext(ctx context.Context, types *[]string) (*eve
 		// get the query string object so we can modify it
 		q := url.Query()
 		// add the requested events and re-encode
-		q.Set("events", strings.Join(*types, ","))
+		q.Set("events", strings.Join(types, ","))
 		url.RawQuery = q.Encode()
 	}
 
 	// Send off our request
-	res, err := c.HttpGet(ctx, url.String())
-	if err != nil {
-		return nil, res, err
-	}
-
-	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
-		return nil, res, err
-	}
-
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return nil, res, err
-	}
-
 	var events events.Events
-	err = json.Unmarshal(bodyBytes, &events)
+	res, err := c.HttpGetJson(ctx, url.String(), &events)
 	if err != nil {
 		return nil, res, err
 	}
 
 	return &events, res, nil
-}
-
-// ParseEvents function is left only for backward-compatibility. Events are parsed by events pkg.
-func ParseEvents(rawEventsPtr []*json.RawMessage) (*[]events.Event, error) {
-	rawEvents := make([]json.RawMessage, len(rawEventsPtr))
-	for i, ptr := range rawEventsPtr {
-		rawEvents[i] = *ptr
-	}
-
-	events, err := events.ParseRawJSONEvents(rawEvents)
-	if err != nil {
-		return nil, err
-	}
-	return &events, nil
 }
