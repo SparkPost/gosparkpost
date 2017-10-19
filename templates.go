@@ -305,24 +305,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updateP
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, updatePublished)
 
-	res, err = c.HttpPut(ctx, url, jsonBytes)
-	if err != nil {
-		return
-	}
-
-	if _, err = res.AssertJson(); err != nil {
-		return
-	}
-
-	if Is2XX(res.HTTP.StatusCode) {
-		return
-	}
-
-	if err = res.ParseResponse(); err == nil {
-		err = res.HTTPError()
-	}
-
-	return
+	return c.HttpPutJson(ctx, url, jsonBytes)
 }
 
 // Templates returns metadata for all Templates in the system.
@@ -429,12 +412,12 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 }
 
 // TemplatePublish publishes a draft template
-func (c *Client) TemplatePublish(id string) (err error) {
+func (c *Client) TemplatePublish(id string) (res *Response, err error) {
 	return c.TemplatePublishContext(context.Background(), id)
 }
 
 // TemplatePublishContext is the same as TemplatePublish, and it allows the caller to provide a context
-func (c *Client) TemplatePublishContext(ctx context.Context, id string) (err error) {
+func (c *Client) TemplatePublishContext(ctx context.Context, id string) (res *Response, err error) {
 	if id == "" {
 		err = errors.New("Publish called with blank id")
 		return
@@ -448,22 +431,5 @@ func (c *Client) TemplatePublishContext(ctx context.Context, id string) (err err
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
 
-	res, err := c.HttpPut(ctx, url, jsonBytes)
-	if err != nil {
-		return
-	}
-
-	if err = res.AssertJson(); err != nil {
-		return
-	}
-
-	if Is2XX(res.HTTP.StatusCode) {
-		return
-	}
-
-	if err = res.ParseResponse(); err == nil {
-		err = res.HTTPError()
-	}
-
-	return
+	return c.HttpPutJson(ctx, url, jsonBytes)
 }

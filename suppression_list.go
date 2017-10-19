@@ -189,21 +189,7 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Writabl
 	jsonBytes, _ := json.Marshal(entriesWrapper)
 
 	finalURL := c.Config.BaseUrl + path
-	res, err := c.HttpPut(ctx, finalURL, jsonBytes)
-	if err != nil {
-		return res, err
-	}
-
-	if _, err = res.AssertJson(); err != nil {
-		return res, err
-	}
-
-	err = res.ParseResponse()
-	if err != nil {
-		return res, err
-	}
-
-	return res, res.HTTPError()
+	return c.HttpPutJson(ctx, finalURL, jsonBytes)
 }
 
 // Wraps call to server and unmarshals response
