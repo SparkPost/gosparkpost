@@ -1,0 +1,92 @@
+{
+    "links": [],
+    "results": [
+        {
+            "accept_language": "en-US,en;q=0.8",
+            "customer_id": "42",
+            "delv_method": "esmtp",
+            "event_id": "66567147053128920",
+            "geo_ip": {
+                "city": "Bronx",
+                "country": "US",
+                "latitude": "40.8499",
+                "longitude": "-73.8769",
+                "region": "NY"
+            },
+            "ip_address": "66.102.8.2",
+            "ip_pool": "shared",
+            "message_id": "0001441ead58afdeb21d",
+            "raw_rcpt_to": "developers@sparkpost.com",
+            "rcpt_meta": {},
+            "rcpt_tags": [],
+            "rcpt_to": "developers@sparkpost.com",
+            "sending_ip": "52.38.191.220",
+            "target_link_url": "https://sparkpost.com",
+            "tdate": "2017-04-26T21:37:32.000Z",
+            "template_id": "best-template-ever",
+            "template_version": "10",
+            "timestamp": "2017-04-26T21:37:32.000+00:00",
+            "transactional": "1",
+            "transmission_id": "30494147183576458",
+            "type": "click",
+            "user_agent": "lynx"
+        },
+        {
+            "customer_id": "42",
+            "delv_method": "esmtp",
+            "event_id": "102595298859691163",
+            "geo_ip": {
+                "city": "Bronx",
+                "country": "US",
+                "latitude": "40.8499",
+                "longitude": "-73.8769",
+                "region": "NY"
+            },
+            "ip_address": "66.102.8.28",
+            "ip_pool": "shared",
+            "message_id": "0001441ead58afdeb21d",
+            "raw_rcpt_to": "developers@sparkpost.com",
+            "rcpt_meta": {},
+            "rcpt_tags": [],
+            "rcpt_to": "developers@sparkpost.com",
+            "sending_ip": "52.38.191.220",
+            "tdate": "2017-04-26T21:37:17.000Z",
+            "template_id": "best-template-ever",
+            "template_version": "10",
+            "timestamp": "2017-04-26T21:37:17.000+00:00",
+            "transactional": "1",
+            "transmission_id": "30494147183576458",
+            "type": "open",
+            "user_agent": "Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)"
+        },
+        {
+            "customer_id": "42",
+            "delv_method": "esmtp",
+            "event_id": "120608178786328010",
+            "geo_ip": {
+                "city": "Bronx",
+                "country": "US",
+                "latitude": "40.8499",
+                "longitude": "-73.8769",
+                "region": "NY"
+            },
+            "ip_address": "66.102.8.2",
+            "ip_pool": "shared",
+            "message_id": "00042a25ad58fc0145e1",
+            "raw_rcpt_to": "sales@sparkpost.com",
+            "rcpt_meta": {},
+            "rcpt_tags": [],
+            "rcpt_to": "sales@sparkpost.com",
+            "sending_ip": "52.38.191.220",
+            "tdate": "2017-04-26T21:37:17.000Z",
+            "template_id": "best-template-ever",
+            "template_version": "10",
+            "timestamp": "2017-04-26T21:37:17.000+00:00",
+            "transactional": "1",
+            "transmission_id": "84537445295705713",
+            "type": "open",
+            "user_agent": "Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)"
+        }
+    ],
+    "total_count": 3
+}

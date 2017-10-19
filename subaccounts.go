@@ -70,7 +70,7 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -136,7 +136,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -162,17 +162,12 @@ func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccou
 		return
 	}
 
-	err = res.AssertJson()
-	if err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return
-		}
 		slist := map[string][]Subaccount{}
 		err = json.Unmarshal(body, &slist)
 		if err != nil {
@@ -206,17 +201,12 @@ func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Sub
 		return
 	}
 
-	err = res.AssertJson()
-	if err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return
-		}
 		slist := map[string]Subaccount{}
 		err = json.Unmarshal(body, &slist)
 		if err != nil {

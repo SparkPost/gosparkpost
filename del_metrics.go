@@ -95,8 +95,9 @@ func (m *Metrics) doMetricsRequest(ctx context.Context, c *Client, finalUrl stri
 		return res, err
 	}
 
+	var body []byte
 	// Assert that we got a JSON Content-Type back
-	if err = res.AssertJson(); err != nil {
+	if body, err = res.AssertJson(); err != nil {
 		return res, err
 	}
 
@@ -105,14 +106,8 @@ func (m *Metrics) doMetricsRequest(ctx context.Context, c *Client, finalUrl stri
 		return res, err
 	}
 
-	// Get the Content
-	bodyBytes, err := res.ReadBody()
-	if err != nil {
-		return res, err
-	}
-
 	// Parse expected response structure
-	err = json.Unmarshal(bodyBytes, m)
+	err = json.Unmarshal(body, m)
 	if err != nil {
 		return res, errors.Wrap(err, "unmarshaling response")
 	}

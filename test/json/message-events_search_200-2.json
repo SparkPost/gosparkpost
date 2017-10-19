@@ -1,0 +1,51 @@
+{
+    "links": [
+        {
+            "href": "/api/v1/message-events?page=1&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
+            "rel": "first"
+        },
+        {
+            "href": "/api/v1/message-events?page=1&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
+            "rel": "previous"
+        },
+        {
+            "href": "/api/v1/message-events?page=3&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
+            "rel": "next"
+        },
+        {
+            "href": "/api/v1/message-events?page=3&per_page=1&from=2017-04-26T00:00&to=2017-04-27T01:12&timezone=UTC",
+            "rel": "last"
+        }
+    ],
+    "results": [
+        {
+            "customer_id": "42",
+            "delv_method": "esmtp",
+            "event_id": "102595298859691163",
+            "geo_ip": {
+                "city": "Bronx",
+                "country": "US",
+                "latitude": "40.8499",
+                "longitude": "-73.8769",
+                "region": "NY"
+            },
+            "ip_address": "66.102.8.28",
+            "ip_pool": "shared",
+            "message_id": "0001441ead58afdeb21d",
+            "raw_rcpt_to": "developers@sparkpost.com",
+            "rcpt_meta": {},
+            "rcpt_tags": [],
+            "rcpt_to": "developers@sparkpost.com",
+            "sending_ip": "52.38.191.220",
+            "tdate": "2017-04-26T21:37:17.000Z",
+            "template_id": "best-template-ever",
+            "template_version": "10",
+            "timestamp": "2017-04-26T21:37:17.000+00:00",
+            "transactional": "1",
+            "transmission_id": "30494147183576458",
+            "type": "open",
+            "user_agent": "Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)"
+        }
+    ],
+    "total_count": 3
+}

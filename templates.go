@@ -310,7 +310,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updateP
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -339,16 +339,12 @@ func (c *Client) TemplatesContext(ctx context.Context) (tl []Template, res *Resp
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	var body []byte
+	if body, err = res.AssertJson(); err != nil {
 		return
 	}
 
 	if Is2XX(res.HTTP.StatusCode) {
-		var body []byte
-		body, err = res.ReadBody()
-		if err != nil {
-			return
-		}
 		tlist := map[string][]Template{}
 		if err = json.Unmarshal(body, &tlist); err != nil {
 			return
@@ -382,7 +378,7 @@ func (c *Client) TemplateDeleteContext(ctx context.Context, id string) (res *Res
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 
@@ -421,7 +417,7 @@ func (c *Client) TemplatePreviewContext(ctx context.Context, id string, payload 
 		return
 	}
 
-	if err = res.AssertJson(); err != nil {
+	if _, err = res.AssertJson(); err != nil {
 		return
 	}
 

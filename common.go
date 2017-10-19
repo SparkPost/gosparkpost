@@ -145,6 +145,28 @@ func (c *Client) HttpGet(ctx context.Context, url string) (*Response, error) {
 	return c.DoRequest(ctx, "GET", url, nil)
 }
 
+// HttpGetJson sends a GET request to the specified url and returns the JSON result.
+// An error is returned if the response's Content-Type isn't JSON.
+// The JSON reponse is Unmarshalled into the provided interface{} value.
+func (c *Client) HttpGetJson(ctx context.Context, url string, ptr interface{}) (*Response, error) {
+	res, err := c.DoRequest(ctx, "GET", url, nil)
+	if err != nil {
+		return res, err
+	}
+	body, err := res.AssertJson()
+	if err != nil {
+		return res, err
+	}
+	// Don't try to unmarshal an empty response
+	if bytes.Compare(body, []byte("")) != 0 {
+		err = json.Unmarshal(body, ptr)
+		if err != nil {
+			return res, errors.Wrap(err, "parsing api response")
+		}
+	}
+	return res, nil
+}
+
 // HttpPut sends a Put request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
@@ -232,7 +254,7 @@ func (c *Client) DoRequest(ctx context.Context, method, urlStr string, data []by
 	res, err := c.Client.Do(req)
 	ares.HTTP = res
 
-	if c.Config.Verbose {
+	if c.Config.Verbose && res != nil {
 		ares.Verbose["http_status"] = ares.HTTP.Status
 		bodyBytes, dumpErr := httputil.DumpResponse(res, true)
 		if dumpErr != nil {
@@ -301,27 +323,28 @@ func (r *Response) ParseResponse() error {
 }
 
 // AssertJson returns an error if the provided HTTP response isn't JSON.
-func (r *Response) AssertJson() error {
+func (r *Response) AssertJson() (body []byte, err error) {
 	if r.HTTP == nil {
-		return errors.New("AssertJson got nil http.Response")
+		err = errors.New("AssertJson got nil http.Response")
+		return
 	}
-	body, err := r.ReadBody()
+	body, err = r.ReadBody()
 	if err != nil {
-		return err
+		return body, err
 	}
 	// Don't fail on an empty response
 	if bytes.Compare(body, []byte("")) == 0 {
-		return nil
+		return body, nil
 	}
 
 	ctype := r.HTTP.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(ctype)
 	if err != nil {
-		return errors.Wrap(err, "parsing content-type")
+		return body, errors.Wrap(err, "parsing content-type")
 	}
 	// allow things like "application/json; charset=utf-8" in addition to the bare content type
 	if mediaType != "application/json" {
-		return errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
+		return body, errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
 	}
-	return nil
+	return body, nil
 }
