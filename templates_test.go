@@ -267,7 +267,7 @@ func TestTemplateUpdate(t *testing.T) {
 			}}),
 			422, `{ "errors": [ { "message": "substitution language syntax error in template content", "description": "Error while compiling header Subject: substitution statement missing ending '}}'", "code": "3000", "part": "Header:Subject" } ] }`},
 
-		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, false, nil, 200, ""},
+		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, false, nil, 200, "{}"},
 	} {
 		testSetup(t)
 		defer testTeardown()
@@ -349,7 +349,7 @@ func TestTemplatePreview(t *testing.T) {
 		{"id", nil, errors.New("parsing api response: unexpected end of JSON input"), 200, "{"},
 		{"nope", nil, errors.New(`[{"message":"Resource could not be found","code":"","description":""}]`), 404, `{ "errors": [ { "message": "Resource could not be found" } ] }`},
 
-		{"id", nil, nil, 200, ""},
+		{"id", nil, nil, 200, "{}"},
 	} {
 		testSetup(t)
 		defer testTeardown()
@@ -372,7 +372,7 @@ func TestTemplatePublish(t *testing.T) {
 		json   string
 	}{
 		{"", errors.New("Publish called with blank id"), 200, ""},
-		{"template", nil, 200, ""},
+		{"template", nil, 200, "{}"},
 	} {
 		testSetup(t)
 		defer testTeardown()

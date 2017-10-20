@@ -305,7 +305,7 @@ func (c *Client) TemplateUpdateContext(ctx context.Context, t *Template, updateP
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s?update_published=%t", c.Config.BaseUrl, path, t.ID, updatePublished)
 
-	return c.HttpPutJson(ctx, url, jsonBytes)
+	return c.HttpPutJson(ctx, url, jsonBytes, nil)
 }
 
 // Templates returns metadata for all Templates in the system.
@@ -431,5 +431,5 @@ func (c *Client) TemplatePublishContext(ctx context.Context, id string) (res *Re
 	path := fmt.Sprintf(TemplatesPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%s", c.Config.BaseUrl, path, id)
 
-	return c.HttpPutJson(ctx, url, jsonBytes)
+	return c.HttpPutJson(ctx, url, jsonBytes, nil)
 }

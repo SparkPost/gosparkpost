@@ -128,7 +128,7 @@ func TestSubaccounts(t *testing.T) {
 		json   string
 		out    []sp.Subaccount
 	}{
-		{errors.New("unexpected end of JSON input"), 200, `{"foo":[]`, nil},
+		{errors.New("parsing api response: unexpected end of JSON input"), 200, `{"foo":[]`, nil},
 		{errors.New("Unexpected response to Subaccount list"), 200, `{"foo":[]}`, nil},
 
 		{errors.New(`[{"message":"error","code":"","description":""}]`), 400,
@@ -168,8 +168,8 @@ func TestSubaccount(t *testing.T) {
 		json   string
 		out    *sp.Subaccount
 	}{
-		{42, errors.New("unexpected end of JSON input"), 200, "{", nil},
-		{42, errors.New("Unexpected response to Subaccount"), 200, `{"foo":{}}`, nil},
+		{42, errors.New("parsing api response: unexpected end of JSON input"), 200, "{", nil},
+		{42, errors.New("Unexpected response to Subaccount fetch (results)"), 200, `{"foo":{}}`, nil},
 		{42, errors.New(`[{"message":"error","code":"","description":""}]`), 400,
 			`{"errors":[{"message":"error"}]}`, nil},
 
@@ -183,11 +183,11 @@ func TestSubaccount(t *testing.T) {
 
 		sub, _, err := testClient.Subaccount(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
-			t.Errorf("SubaccountCreate[%d] => err %q want %q", idx, err, test.err)
+			t.Errorf("Subaccount[%d] => want %q err %+v", idx, test.err, err)
 		} else if err != nil && err.Error() != test.err.Error() {
-			t.Errorf("SubaccountCreate[%d] => err %q want %q", idx, err, test.err)
+			t.Errorf("Subaccount[%d] => want %q err %+v", idx, test.err, err)
 		} else if test.out != nil && !reflect.DeepEqual(sub, test.out) {
-			t.Errorf("SubaccountCreate[%d] => got/want:\n%q\n%q", idx, sub, test.out)
+			t.Errorf("Subaccount[%d] => got/want:\n%q\n%q", idx, sub, test.out)
 		}
 	}
 }

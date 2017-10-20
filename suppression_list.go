@@ -62,19 +62,6 @@ type SuppressionPage struct {
 	Params map[string]string `json:"-"`
 }
 
-// SuppressionList retrieves the account's suppression list.
-// Suppression lists larger than 10,000 entries will need to use cursor to retrieve more results.
-// See https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
-func (c *Client) SuppressionList(sp *SuppressionPage) (*Response, error) {
-	return c.SuppressionListContext(context.Background(), sp)
-}
-
-// SuppressionListContext retrieves the account's suppression list
-func (c *Client) SuppressionListContext(ctx context.Context, sp *SuppressionPage) (*Response, error) {
-	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
-	return c.suppressionGet(ctx, c.Config.BaseUrl+path, sp)
-}
-
 // SuppressionRetrieve retrieves the suppression status for a specific recipient by specifying the recipient’s email address
 // // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-retrieve,-delete,-insert-or-update-get
 func (c *Client) SuppressionRetrieve(email string, sp *SuppressionPage) (*Response, error) {
@@ -90,20 +77,21 @@ func (c *Client) SuppressionRetrieveContext(ctx context.Context, email string, s
 	return c.suppressionGet(ctx, finalURL, sp)
 }
 
-// SuppressionSearch search for suppression entries. For a list of parameters see
+// SuppressionSearch searches for suppression entries.
+// Result sets larger than 10,000 entries will need to use cursor to retrieve more results.
+// For a list of parameters see
 // https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
 func (c *Client) SuppressionSearch(sp *SuppressionPage) (*Response, error) {
 	return c.SuppressionSearchContext(context.Background(), sp)
 }
 
-// SuppressionSearchContext search for suppression entries. For a list of parameters see
-// https://developers.sparkpost.com/api/suppression-list.html#suppression-list-search-get
+// SuppressionSearchContext is the same as SuppressionSearch, and allows the caller to provide their own context.
 func (c *Client) SuppressionSearchContext(ctx context.Context, sp *SuppressionPage) (*Response, error) {
 	var finalURL string
 	path := fmt.Sprintf(SuppressionListsPathFormat, c.Config.ApiVersion)
 
 	if sp.Params == nil || len(sp.Params) == 0 {
-		finalURL = fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
+		finalURL = c.Config.BaseUrl + path
 	} else {
 		args := url.Values{}
 		for k, v := range sp.Params {
@@ -156,11 +144,8 @@ func (c *Client) SuppressionDeleteContext(ctx context.Context, email string) (re
 	}
 
 	// We get an empty response on success. If there are errors we get JSON.
-	if _, err = res.AssertJson(); err == nil {
-		err = res.ParseResponse()
-		if err != nil {
-			return res, err
-		}
+	if _, err = res.AssertJson(); err != nil {
+		return res, err
 	}
 
 	return res, res.HTTPError()
@@ -189,31 +174,13 @@ func (c *Client) SuppressionUpsertContext(ctx context.Context, entries []Writabl
 	jsonBytes, _ := json.Marshal(entriesWrapper)
 
 	finalURL := c.Config.BaseUrl + path
-	return c.HttpPutJson(ctx, finalURL, jsonBytes)
+	return c.HttpPutJson(ctx, finalURL, jsonBytes, nil)
 }
 
 // Wraps call to server and unmarshals response
 func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *SuppressionPage) (*Response, error) {
-
 	// Send off our request
-	res, err := c.HttpGet(ctx, finalURL)
-	if err != nil {
-		return res, err
-	}
-
-	var body []byte
-	// Assert that we got a JSON Content-Type back
-	if body, err = res.AssertJson(); err != nil {
-		return res, err
-	}
-
-	err = res.ParseResponse()
-	if err != nil {
-		return res, err
-	}
-
-	// Parse expected response structure
-	err = json.Unmarshal(body, sp)
+	res, err := c.HttpGetJson(ctx, finalURL, sp)
 	if err != nil {
 		return res, err
 	}

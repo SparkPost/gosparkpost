@@ -63,37 +63,22 @@ func (c *Client) SubaccountCreateContext(ctx context.Context, s *Subaccount) (re
 
 	// Marshaling a static type won't fail
 	jsonBytes, _ := json.Marshal(s)
-
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
-	res, err = c.HttpPost(ctx, c.Config.BaseUrl+path, jsonBytes)
+
+	res, err = c.HttpPostJson(ctx, c.Config.BaseUrl+path, jsonBytes, nil)
 	if err != nil {
 		return
 	}
 
-	if _, err = res.AssertJson(); err != nil {
-		return
-	}
-
-	err = res.ParseResponse()
-	if err != nil {
-		return
-	}
-
-	if Is2XX(res.HTTP.StatusCode) {
-		var ok bool
-		var results map[string]interface{}
-		if results, ok = res.Results.(map[string]interface{}); !ok {
-			err = errors.New("Unexpected response to Subaccount creation (results)")
-		} else if f, ok := results["subaccount_id"].(float64); !ok {
-			err = errors.New("Unexpected response to Subaccount creation (subaccount_id)")
-		} else {
-			s.ID = int(f)
-			if s.ShortKey, ok = results["short_key"].(string); !ok {
-				err = errors.New("Unexpected response to Subaccount creation (short_key)")
-			}
-		}
+	if results, ok := res.Results.(map[string]interface{}); !ok {
+		err = errors.New("Unexpected response to Subaccount creation (results)")
+	} else if f, ok := results["subaccount_id"].(float64); !ok {
+		err = errors.New("Unexpected response to Subaccount creation (subaccount_id)")
 	} else {
-		err = res.HTTPError()
+		s.ID = int(f)
+		if s.ShortKey, ok = results["short_key"].(string); !ok {
+			err = errors.New("Unexpected response to Subaccount creation (short_key)")
+		}
 	}
 
 	return
@@ -131,7 +116,7 @@ func (c *Client) SubaccountUpdateContext(ctx context.Context, s *Subaccount) (re
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, s.ID)
 
-	return c.HttpPutJson(ctx, url, jsonBytes)
+	return c.HttpPutJson(ctx, url, jsonBytes, nil)
 }
 
 // Subaccounts returns metadata for all Subaccounts in the system.
@@ -142,31 +127,17 @@ func (c *Client) Subaccounts() (subaccounts []Subaccount, res *Response, err err
 // SubaccountsContext is the same as Subaccounts, and it allows the caller to provide a context
 func (c *Client) SubaccountsContext(ctx context.Context) (subaccounts []Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
-	res, err = c.HttpGet(ctx, c.Config.BaseUrl+path)
+	slist := map[string][]Subaccount{}
+
+	res, err = c.HttpGetJson(ctx, c.Config.BaseUrl+path, &slist)
 	if err != nil {
 		return
 	}
 
-	var body []byte
-	if body, err = res.AssertJson(); err != nil {
-		return
-	}
-
-	if Is2XX(res.HTTP.StatusCode) {
-		slist := map[string][]Subaccount{}
-		err = json.Unmarshal(body, &slist)
-		if err != nil {
-		} else if list, ok := slist["results"]; ok {
-			subaccounts = list
-		} else {
-			err = errors.New("Unexpected response to Subaccount list")
-		}
-
+	if list, ok := slist["results"]; ok {
+		subaccounts = list
 	} else {
-		err = res.ParseResponse()
-		if err == nil {
-			err = res.HTTPError()
-		}
+		err = errors.New("Unexpected response to Subaccount list")
 	}
 
 	return
@@ -180,32 +151,26 @@ func (c *Client) Subaccount(id int) (subaccount *Subaccount, res *Response, err 
 // SubaccountContext is the same as Subaccount, and it accepts a context.Context
 func (c *Client) SubaccountContext(ctx context.Context, id int) (subaccount *Subaccount, res *Response, err error) {
 	path := fmt.Sprintf(SubaccountsPathFormat, c.Config.ApiVersion)
-	u := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
-	res, err = c.HttpGet(ctx, u)
+	url := fmt.Sprintf("%s%s/%d", c.Config.BaseUrl, path, id)
+
+	// pass nil to skip auto-unmarshalling
+	res, err = c.HttpGetJson(ctx, url, nil)
 	if err != nil {
-		return
+		return nil, res, err
 	}
 
-	var body []byte
-	if body, err = res.AssertJson(); err != nil {
-		return
+	if len(res.Errors) > 0 {
+		return nil, res, res.Errors
 	}
 
-	if Is2XX(res.HTTP.StatusCode) {
-		slist := map[string]Subaccount{}
-		err = json.Unmarshal(body, &slist)
-		if err != nil {
-		} else if s, ok := slist["results"]; ok {
-			subaccount = &s
-		} else {
-			err = errors.New("Unexpected response to Subaccount")
-		}
+	out := map[string]Subaccount{}
+	if err = json.Unmarshal(res.Body, &out); err != nil {
+		err = errors.New("Unexpected response to Subaccount fetch")
+	} else if sub, ok := out["results"]; !ok {
+		err = errors.New("Unexpected response to Subaccount fetch (results)")
 	} else {
-		err = res.ParseResponse()
-		if err == nil {
-			err = res.HTTPError()
-		}
+		subaccount = &sub
 	}
 
-	return
+	return subaccount, res, err
 }

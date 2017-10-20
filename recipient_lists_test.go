@@ -152,7 +152,7 @@ func TestRecipientLists(t *testing.T) {
 	}{
 		{nil, 200, `{"results":[{}]}`, []sp.RecipientList{{}}},
 		{errors.New("Unexpected response to RecipientList list"), 200, `{"foo":[{}]}`, nil},
-		{errors.New("unexpected end of JSON input"), 200, `{"results":[{}]`, nil},
+		{errors.New("parsing api response: unexpected end of JSON input"), 200, `{"results":[{}]`, nil},
 		{errors.New(`[{"message":"No RecipientList for you!","code":"","description":""}]`), 401, `{"errors":[{"message":"No RecipientList for you!"}]}`, nil},
 		{errors.New("parsing api response: unexpected end of JSON input"), 401, `{"errors":[]`, nil},
 		{nil, 200, res200, rl200},

@@ -2,11 +2,8 @@ package gosparkpost
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
-
-	"github.com/pkg/errors"
 )
 
 var MetricsPathFormat = "/api/v%d/metrics/deliverability"
@@ -85,32 +82,5 @@ func (c *Client) QueryMetricsContext(ctx context.Context, m *Metrics) (*Response
 		finalUrl = fmt.Sprintf("%s%s?%s", c.Config.BaseUrl, path, params.Encode())
 	}
 
-	return m.doMetricsRequest(ctx, c, finalUrl)
-}
-
-func (m *Metrics) doMetricsRequest(ctx context.Context, c *Client, finalUrl string) (*Response, error) {
-	// Send off our request
-	res, err := c.HttpGet(ctx, finalUrl)
-	if err != nil {
-		return res, err
-	}
-
-	var body []byte
-	// Assert that we got a JSON Content-Type back
-	if body, err = res.AssertJson(); err != nil {
-		return res, err
-	}
-
-	err = res.ParseResponse()
-	if err != nil {
-		return res, err
-	}
-
-	// Parse expected response structure
-	err = json.Unmarshal(body, m)
-	if err != nil {
-		return res, errors.Wrap(err, "unmarshaling response")
-	}
-
-	return res, nil
+	return c.HttpGetJson(ctx, finalUrl, m)
 }

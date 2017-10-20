@@ -168,10 +168,6 @@ func (c *Client) RecipientListCreateContext(ctx context.Context, rl *RecipientLi
 		return
 	}
 
-	if err = res.ParseResponse(); err != nil {
-		return
-	}
-
 	if Is2XX(res.HTTP.StatusCode) {
 		var ok bool
 		var results map[string]interface{}
@@ -196,30 +192,17 @@ func (c *Client) RecipientLists() ([]RecipientList, *Response, error) {
 func (c *Client) RecipientListsContext(ctx context.Context) ([]RecipientList, *Response, error) {
 	path := fmt.Sprintf(RecipientListsPathFormat, c.Config.ApiVersion)
 	url := fmt.Sprintf("%s%s", c.Config.BaseUrl, path)
-	res, err := c.HttpGet(ctx, url)
+
+	rllist := map[string][]RecipientList{}
+	res, err := c.HttpGetJson(ctx, url, &rllist)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var body []byte
-	if body, err = res.AssertJson(); err != nil {
-		return nil, res, err
+	if list, ok := rllist["results"]; ok {
+		return list, res, nil
 	}
 
-	if Is2XX(res.HTTP.StatusCode) {
-		rllist := map[string][]RecipientList{}
-		if err = json.Unmarshal(body, &rllist); err != nil {
-		} else if list, ok := rllist["results"]; ok {
-			return list, res, nil
-		} else {
-			err = errors.New("Unexpected response to RecipientList list")
-		}
-
-	} else {
-		if err = res.ParseResponse(); err == nil {
-			err = res.HTTPError()
-		}
-	}
-
+	err = errors.New("Unexpected response to RecipientList list")
 	return nil, res, err
 }
