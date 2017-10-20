@@ -19,8 +19,8 @@ func TestUnmarshal_SupressionEvent(t *testing.T) {
 
 	var suppressionEventString = loadTestFile(t, "test/json/suppression_entry_simple.json")
 
-	suppressionEntry := &sp.SuppressionEntry{}
-	err := json.Unmarshal([]byte(suppressionEventString), suppressionEntry)
+	suppressionEntry := sp.SuppressionEntry{}
+	err := json.Unmarshal([]byte(suppressionEventString), &suppressionEntry)
 	if err != nil {
 		testFailVerbose(t, nil, "Unmarshal SuppressionEntry returned error: %v", err)
 	}
@@ -29,7 +29,9 @@ func TestUnmarshal_SupressionEvent(t *testing.T) {
 }
 
 func TestSuppressionList(t *testing.T) {
+	errNotFound := sp.SPErrors{sp.SPError{Message: "Resource could not be found", Code: "", Description: "", Part: "", Line: 0}}
 	for idx, test := range []struct {
+		name string
 		file string
 		in   *sp.SuppressionPage
 		code int
@@ -37,54 +39,29 @@ func TestSuppressionList(t *testing.T) {
 		out  *sp.SuppressionPage
 		json string
 	}{
-		{"test/json/suppression_not_found_error.json", &sp.SuppressionPage{}, 404,
-			sp.SPErrors{sp.SPError{Message: "Resource could not be found", Code: "", Description: "", Part: "", Line: 0}},
-			nil, `{"errors":[{"message":"Resource could not be found"}]}`},
+		{"not found", "test/json/suppression_not_found_error.json", &sp.SuppressionPage{}, 404,
+			errNotFound, &sp.SuppressionPage{Errors: errNotFound},
+			`{"errors":[{"message":"Resource could not be found"}]}`,
+		},
 	} {
 		testSetup(t)
 		defer testTeardown()
 		mockRestResponseBuilderFormat(t, "GET", test.code, sp.SuppressionListsPathFormat, test.json)
 
-		_, err := testClient.SuppressionSearch(test.in)
+		res, err := testClient.SuppressionSearch(test.in)
 		if err == nil && test.err != nil || err != nil && test.err == nil {
-			t.Errorf("SuppressionList[%d] => err %#v want %#v", idx, err, test.err)
+			t.Errorf("SuppressionList[%d] (%s) => err %#v want %#v", idx, test.name, err, test.err)
 		} else if err != nil && err.Error() != test.err.Error() {
-			t.Errorf("SuppressionList[%d] => err %#v want %#v", idx, err, test.err)
+			t.Errorf("SuppressionList[%d] (%s) => err %#v want %#v", idx, test.name, err, test.err)
 			t.Errorf("%s", pretty.Compare(err.Error(), test.err.Error()))
 		} else if test.out != nil {
 			if !reflect.DeepEqual(test.in, test.out) {
-				t.Errorf("SuppressionList[%d] => events got/want:\n%#v\n%#v", idx, test.in, test.out)
+				t.Errorf("SuppressionList[%d] (%s) => events got/want:\n%#v\n%#v", idx, test.name, test.in, test.out)
 			}
 		}
-	}
-}
-
-// Test parsing of "not found" case
-func TestSuppression_Get_notFound(t *testing.T) {
-	testSetup(t)
-	defer testTeardown()
-
-	// set up the response handler
-	var mockResponse = loadTestFile(t, "test/json/suppression_not_found_error.json")
-	mockRestBuilderFormat(t, "GET", sp.SuppressionListsPathFormat, mockResponse)
-
-	// hit our local handler
-	suppressionPage := &sp.SuppressionPage{}
-	res, err := testClient.SuppressionSearch(suppressionPage)
-	if err != nil {
-		testFailVerbose(t, res, "SuppressionList GET returned error: %v", err)
-	}
-
-	// basic content test
-	if suppressionPage.Results != nil {
-		testFailVerbose(t, res, "SuppressionList GET returned non-nil Results (error expected)")
-	} else if len(suppressionPage.Results) != 0 {
-		testFailVerbose(t, res, "SuppressionList GET returned %d results, expected %d", len(suppressionPage.Results), 0)
-	} else if len(suppressionPage.Errors) != 1 {
-		testFailVerbose(t, res, "SuppressionList GET returned %d errors, expected %d", len(suppressionPage.Errors), 1)
-	} else if suppressionPage.Errors[0].Message != "Recipient could not be found" {
-		testFailVerbose(t, res, "SuppressionList GET Unmarshal error; saw [%v] expected [%v]",
-			res.Errors[0].Message, "Recipient could not be found")
+		if test.code != res.HTTP.StatusCode {
+			t.Errorf("SuppressionList[%d] (%s) => http code got/want: %d / %d", idx, test.name, res.HTTP.StatusCode, test.code)
+		}
 	}
 }
 
@@ -568,7 +545,7 @@ func TestClient_Suppression_Delete_Errors(t *testing.T) {
 // Internal Helpers
 /////////////////////
 
-func verifySuppressionEnty(t *testing.T, suppressionEntry *sp.SuppressionEntry) {
+func verifySuppressionEnty(t *testing.T, suppressionEntry sp.SuppressionEntry) {
 	if suppressionEntry.Recipient != "john.doe@domain.com" {
 		testFailVerbose(t, nil, "Unexpected Recipient: %s", suppressionEntry.Recipient)
 	} else if suppressionEntry.Description != "entry description" {

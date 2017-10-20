@@ -41,11 +41,9 @@ type WritableSuppressionEntry struct {
 type SuppressionPage struct {
 	client *Client
 
-	Results    []*SuppressionEntry `json:"results,omitempty"`
-	Recipients []SuppressionEntry  `json:"recipients,omitempty"`
-	Errors     []struct {
-		Message string `json:"message,omitempty"`
-	} `json:"errors,omitempty"`
+	Results    []SuppressionEntry `json:"results,omitempty"`
+	Recipients []SuppressionEntry `json:"recipients,omitempty"`
+	Errors     SPErrors           `json:"errors,omitempty"`
 
 	TotalCount int `json:"total_count,omitempty"`
 
