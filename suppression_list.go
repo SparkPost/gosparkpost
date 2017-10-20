@@ -39,7 +39,7 @@ type WritableSuppressionEntry struct {
 
 // SuppressionPage wraps suppression entries and response meta information
 type SuppressionPage struct {
-	client *Client
+	Client *Client
 
 	Results    []SuppressionEntry `json:"results,omitempty"`
 	Recipients []SuppressionEntry `json:"recipients,omitempty"`
@@ -114,9 +114,9 @@ func (sp *SuppressionPage) NextContext(ctx context.Context) (*SuppressionPage, *
 	}
 
 	suppressionPage := &SuppressionPage{}
-	suppressionPage.client = sp.client
-	finalURL := fmt.Sprintf("%s", sp.client.Config.BaseUrl+sp.NextPage)
-	res, err := sp.client.suppressionGet(ctx, finalURL, suppressionPage)
+	suppressionPage.Client = sp.Client
+	finalURL := fmt.Sprintf("%s", sp.Client.Config.BaseUrl+sp.NextPage)
+	res, err := sp.Client.suppressionGet(ctx, finalURL, suppressionPage)
 
 	return suppressionPage, res, err
 }
@@ -197,8 +197,8 @@ func (c *Client) suppressionGet(ctx context.Context, finalURL string, sp *Suppre
 		}
 	}
 
-	if sp.client == nil {
-		sp.client = c
+	if sp.Client == nil {
+		sp.Client = c
 	}
 
 	return res, nil
