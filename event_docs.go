@@ -2,7 +2,6 @@ package gosparkpost
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -35,29 +34,18 @@ func (c *Client) EventDocumentation() (g map[string]*EventGroup, res *Response, 
 
 func (c *Client) EventDocumentationContext(ctx context.Context) (groups map[string]*EventGroup, res *Response, err error) {
 	path := fmt.Sprintf(EventDocumentationFormat, c.Config.ApiVersion)
-	res, err = c.HttpGet(ctx, c.Config.BaseUrl+path)
+	var results map[string]map[string]*EventGroup
+	res, err = c.HttpGetJson(ctx, c.Config.BaseUrl+path, &results)
 	if err != nil {
 		return
 	}
 
-	var body []byte
-	if body, err = res.AssertJson(); err != nil {
-		return
+	var ok bool
+	if groups, ok = results["results"]; ok {
+		// Success!
+	} else {
+		err = errors.New("Unexpected response format (results)")
 	}
 
-	if Is2XX(res.HTTP.StatusCode) {
-		var ok bool
-		var results map[string]map[string]*EventGroup
-		if err = json.Unmarshal(body, &results); err != nil {
-		} else if groups, ok = results["results"]; ok {
-			// Success!
-		} else {
-			err = errors.New("Unexpected response format (results)")
-		}
-	} else {
-		if err = res.ParseResponse(); err == nil {
-			err = res.HTTPError()
-		}
-	}
 	return
 }

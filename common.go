@@ -131,14 +131,40 @@ func (c *Client) Init(cfg *Config) error {
 	return nil
 }
 
-// HttpPost sends a Post request with the provided JSON payload to the specified url.
+func (res *Response) unmarshalBody(ptr interface{}) (*Response, error) {
+	body, err := res.AssertJson()
+	if err != nil {
+		return res, err
+	}
+	// Don't try to unmarshal an empty response
+	if ptr != nil && bytes.Compare(body, []byte("")) != 0 {
+		err = json.Unmarshal(body, ptr)
+		if err != nil {
+			return res, errors.Wrap(err, "parsing api response")
+		}
+	}
+	return res, res.HTTPError()
+}
+
+// HttpPost sends a POST request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpPost(ctx context.Context, url string, data []byte) (*Response, error) {
 	return c.DoRequest(ctx, "POST", url, data)
 }
 
-// HttpGet sends a Get request to the specified url.
+// HttpPostJson sends a POST request to the specified url, with the specified body.
+// An error is returned if the response's Content-Type isn't JSON.
+// The JSON reponse is Unmarshalled into the provided interface{} value.
+func (c *Client) HttpPostJson(ctx context.Context, url string, data []byte, ptr interface{}) (*Response, error) {
+	res, err := c.DoRequest(ctx, "POST", url, data)
+	if err != nil {
+		return res, err
+	}
+	return res.unmarshalBody(ptr)
+}
+
+// HttpGet sends a GET request to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpGet(ctx context.Context, url string) (*Response, error) {
@@ -153,21 +179,10 @@ func (c *Client) HttpGetJson(ctx context.Context, url string, ptr interface{}) (
 	if err != nil {
 		return res, err
 	}
-	body, err := res.AssertJson()
-	if err != nil {
-		return res, err
-	}
-	// Don't try to unmarshal an empty response
-	if bytes.Compare(body, []byte("")) != 0 {
-		err = json.Unmarshal(body, ptr)
-		if err != nil {
-			return res, errors.Wrap(err, "parsing api response")
-		}
-	}
-	return res, res.HTTPError()
+	return res.unmarshalBody(ptr)
 }
 
-// HttpPut sends a Put request with the provided JSON payload to the specified url.
+// HttpPut sends a PUT request with the provided JSON payload to the specified url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpPut(ctx context.Context, url string, data []byte) (*Response, error) {
@@ -176,21 +191,15 @@ func (c *Client) HttpPut(ctx context.Context, url string, data []byte) (*Respons
 
 // HttpPutJson sends a PUT request to the specified url and returns the JSON result.
 // An error is returned if the response's Content-Type isn't JSON.
-func (c *Client) HttpPutJson(ctx context.Context, url string, data []byte) (*Response, error) {
+func (c *Client) HttpPutJson(ctx context.Context, url string, data []byte, ptr interface{}) (*Response, error) {
 	res, err := c.DoRequest(ctx, "PUT", url, data)
 	if err != nil {
 		return res, err
 	}
-	if _, err = res.AssertJson(); err != nil {
-		return res, err
-	}
-	if err = res.ParseResponse(); err != nil {
-		return res, err
-	}
-	return res, res.HTTPError()
+	return res.unmarshalBody(ptr)
 }
 
-// HttpDelete sends a Delete request to the provided url.
+// HttpDelete sends a DELETE request to the provided url.
 // Query params are supported via net/url - roll your own and stringify it.
 // Authenticate using the configured API key.
 func (c *Client) HttpDelete(ctx context.Context, url string) (*Response, error) {
@@ -319,7 +328,6 @@ func (r *Response) ReadBody() ([]byte, error) {
 }
 
 // ParseResponse pulls info from JSON http responses into api.Response object.
-// It's helpful to call Response.AssertJson before calling this function.
 func (r *Response) ParseResponse() error {
 	body, err := r.ReadBody()
 	if err != nil {
@@ -341,16 +349,11 @@ func (r *Response) ParseResponse() error {
 // AssertJson returns an error if the provided HTTP response isn't JSON.
 func (r *Response) AssertJson() (body []byte, err error) {
 	if r.HTTP == nil {
-		err = errors.New("AssertJson got nil http.Response")
-		return
+		return nil, errors.New("AssertJson got nil http.Response")
 	}
 	body, err = r.ReadBody()
 	if err != nil {
 		return body, err
-	}
-	// Don't fail on an empty response
-	if bytes.Compare(body, []byte("")) == 0 {
-		return body, nil
 	}
 
 	ctype := r.HTTP.Header.Get("Content-Type")
@@ -362,5 +365,12 @@ func (r *Response) AssertJson() (body []byte, err error) {
 	if mediaType != "application/json" {
 		return body, errors.Errorf("Expected json, got [%s] with code %d", mediaType, r.HTTP.StatusCode)
 	}
+
+	// If we have a JSON body, pull out the relevant bits into our Response
+	err = r.ParseResponse()
+	if err != nil {
+		return body, err
+	}
+
 	return body, nil
 }
