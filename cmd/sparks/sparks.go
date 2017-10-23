@@ -48,6 +48,7 @@ func main() {
 	var textFlag = flag.String("text", "", "string/filename containing text content")
 	var rfc822Flag = flag.String("rfc822", "", "string/filename containing raw message")
 	var subsFlag = flag.String("subs", "", "string/filename containing substitution data (json object)")
+	var metaFlag = flag.String("meta", "", "string/filename containing metadata (json object)")
 	var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 	var inline = flag.Bool("inline-css", false, "automatically inline css")
 	var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
@@ -75,6 +76,7 @@ func main() {
 	hasText := strings.TrimSpace(*textFlag) != ""
 	hasRFC822 := strings.TrimSpace(*rfc822Flag) != ""
 	hasSubs := strings.TrimSpace(*subsFlag) != ""
+	hasMeta := strings.TrimSpace(*metaFlag) != ""
 
 	// rfc822 must be specified by itself, i.e. no text or html
 	if hasRFC822 && (hasHtml || hasText) {
@@ -190,24 +192,13 @@ func main() {
 
 	tx := &sp.Transmission{}
 
-	var subJson *json.RawMessage
-	if hasSubs {
-		var subsBytes []byte
-		if strings.HasPrefix(*subsFlag, "/") || strings.HasPrefix(*subsFlag, "./") {
-			// read file to get substitution data
-			subsBytes, err = ioutil.ReadFile(*subsFlag)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			subsBytes = []byte(*subsFlag)
-		}
-
-		subJson = &json.RawMessage{}
-		err = json.Unmarshal(subsBytes, subJson)
-		if err != nil {
-			log.Fatal(err)
-		}
+	subJson, err := jsonify(hasSubs, *subsFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
+	metaJson, err := jsonify(hasMeta, *metaFlag)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	headerTo := strings.Join(to, ",")
@@ -218,6 +209,9 @@ func main() {
 		if hasSubs {
 			recip.SubstitutionData = subJson
 		}
+		if hasMeta {
+			recip.Metadata = metaJson
+		}
 		tx.Recipients = append(tx.Recipients.([]sp.Recipient), recip)
 	}
 
@@ -226,6 +220,9 @@ func main() {
 			var recip sp.Recipient = sp.Recipient{Address: sp.Address{Email: r, HeaderTo: headerTo}}
 			if hasSubs {
 				recip.SubstitutionData = subJson
+			}
+			if hasMeta {
+				recip.Metadata = metaJson
 			}
 			tx.Recipients = append(tx.Recipients.([]sp.Recipient), recip)
 		}
@@ -240,6 +237,9 @@ func main() {
 			var recip sp.Recipient = sp.Recipient{Address: sp.Address{Email: r, HeaderTo: headerTo}}
 			if hasSubs {
 				recip.SubstitutionData = subJson
+			}
+			if hasMeta {
+				recip.Metadata = metaJson
 			}
 			tx.Recipients = append(tx.Recipients.([]sp.Recipient), recip)
 		}
@@ -307,4 +307,28 @@ func main() {
 	} else {
 		log.Printf("HTTP [%s] TX %s\n", req.HTTP.Status, id)
 	}
+}
+
+func jsonify(flag bool, fileOrData string) (*json.RawMessage, error) {
+	if !flag {
+		return nil, nil
+	}
+	var data []byte
+	var err error
+	if strings.HasPrefix(fileOrData, "/") || strings.HasPrefix(fileOrData, "./") {
+		// read file to get metadata
+		data, err = ioutil.ReadFile(fileOrData)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data = []byte(fileOrData)
+	}
+
+	obj := &json.RawMessage{}
+	err = json.Unmarshal(data, obj)
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
