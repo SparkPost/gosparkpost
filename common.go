@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -85,7 +86,7 @@ func (res *Response) HTTPError() error {
 	}
 
 	return SPErrors{{
-		Code:        res.HTTP.Status,
+		Code:        ErrorCode(res.HTTP.Status),
 		Message:     string(res.Body),
 		Description: "HTTP/JSON Error",
 	}}
@@ -96,12 +97,33 @@ type SPErrors []SPError
 
 // SPError mirrors the error format returned by SparkPost APIs.
 type SPError struct {
-	Message     string `json:"message"`
-	Code        string `json:"code"`
-	Description string `json:"description"`
-	Part        string `json:"part,omitempty"`
-	Line        int    `json:"line,omitempty"`
+	Message     string    `json:"message"`
+	Code        ErrorCode `json:"code"`
+	Description string    `json:"description"`
+	Part        string    `json:"part,omitempty"`
+	Line        int       `json:"line,omitempty"`
 }
+
+// ErrorCode is aliased to enable custom UnmarshalJSON
+type ErrorCode string
+
+// UnmarshalJSON allows SPError.Code to be either a string or int in JSON returned from the server.
+func (c *ErrorCode) UnmarshalJSON(data []byte) error {
+	var tmp string
+	if bytes.HasPrefix(data, []byte(`"`)) {
+		// ignore error because:
+		// while unmarshaling, if it starts with a quote, it also ends with a quote
+		tmp, _ = strconv.Unquote(string(data))
+	} else {
+		tmp = string(data)
+	}
+	*c = ErrorCode(tmp)
+
+	return nil
+}
+
+// String implements Stringer for ErrorCode, to make it less annoying to print.
+func (c ErrorCode) String() string { return string(c) }
 
 // Error satisfies the builtin Error interface
 func (e SPErrors) Error() string {
