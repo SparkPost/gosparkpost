@@ -82,12 +82,41 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-func TestJson(t *testing.T) {
-	var e = sp.SPErrors([]sp.SPError{{Message: "This is fine."}})
-	var exp = `[{"message":"This is fine.","code":"","description":""}]`
-	str := e.Error()
-	if str != exp {
-		t.Errorf("*SPError.Stringify => %q, want %q", str, exp)
+func TestSPErrors(t *testing.T) {
+	for idx, test := range []struct {
+		name     string
+		in       string
+		code     string
+		parsed   sp.SPErrors
+		expected string
+	}{
+		{"string code",
+			`[{"message":"This is fine.","code":"13","description":""}]`, "13",
+			sp.SPErrors([]sp.SPError{{Message: "This is fine.", Code: "13"}}),
+			`[{"message":"This is fine.","code":"13","description":""}]`,
+		}, {"int code",
+			`[{"message":"This is fine.","code":42,"description":""}]`, "42",
+			sp.SPErrors([]sp.SPError{{Message: "This is fine.", Code: "42"}}),
+			`[{"message":"This is fine.","code":"42","description":""}]`,
+		}, {"just message",
+			`[{"message":"This is fine.","code":"","description":""}]`, "",
+			sp.SPErrors([]sp.SPError{{Message: "This is fine."}}),
+			`[{"message":"This is fine.","code":"","description":""}]`,
+		},
+	} {
+		// test the round trip from []byte to sp.SPErrors and back
+		errs := sp.SPErrors{}
+		err := json.Unmarshal([]byte(test.in), &errs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if test.parsed[0].Code.String() != test.code {
+			t.Errorf("SPErrors[%d] (%s) code => %q, want %q", idx, test.name, test.parsed[0].Code, test.code)
+		}
+		errstr := test.parsed.Error()
+		if test.expected != errstr {
+			t.Errorf("SPErrors.Stringify[%d] (%s) => %q, want %q", idx, test.name, errstr, test.in)
+		}
 	}
 }
 
@@ -115,16 +144,24 @@ func TestDoRequest(t *testing.T) {
 }
 
 func TestHTTPError(t *testing.T) {
-	var res *sp.Response
-	err := res.HTTPError()
-	if err == nil {
-		t.Error("nil response should fail")
-	}
-
-	res = &sp.Response{}
-	err = res.HTTPError()
-	if err == nil {
-		t.Error("nil http should fail")
+	for idx, test := range []struct {
+		name string
+		res  *sp.Response
+		err  error
+	}{
+		{"nil response", nil, errors.New("Internal error: Response may not be nil")},
+		{"nil http", &sp.Response{}, errors.New("Internal error: Response.HTTP may not be nil")},
+		{"got error", &sp.Response{HTTP: &http.Response{Status: "418 I'm a teapot"}},
+			sp.SPErrors([]sp.SPError{{Code: sp.ErrorCode("418 I'm a teapot"), Description: "HTTP/JSON Error"}})},
+	} {
+		err := test.res.HTTPError()
+		if test.err != nil && err == nil {
+			t.Errorf("HTTPError[%d] (%s) => no error, wanted %q", idx, test.name, test.err)
+		} else if test.err == nil && err != nil {
+			t.Errorf("HTTPError[%d] (%s) => unexpected error: %q", idx, test.name, err)
+		} else if test.err.Error() != err.Error() {
+			t.Errorf("HTTPError[%d] (%s) => mismatched errors (got/want):\n%q\n%q", idx, test.name, err, test.err)
+		}
 	}
 }
 
