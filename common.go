@@ -180,7 +180,7 @@ func (c *Client) HttpGetJson(ctx context.Context, url string, ptr interface{}) (
 		return res, err
 	}
 	// Don't try to unmarshal an empty response
-	if bytes.Compare(body, []byte("")) != 0 {
+	if ptr != nil && bytes.Compare(body, []byte("")) != 0 {
 		err = json.Unmarshal(body, ptr)
 		if err != nil {
 			return res, errors.Wrap(err, "parsing api response")
