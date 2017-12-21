@@ -1,19 +1,41 @@
 package events
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"testing"
 )
 
-func TestSampleEvents(t *testing.T) {
-	file, err := os.Open("sample-events.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestGeoIP(t *testing.T) {
+	for idx, test := range []struct {
+		in  []byte
+		err error
+	}{
+		{[]byte(`{"country":"USA","region":"CO","city":"Denver","latitude":39.7392,"longitude":104.9903}`), nil},
+	} {
+		geo := GeoIP{}
+		err := json.Unmarshal(test.in, &geo)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	payload, err := ioutil.ReadAll(file)
+		jsonBytes, err := json.Marshal(geo)
+		if err != nil {
+			if test.err != nil && test.err == err {
+				// ignore expected errors
+			} else {
+				t.Fatal(err)
+			}
+		}
+		if bytes.Compare(jsonBytes, test.in) != 0 {
+			t.Errorf("Marshal[%d] => got/want:\n%s\n%s", idx, string(jsonBytes), string(test.in))
+		}
+	}
+}
+
+func TestSampleEvents(t *testing.T) {
+	payload, err := ioutil.ReadFile("test/json/sample-events.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,12 +54,7 @@ func TestSampleEvents(t *testing.T) {
 }
 
 func TestSampleWebhookValidationRequest(t *testing.T) {
-	file, err := os.Open("sample-webhook-validation.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	payload, err := ioutil.ReadAll(file)
+	payload, err := ioutil.ReadFile("test/json/sample-webhook-validation.json")
 	if err != nil {
 		t.Fatal(err)
 	}
