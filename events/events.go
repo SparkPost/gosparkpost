@@ -254,7 +254,7 @@ type GeoIP struct {
 type LatLong float32
 
 func (v *LatLong) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprint("%v", v)), nil
+	return []byte(fmt.Sprintf("%v", *v)), nil
 }
 
 func (v *LatLong) UnmarshalJSON(data []byte) error {
