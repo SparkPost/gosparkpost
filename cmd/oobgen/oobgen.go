@@ -61,7 +61,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if mxs == nil || len(mxs) <= 0 {
-		log.Fatal("No MXs for [%s]\n", oobDomain)
+		log.Fatalf("No MXs for [%s]\n", oobDomain)
 	}
 	if verbose == true {
 		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, oobDomain)
