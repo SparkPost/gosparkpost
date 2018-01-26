@@ -35,6 +35,8 @@ type Client struct {
 	Config  *Config
 	Client  *http.Client
 	Headers *http.Header
+
+	macros map[string]Macro
 }
 
 var nonDigit *regexp.Regexp = regexp.MustCompile(`\D`)
