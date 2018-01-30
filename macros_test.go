@@ -46,10 +46,16 @@ func TestRecipientApply(t *testing.T) {
 	}{
 		// nil recipient returns input string unchanged
 		{nil, "in", "in", nil},
+
 		// tokenize catches template error
 		// this only happens in this function when used standalone
 		// when using ApplyMacros, all tokenize errors are caught at that level
 		{&sp.Recipient{}, "{{{ foo }}", "", errors.New(`mismatched curly braces near "{{{ foo }}"`)},
+
+		{&sp.Recipient{
+			Address:  "test@example.com",
+			Metadata: map[string]interface{}{"foo": "bar"},
+		}, "{{ foo }}", "bar", nil},
 	}
 
 	for idx, test := range tests {
