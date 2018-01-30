@@ -143,7 +143,8 @@ func (c *Client) ApplyMacros(in string, r *Recipient) (string, error) {
 				}
 				chunks[idx] = m.Func(params)
 			} else {
-				return "", errors.Errorf("no such macro %q", atoms[0])
+				// no client macro matches this block, pass it through
+				chunks[idx] = token.Text
 			}
 
 		default:
@@ -192,7 +193,7 @@ func Tokenize(str string) (out []ContentToken, err error) {
 		}
 
 		if curlies != 0 {
-			return nil, errors.Errorf("mismatched curly braces near %s", str)
+			return nil, errors.Errorf("mismatched curly braces near %q", str)
 		}
 
 		out = append(out, ContentToken{
