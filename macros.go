@@ -31,9 +31,9 @@ type ContentToken struct {
 var wordChars = regexp.MustCompile(`^\w+$`)
 
 // RegisterMacro associates a Macro with a Client.
-// The provided Macro.Func is wrapped so that its argument is the string between the Macro name and closing delimiter.
+// As with all changes to the Client, this is only safe to call before any potential concurrency.
 // Splitting of arguments can be done in the Macro Func if desired.
-// Everything between the Macro Name and the closing delimiter will be passed as the single string argument.
+// Everything between the Macro Name and the closing delimiter will be passed to the Func as a single string argument.
 func (c *Client) RegisterMacro(m *Macro) error {
 	if m == nil {
 		return errors.New(`can't add nil Macro`)
