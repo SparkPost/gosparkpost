@@ -10,6 +10,9 @@ import (
 
 var upperMacro = sp.Macro{Name: "ext_upper", Func: strings.ToUpper}
 var lowerMacro = sp.Macro{Name: "ext_lower", Func: strings.ToLower}
+var noopMacro = sp.Macro{Name: "ext_noop", Func: NoopMacro}
+
+func NoopMacro(in string) string { return in }
 
 func TestRegisterMacro(t *testing.T) {
 	tests := []struct {
@@ -122,6 +125,14 @@ func TestApplyMacros(t *testing.T) {
 				Metadata:         map[string]interface{}{"abc": 42},
 				SubstitutionData: map[string]interface{}{"ghi": 42},
 			}, "{{ ext_upper {{abc}} }}{{ ext_lower ({{ghi}}) }}", "{{ABC}}({{ghi}})", nil},
+
+		// substitution data overrides metadata
+		{[]sp.Macro{noopMacro},
+			&sp.Recipient{
+				Address:          "test@example.com",
+				Metadata:         map[string]interface{}{"abc": "def", "ghi": "jkl"},
+				SubstitutionData: map[string]interface{}{"abc": "DEF"},
+			}, "{{ ext_noop {{abc}} }}{{ ext_noop ({{ghi}}) }}", "DEF(jkl)", nil},
 
 		// recipient macros nested inside client macros
 		{[]sp.Macro{upperMacro, lowerMacro},
