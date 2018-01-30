@@ -31,7 +31,9 @@ type ContentToken struct {
 var wordChars = regexp.MustCompile(`^\w+$`)
 
 // RegisterMacro associates a Macro with a Client.
-// The provided Macro.Func is wrapped so that its argument is the non-whitespace between the Macro name and closing delimiter.
+// The provided Macro.Func is wrapped so that its argument is the string between the Macro name and closing delimiter.
+// Splitting of arguments can be done in the Macro Func if desired.
+// Everything between the Macro Name and the closing delimiter will be passed as the single string argument.
 func (c *Client) RegisterMacro(m *Macro) error {
 	if m == nil {
 		return errors.New(`can't add nil Macro`)
@@ -48,7 +50,7 @@ func (c *Client) RegisterMacro(m *Macro) error {
 	return nil
 }
 
-// Apply substitutes top-level string values from the Recipients SubstitutionData and Metadata
+// Apply substitutes top-level string values from the Recipient's SubstitutionData and Metadata
 // (in that order) for placeholders in the provided string.
 func (r *Recipient) Apply(in string) (string, error) {
 	tokens, err := Tokenize(in)
@@ -64,11 +66,15 @@ func (r *Recipient) Apply(in string) (string, error) {
 
 	var sub, meta map[string]interface{}
 	var ok bool
-	if sub, ok = r.SubstitutionData.(map[string]interface{}); !ok && r.SubstitutionData != nil {
-		return "", errors.Errorf("unexpected substitution data type for recipient %s", addr.Email)
+	if r.SubstitutionData != nil {
+		if sub, ok = r.SubstitutionData.(map[string]interface{}); !ok {
+			return "", errors.Errorf("unexpected substitution data type for recipient %s", addr.Email)
+		}
 	}
-	if meta, ok = r.Metadata.(map[string]interface{}); !ok && r.Metadata != nil {
-		return "", errors.Errorf("unexpected metadata type for recipient %s", addr.Email)
+	if r.Metadata != nil {
+		if meta, ok = r.Metadata.(map[string]interface{}); !ok {
+			return "", errors.Errorf("unexpected metadata type for recipient %s", addr.Email)
+		}
 	}
 
 	for idx, token := range tokens {
