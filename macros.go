@@ -53,6 +53,10 @@ func (c *Client) RegisterMacro(m *Macro) error {
 // Apply substitutes top-level string values from the Recipient's SubstitutionData and Metadata
 // (in that order) for placeholders in the provided string.
 func (r *Recipient) Apply(in string) (string, error) {
+	if r == nil {
+		return in, nil
+	}
+
 	tokens, err := Tokenize(in)
 	if err != nil {
 		return "", err
@@ -68,12 +72,18 @@ func (r *Recipient) Apply(in string) (string, error) {
 	var ok bool
 	if r.SubstitutionData != nil {
 		if sub, ok = r.SubstitutionData.(map[string]interface{}); !ok {
-			return "", errors.Errorf("unexpected substitution data type for recipient %s", addr.Email)
+			switch itype := r.SubstitutionData.(type) {
+			default:
+				return "", errors.Errorf("unexpected substitution data type [%T] for recipient %s", itype, addr.Email)
+			}
 		}
 	}
 	if r.Metadata != nil {
 		if meta, ok = r.Metadata.(map[string]interface{}); !ok {
-			return "", errors.Errorf("unexpected metadata type for recipient %s", addr.Email)
+			switch itype := r.Metadata.(type) {
+			default:
+				return "", errors.Errorf("unexpected metadata type [%T] for recipient %s", itype, addr.Email)
+			}
 		}
 	}
 
