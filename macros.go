@@ -146,9 +146,6 @@ func (c *Client) ApplyMacros(in string, r *Recipient) (string, error) {
 				// no client macro matches this block, pass it through
 				chunks[idx] = token.Text
 			}
-
-		default:
-			return "", errors.Errorf("unsupported token type %q", token.Type)
 		}
 	}
 
