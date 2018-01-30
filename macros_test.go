@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+var upperMacro = sp.Macro{Name: "ext_upper", Func: strings.ToUpper}
+var lowerMacro = sp.Macro{Name: "ext_lower", Func: strings.ToLower}
+
 func TestRegisterMacro(t *testing.T) {
 	tests := []struct {
 		macro *sp.Macro
@@ -42,10 +45,9 @@ func TestApplyMacros(t *testing.T) {
 		out      string
 		err      error
 	}{
-		{[]sp.Macro{
-			sp.Macro{Name: "ext_foo", Func: strings.ToUpper},
-			sp.Macro{Name: "ext_bar", Func: strings.ToLower},
-		}, nil, "{{ ext_foo bar }}{{ ext_bar FOO }}", "BARfoo", nil},
+		{[]sp.Macro{upperMacro}, nil, "{{ext_upper}}", "", nil},
+		{[]sp.Macro{upperMacro, lowerMacro},
+			nil, "{{ ext_upper bar }}{{ ext_lower FOO }}", "BARfoo", nil},
 
 		{
 			[]sp.Macro{
