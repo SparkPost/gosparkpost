@@ -3,7 +3,6 @@ package gosparkpost_test
 import (
 	"crypto/tls"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -211,7 +210,7 @@ func InvoiceMacro(client *http.Client) func(string) string {
 			return err.Error()
 		}
 		body, err := ioutil.ReadAll(res.Body)
-		if err != nil && err != io.EOF {
+		if err != nil {
 			return err.Error()
 		}
 		return string(body)
