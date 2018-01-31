@@ -1,6 +1,12 @@
 package gosparkpost_test
 
 import (
+	"crypto/tls"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -171,4 +177,70 @@ func TestApplyMacros(t *testing.T) {
 		// discard client (where macros live) so next test gets a fresh start
 		testClient = nil
 	}
+}
+
+func TestInvoice(t *testing.T) {
+	s := httptest.NewTLSServer(http.HandlerFunc(testInvoice))
+	tx := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	client := &http.Client{Transport: tx}
+	spClient := &sp.Client{}
+	invoiceMacro := &sp.Macro{Name: "sp_invoice", Func: InvoiceMacro(client)}
+	spClient.RegisterMacro(invoiceMacro)
+	r := &sp.Recipient{Address: "test@example.com", Metadata: map[string]interface{}{"invoice_id": "f00f00"}}
+
+	prefix := `Here's your invoice:`
+	tmpl := fmt.Sprintf(`%s {{ sp_invoice %s/{{invoice_id}} }}`, prefix, s.URL)
+	out, err := spClient.ApplyMacros(tmpl, r)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if out != prefix+" "+string(carlinInvoice) {
+		t.Errorf("InvoiceMacro - unexpected output:\n%s", out)
+	}
+}
+
+func InvoiceMacro(client *http.Client) func(string) string {
+	return func(url string) string {
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err.Error()
+		}
+		res, err := client.Do(req)
+		if err != nil {
+			return err.Error()
+		}
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil && err != io.EOF {
+			return err.Error()
+		}
+		return string(body)
+	}
+}
+
+var carlinInvoice = []byte(`
+  George Carlin                                            INVOICE
+  carlin@example.org
+
+  To:                                                   Invoice #6
+      Stephen Hawking                         Date:   May 13, 2014
+      hawking@example.org
+
+  +-----------------------------------------------------------------+
+  | Quantity |         Description         | Unit Price |   Total   |
+  +-----------------------------------------------------------------+
+  | 8        | Awesome Comedy Hour         | $99 CAD    | $792 CAD  |
+  | 5        | Encore                      | $200 CAD   | $1000 CAD |
+  +-----------------------------------------------------------------+
+
+                                                    TOTAL: $1792 CAD
+
+  Payment Instructions:
+
+    Send to PayPal address carlin@example.org.
+    Payment is due within 30 days.
+
+  Thank you for your business! (ref# {{invoice_id}})`)
+
+func testInvoice(w http.ResponseWriter, r *http.Request) {
+	w.Write(carlinInvoice)
 }
