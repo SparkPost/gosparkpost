@@ -32,7 +32,6 @@ var wordChars = regexp.MustCompile(`^\w+$`)
 
 // RegisterMacro associates a Macro with a Client.
 // As with all changes to the Client, this is only safe to call before any potential concurrency.
-// Splitting of arguments can be done in the Macro Func if desired.
 // Everything between the Macro Name and the closing delimiter will be passed to the Func as a single string argument.
 func (c *Client) RegisterMacro(m *Macro) error {
 	if m == nil {
@@ -51,7 +50,8 @@ func (c *Client) RegisterMacro(m *Macro) error {
 }
 
 // Apply substitutes top-level string values from the Recipient's SubstitutionData and Metadata
-// (in that order) for placeholders in the provided string.
+// (in that order) for placeholders in the provided string. Nested substitution blocks will not
+// be interpreted, meaning that they will be passed along to the API.
 func (r *Recipient) Apply(in string) (string, error) {
 	if r == nil {
 		return in, nil
@@ -165,6 +165,10 @@ func (c *Client) ApplyMacros(in string, r *Recipient) (string, error) {
 	return strings.Join(chunks, ""), nil
 }
 
+// Tokenize splits a string that may contain Handlebars-style template code into
+// (you guessed it) tokens for further processing. Called by Client.ApplyMacros
+// and Recipient.Apply internally. Unless those functions do not meet your specific
+// needs, this function should not need to be called directly.
 func Tokenize(str string) (out []ContentToken, err error) {
 	strlen := len(str)
 	for {

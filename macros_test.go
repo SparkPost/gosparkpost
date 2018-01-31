@@ -181,6 +181,7 @@ func TestApplyMacros(t *testing.T) {
 
 func TestInvoice(t *testing.T) {
 	s := httptest.NewTLSServer(http.HandlerFunc(testInvoice))
+	defer s.Close()
 	tx := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	client := &http.Client{Transport: tx}
 	spClient := &sp.Client{}
