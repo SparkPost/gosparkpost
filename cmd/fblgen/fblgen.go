@@ -16,6 +16,7 @@ func main() {
 	var filename = flag.String("file", "", "path to raw email")
 	var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
 	var send = flag.Bool("send", false, "send fbl report")
+	var port = flag.Int("port", 25, "port for outbound smtp")
 	var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
 	var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
 
@@ -71,7 +72,7 @@ func main() {
 	if verbose == true {
 		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
 	}
-	smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
+	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
 	if *send == true {
 		log.Printf("Sending FBL from [%s] to [%s] via [%s]...\n",
