@@ -16,7 +16,7 @@ func main() {
 	var filename = flag.String("file", "", "path to raw email")
 	var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
 	var send = flag.Bool("send", false, "send fbl report")
-	var port = flag.Int("port", 25, "port to use for outbound smtp")
+	var port = flag.Int("port", 25, "port for outbound smtp")
 	var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
 	var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
 
