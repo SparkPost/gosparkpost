@@ -15,7 +15,8 @@ import (
 
 func main() {
 	var filename = flag.String("file", "", "path to raw email")
-	var send = flag.Bool("send", false, "send fbl report")
+	var send = flag.Bool("send", false, "send oob bounce")
+	var port = flag.Int("port", 25, "port for outbound smtp")
 	var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
 
 	flag.Parse()
@@ -66,7 +67,7 @@ func main() {
 	if verbose == true {
 		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, oobDomain)
 	}
-	smtpHost := fmt.Sprintf("%s:smtp", mxs[0].Host)
+	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
 	if *send == true {
 		log.Printf("Sending OOB from [%s] to [%s] via [%s]...\n",
