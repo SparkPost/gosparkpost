@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/SparkPost/gosparkpost/helpers/loadmsg"
-	"github.com/pkg/errors"
+	"github.com/SparkPost/gosparkpost/helpers/smtptls"
 )
 
 func main() {
@@ -78,10 +78,10 @@ func main() {
 	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
 	var tlsc *tls.Config
-	var smtptls *smtp.Client
+	var smtpTLS *smtp.Client
 	if *serverName != "" {
 		tlsc = &tls.Config{ServerName: *serverName}
-		smtptls, err = SmtpTlsConnect(smtpHost, *tlsc)
+		smtpTLS, err = smtptls.Connect(smtpHost, *tlsc)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -91,7 +91,7 @@ func main() {
 		log.Printf("Sending FBL from [%s] to [%s] via [%s]...\n",
 			fblFrom, fblTo, smtpHost)
 		if *serverName != "" {
-			err = SendTLSMail(smtptls, fblFrom, []string{fblTo}, []byte(arf))
+			err = smtptls.SendMail(smtpTLS, fblFrom, []string{fblTo}, []byte(arf))
 		} else {
 			err = smtp.SendMail(smtpHost, nil, fblFrom, []string{fblTo}, []byte(arf))
 		}
@@ -105,48 +105,4 @@ func main() {
 				fblFrom, fblTo, smtpHost)
 		}
 	}
-}
-
-func SmtpTlsConnect(host string, tlsc tls.Config) (*smtp.Client, error) {
-	client, err := smtp.Dial(host)
-	if err != nil {
-		return nil, err
-	}
-	if ok, _ := client.Extension("STARTTLS"); ok {
-		if err = client.StartTLS(&tlsc); err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, errors.Errorf("%s doesn't advertise STARTTLS support", host)
-	}
-
-	return client, nil
-}
-
-func SendTLSMail(c *smtp.Client, from string, to []string, msg []byte) error {
-	if err := c.Mail(from); err != nil {
-		return err
-	}
-
-	if err := c.Rcpt(to[0]); err != nil {
-		return err
-	}
-
-	w, err := c.Data()
-	if err != nil {
-		return err
-	}
-
-	_, err = w.Write(msg)
-	if err != nil {
-		return err
-	}
-
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-
-	c.Quit()
-	return nil
 }
