@@ -24,6 +24,12 @@ func Connect(host string, tlsc tls.Config) (*smtp.Client, error) {
 }
 
 func SendMail(c *smtp.Client, from string, to []string, msg []byte) error {
+	if to == nil || len(to) < 1 {
+		return errors.New("Message recipient (`to`) may not be nil or empty")
+	} else if msg == nil || len(msg) < 1 {
+		return errors.New("Message (`msg`) may not be nil or empty")
+	}
+
 	if err := c.Mail(from); err != nil {
 		return errors.Wrap(err, "sending MAIL FROM")
 	}
