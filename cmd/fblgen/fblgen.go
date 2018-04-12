@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -10,11 +11,13 @@ import (
 	"strings"
 
 	"github.com/SparkPost/gosparkpost/helpers/loadmsg"
+	"github.com/SparkPost/gosparkpost/helpers/smtptls"
 )
 
 func main() {
 	var filename = flag.String("file", "", "path to raw email")
 	var dumpArf = flag.Bool("arf", false, "dump out multipart/report message")
+	var serverName = flag.String("servername", "", "override tls servername")
 	var send = flag.Bool("send", false, "send fbl report")
 	var port = flag.Int("port", 25, "port for outbound smtp")
 	var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
@@ -74,10 +77,24 @@ func main() {
 	}
 	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
+	var tlsc *tls.Config
+	var smtpTLS *smtp.Client
+	if *serverName != "" {
+		tlsc = &tls.Config{ServerName: *serverName}
+		smtpTLS, err = smtptls.Connect(smtpHost, *tlsc)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	if *send == true {
 		log.Printf("Sending FBL from [%s] to [%s] via [%s]...\n",
 			fblFrom, fblTo, smtpHost)
-		err = smtp.SendMail(smtpHost, nil, fblFrom, []string{fblTo}, []byte(arf))
+		if *serverName != "" {
+			err = smtptls.SendMail(smtpTLS, fblFrom, []string{fblTo}, []byte(arf))
+		} else {
+			err = smtp.SendMail(smtpHost, nil, fblFrom, []string{fblTo}, []byte(arf))
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
