@@ -70,18 +70,17 @@ func main() {
 		log.Fatal(err)
 	}
 	if mxs == nil || len(mxs) <= 0 {
-		log.Fatal("No MXs for [%s]\n", fblDomain)
+		log.Fatalf("No MXs for [%s]\n", fblDomain)
 	}
 	if verbose == true {
 		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
 	}
 	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
-	var tlsc *tls.Config
 	var smtpTLS *smtp.Client
 	if *serverName != "" {
-		tlsc = &tls.Config{ServerName: *serverName}
-		smtpTLS, err = smtptls.Connect(smtpHost, *tlsc)
+		tlsc := &tls.Config{ServerName: *serverName}
+		smtpTLS, err = smtptls.Connect(smtpHost, tlsc)
 		if err != nil {
 			log.Fatal(err)
 		}

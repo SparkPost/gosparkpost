@@ -155,8 +155,6 @@ func ParseContent(content interface{}) (err error) {
 	default:
 		return fmt.Errorf("Unsupported Transmission.Content type [%s]", reflect.TypeOf(rVal))
 	}
-
-	return
 }
 
 // Validate runs sanity checks of a Transmission struct.

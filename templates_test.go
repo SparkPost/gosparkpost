@@ -147,7 +147,7 @@ func TestTemplateValidation(t *testing.T) {
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("Template.Validate[%d] => err %q, want %q", idx, err, test.err)
 		} else if test.out != nil && !reflect.DeepEqual(test.in, test.out) {
-			t.Errorf("Template.Validate[%d] => failed post-condition check for %q", test.in)
+			t.Errorf("Template.Validate[%d] => failed post-condition check for %v", idx, test.in)
 		}
 	}
 }
@@ -239,7 +239,7 @@ func TestTemplateGet(t *testing.T) {
 			t.Errorf("TemplateGet[%d] => err %v want %v", idx, err, test.err)
 		} else if test.out != nil {
 			if !reflect.DeepEqual(test.out, test.in) {
-				t.Errorf("TemplateGet[%d] => template got/want:\n%q\n%q", idx, test.in, test.out)
+				t.Errorf("TemplateGet[%d] => template got/want:\n%v\n%v", idx, test.in, test.out)
 			}
 		}
 	}

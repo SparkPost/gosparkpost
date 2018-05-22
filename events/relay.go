@@ -111,7 +111,7 @@ type RelayContent struct {
 	Cc      []string            `json:"cc"`
 	Headers []map[string]string `json:"headers"`
 	Email   string              `json:"email_rfc822"`
-	Base64  bool                `json:email_rfc822_is_base64"`
+	Base64  bool                `json:"email_rfc822_is_base64"`
 }
 
 type RelayMessage struct {
