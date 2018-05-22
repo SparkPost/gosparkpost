@@ -72,11 +72,10 @@ func main() {
 	}
 	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
-	var tlsc *tls.Config
 	var smtpTLS *smtp.Client
 	if *serverName != "" {
-		tlsc = &tls.Config{ServerName: *serverName}
-		smtpTLS, err = smtptls.Connect(smtpHost, *tlsc)
+		tlsc := &tls.Config{ServerName: *serverName}
+		smtpTLS, err = smtptls.Connect(smtpHost, tlsc)
 		if err != nil {
 			log.Fatal(err)
 		}

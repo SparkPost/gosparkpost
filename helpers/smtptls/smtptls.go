@@ -7,13 +7,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Connect(host string, tlsc tls.Config) (*smtp.Client, error) {
+func Connect(host string, tlsc *tls.Config) (*smtp.Client, error) {
 	client, err := smtp.Dial(host)
 	if err != nil {
 		return nil, errors.Wrap(err, "dialing smtp")
 	}
 	if ok, _ := client.Extension("STARTTLS"); ok {
-		if err = client.StartTLS(&tlsc); err != nil {
+		if err = client.StartTLS(tlsc); err != nil {
 			return nil, errors.Wrap(err, "starting tls")
 		}
 	} else {
