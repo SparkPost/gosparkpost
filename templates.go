@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -118,7 +117,7 @@ func ParseFrom(from interface{}) (f From, err error) {
 		}
 
 	default:
-		err = errors.Errorf("unsupported Content.From value type [%s]", reflect.TypeOf(fromVal))
+		err = errors.Errorf("unsupported Content.From value type [%T]", fromVal)
 	}
 
 	return
