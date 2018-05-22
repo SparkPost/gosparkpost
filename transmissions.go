@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -67,8 +66,7 @@ func ParseRecipients(recips interface{}) (ra *[]Recipient, err error) {
 					return
 				}
 			default:
-				err = fmt.Errorf("Transmission.Recipient objects must contain string values, not [%s]",
-					reflect.TypeOf(vVal))
+				err = fmt.Errorf("Transmission.Recipient objects must contain string values, not [%T]", vVal)
 				return
 			}
 		}
@@ -117,7 +115,7 @@ func ParseRecipients(recips interface{}) (ra *[]Recipient, err error) {
 		}
 
 	default:
-		err = fmt.Errorf("Unsupported Transmission.Recipient type [%s]", reflect.TypeOf(rVal))
+		err = fmt.Errorf("Unsupported Transmission.Recipient type [%T]", rVal)
 		return
 	}
 
@@ -135,7 +133,7 @@ func ParseContent(content interface{}) (err error) {
 					return nil
 				}
 			default:
-				return fmt.Errorf("Transmission.Content objects must contain string values, not [%s]", reflect.TypeOf(vVal))
+				return fmt.Errorf("Transmission.Content objects must contain string values, not [%T]", vVal)
 			}
 		}
 		return fmt.Errorf("Transmission.Content objects must contain a key `template_id`")
@@ -153,7 +151,7 @@ func ParseContent(content interface{}) (err error) {
 		return te.Validate()
 
 	default:
-		return fmt.Errorf("Unsupported Transmission.Content type [%s]", reflect.TypeOf(rVal))
+		return fmt.Errorf("Unsupported Transmission.Content type [%T]", rVal)
 	}
 
 	return
