@@ -7,6 +7,7 @@ type Click struct {
 	CampaignID      string      `json:"campaign_id"`
 	CustomerID      string      `json:"customer_id"`
 	DeliveryMethod  string      `json:"delv_method"`
+	EventID         string      `json:"event_id"`
 	GeoIP           *GeoIP      `json:"geo_ip"`
 	IPAddress       string      `json:"ip_address"`
 	MessageID       string      `json:"message_id"`
@@ -34,6 +35,7 @@ type Open struct {
 	CampaignID      string      `json:"campaign_id"`
 	CustomerID      string      `json:"customer_id"`
 	DeliveryMethod  string      `json:"delv_method"`
+	EventID         string      `json:"event_id"`
 	GeoIP           *GeoIP      `json:"geo_ip"`
 	IPAddress       string      `json:"ip_address"`
 	MessageID       string      `json:"message_id"`

@@ -7,6 +7,7 @@ type RelayInjection struct {
 	Binding         string    `json:"binding"`
 	BindingGroup    string    `json:"binding_group"`
 	CustomerID      string    `json:"customer_id"`
+	EventID         string    `json:"event_id"`
 	MessageFrom     string    `json:"msg_from"`
 	MessageSize     string    `json:"msg_size"`
 	Pathway         string    `json:"pathway"`
@@ -28,6 +29,7 @@ type RelayRejection struct {
 	EventCommon
 	CustomerID      string    `json:"customer_id"`
 	ErrorCode       string    `json:"error_code"`
+	EventID         string    `json:"event_id"`
 	MessageFrom     string    `json:"msg_from"`
 	Pathway         string    `json:"pathway"`
 	PathwayGroup    string    `json:"pathway_group"`
@@ -52,6 +54,7 @@ type RelayDelivery struct {
 	BindingGroup    string    `json:"binding_group"`
 	CustomerID      string    `json:"customer_id"`
 	DeliveryMethod  string    `json:"delv_method"`
+	EventID         string    `json:"event_id"`
 	MessageFrom     string    `json:"msg_from"`
 	Pathway         string    `json:"pathway"`
 	PathwayGroup    string    `json:"pathway_group"`
@@ -76,6 +79,7 @@ type RelayTempfail struct {
 	CustomerID      string    `json:"customer_id"`
 	DeliveryMethod  string    `json:"delv_method"`
 	ErrorCode       string    `json:"error_code"`
+	EventID         string    `json:"event_id"`
 	MessageFrom     string    `json:"msg_from"`
 	Retries         string    `json:"num_retries"`
 	QueueTime       string    `json:"queue_time"`
