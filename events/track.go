@@ -55,3 +55,14 @@ func (o *Open) String() string {
 	return fmt.Sprintf("%s O %s %s",
 		o.Timestamp, o.TransmissionID, o.Recipient)
 }
+
+type InitialOpen struct {
+	EventCommon
+	Open
+}
+
+// String returns a brief summary of an InitialOpen event
+func (i *InitialOpen) String() string {
+	return fmt.Sprintf("%s O %s %s",
+		i.Timestamp, i.TransmissionID, i.Recipient)
+}

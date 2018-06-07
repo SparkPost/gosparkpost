@@ -53,6 +53,8 @@ func EventForName(eventType string) Event {
 		return &ListUnsubscribe{}
 	case "link_unsubscribe":
 		return &LinkUnsubscribe{}
+	case "initial_open":
+		return &InitialOpen{}
 	case "open":
 		return &Open{}
 	case "out_of_band":
