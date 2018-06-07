@@ -51,6 +51,7 @@ func main() {
 	var metaFlag = flag.String("meta", "", "string/filename containing metadata (json object)")
 	var sendDelay = flag.String("send-delay", "", "delay delivery the specified amount of time")
 	var inline = flag.Bool("inline-css", false, "automatically inline css")
+	var campaign_id = flag.String("campaign-id", "", "tag this transmission with a campaign_id")
 	var dryrun = flag.Bool("dry-run", false, "dump json that would be sent to server")
 	var url = flag.String("url", "", "base url for api requests (optional)")
 	var help = flag.Bool("help", false, "display a help message")
@@ -191,6 +192,9 @@ func main() {
 	}
 
 	tx := &sp.Transmission{}
+	if *campaign_id != "" {
+		tx.CampaignID = *campaign_id
+	}
 
 	subJson, err := jsonify(hasSubs, *subsFlag)
 	if err != nil {
