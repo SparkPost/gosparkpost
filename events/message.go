@@ -10,6 +10,7 @@ type Delivery struct {
 	CustomerID      string      `json:"customer_id"`
 	DeliveryMethod  string      `json:"delv_method"`
 	DeviceToken     string      `json:"device_token"`
+	EventID         string      `json:"event_id"`
 	IPAddress       string      `json:"ip_address"`
 	MessageID       string      `json:"message_id"`
 	MessageFrom     string      `json:"msg_from"`
