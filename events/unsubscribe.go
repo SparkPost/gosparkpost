@@ -6,6 +6,7 @@ type ListUnsubscribe struct {
 	EventCommon
 	CampaignID      string      `json:"campaign_id"`
 	CustomerID      string      `json:"customer_id"`
+	EventID         string      `json:"event_id"`
 	MessageFrom     string      `json:"mailfrom"`
 	MessageID       string      `json:"message_id"`
 	Metadata        interface{} `json:"rcpt_meta"`

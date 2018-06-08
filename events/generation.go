@@ -9,6 +9,7 @@ type GenerationFailure struct {
 	CampaignID       string      `json:"campaign_id"`
 	CustomerID       string      `json:"customer_id"`
 	ErrorCode        string      `json:"error_code"`
+	EventID          string      `json:"event_id"`
 	Metadata         interface{} `json:"rcpt_meta"`
 	SubstitutionData interface{} `json:"rcpt_subs"`
 	Tags             []string    `json:"rcpt_tags"`
