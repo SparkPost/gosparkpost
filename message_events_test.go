@@ -87,7 +87,7 @@ func TestMessageEventsSearch(t *testing.T) {
 				if page != nil {
 					test.out.Client = page.Client // samesies
 					if !reflect.DeepEqual(page, test.out) {
-						t.Errorf("MessageEventsSearch[%d.%d] => template got/want:\n%v\n%v", idx, j, page, test.out)
+						t.Errorf("MessageEventsSearch[%d.%d] => template difference: %v", idx, j, pretty.Compare(page, test.out))
 					}
 				} else {
 					if j+1 != len(outer.results) { // nil `page` is ok if we're on the last page

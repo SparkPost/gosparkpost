@@ -15,8 +15,9 @@ var eventDocumentationBytes []byte
 var eventGroups = []string{"track", "gen", "unsubscribe", "relay", "message"}
 var eventGroupMap = map[string]map[string]int{
 	"track_event": {
-		"click": 22,
-		"open":  20,
+		"click":        22,
+		"open":         20,
+		"initial_open": 21,
 	},
 	"gen_event": {
 		"generation_failure":   21,

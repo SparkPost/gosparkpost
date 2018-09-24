@@ -10,6 +10,7 @@ type Delivery struct {
 	CustomerID      string      `json:"customer_id"`
 	DeliveryMethod  string      `json:"delv_method"`
 	DeviceToken     string      `json:"device_token"`
+	EventID         string      `json:"event_id"`
 	IPAddress       string      `json:"ip_address"`
 	MessageID       string      `json:"message_id"`
 	MessageFrom     string      `json:"msg_from"`
@@ -91,6 +92,7 @@ type Bounce struct {
 	DeliveryMethod  string            `json:"delv_method"`
 	DeviceToken     string            `json:"device_token"`
 	ErrorCode       string            `json:"error_code"`
+	EventID         string            `json:"event_id"`
 	IPAddress       string            `json:"ip_address"`
 	MessageID       string            `json:"message_id"`
 	MessageFrom     string            `json:"msg_from"`
@@ -137,6 +139,7 @@ type OutOfBand struct {
 	DeliveryMethod  string    `json:"delv_method"`
 	DeviceToken     string    `json:"device_token"`
 	ErrorCode       string    `json:"error_code"`
+	EventID         string    `json:"event_id"`
 	MessageID       string    `json:"message_id"`
 	MessageFrom     string    `json:"msg_from"`
 	Recipient       string    `json:"rcpt_to"`
@@ -171,6 +174,7 @@ type SpamComplaint struct {
 	CampaignID      string      `json:"campaign_id"`
 	CustomerID      string      `json:"customer_id"`
 	DeliveryMethod  string      `json:"delv_method"`
+	EventID         string      `json:"event_id"`
 	FeedbackType    string      `json:"fbtype"`
 	FriendlyFrom    string      `json:"friendly_from"`
 	MessageID       string      `json:"message_id"`
@@ -199,6 +203,7 @@ type PolicyRejection struct {
 	CampaignID      string      `json:"campaign_id"`
 	CustomerID      string      `json:"customer_id"`
 	ErrorCode       string      `json:"error_code"`
+	EventID         string      `json:"event_id"`
 	MessageID       string      `json:"message_id"`
 	MessageFrom     string      `json:"msg_from"`
 	Metadata        interface{} `json:"rcpt_meta"`
@@ -233,6 +238,7 @@ type Delay struct {
 	DeliveryMethod  string      `json:"delv_method"`
 	DeviceToken     string      `json:"device_token"`
 	ErrorCode       string      `json:"error_code"`
+	EventID         string      `json:"event_id"`
 	IPAddress       string      `json:"ip_address"`
 	MessageID       string      `json:"message_id"`
 	MessageFrom     string      `json:"msg_from"`
