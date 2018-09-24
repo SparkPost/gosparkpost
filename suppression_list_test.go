@@ -597,6 +597,11 @@ func mockRestRequestResponseBuilder(t *testing.T, method string, status int, pat
 		if mockResponse != "" {
 			w.Header().Set("Content-Type", "application/json; charset=utf8")
 		}
+		if status <= 100 || status >= 600 {
+			t.Logf("invalid http status code %d", status)
+			status = 404
+		}
+
 		w.WriteHeader(status)
 		if mockResponse != "" {
 			w.Write([]byte(mockResponse))
