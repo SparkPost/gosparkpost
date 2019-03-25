@@ -22,6 +22,7 @@ func main() {
 	var port = flag.Int("port", 25, "port for outbound smtp")
 	var fblAddress = flag.String("fblto", "", "where to deliver the fbl report")
 	var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
+	var _smtpHost = flag.String("smtphost", "", "override smtp host")
 
 	flag.Parse()
 	var verbose bool
@@ -57,25 +58,32 @@ func main() {
 		}
 	}
 
+	var smtpHost, fblFrom, arf string
+	if *_smtpHost == "" {
+		// not set, auto-detect using return path header
+
+		mxs, err := net.LookupMX(fblDomain)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if mxs == nil || len(mxs) <= 0 {
+			log.Fatalf("No MXs for [%s]\n", fblDomain)
+		}
+		if verbose == true {
+			log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
+		}
+		smtpHost = fmt.Sprintf("%s:%d", mxs[0].Host, *port)
+	} else {
+		smtpHost = *_smtpHost
+	}
+
 	// from/to are opposite here, since we're simulating a reply
-	fblFrom := string(msg.Recipient)
-	arf := BuildArf(fblFrom, fblTo, msg.MSFBL, msg.CustID)
+	fblFrom = string(msg.Recipient)
+	arf = BuildArf(fblFrom, fblTo, msg.MSFBL, msg.CustID)
 
 	if *dumpArf == true {
 		fmt.Fprintf(os.Stdout, "%s", arf)
 	}
-
-	mxs, err := net.LookupMX(fblDomain)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if mxs == nil || len(mxs) <= 0 {
-		log.Fatalf("No MXs for [%s]\n", fblDomain)
-	}
-	if verbose == true {
-		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
-	}
-	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
 	var smtpTLS *smtp.Client
 	if *serverName != "" {
