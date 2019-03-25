@@ -21,6 +21,7 @@ func main() {
 	var port = flag.Int("port", 25, "port for outbound smtp")
 	var serverName = flag.String("servername", "", "override tls servername")
 	var verboseOpt = flag.Bool("verbose", false, "print out lots of messages")
+	var _smtpHost = flag.String("smtphost", "", "override smtp host")
 
 	flag.Parse()
 	var verbose bool
@@ -52,25 +53,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// from/to are opposite here, since we're simulating a reply
+	smtpHost := *_smtpHost
+	if smtpHost == "" {
+		// not set, auto-detect using domain from return-path header
+		mxs, err := net.LookupMX(oobDomain)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if mxs == nil || len(mxs) <= 0 {
+			log.Fatalf("No MXs for [%s]\n", oobDomain)
+		}
+		if verbose == true {
+			log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, oobDomain)
+		}
+		smtpHost = fmt.Sprintf("%s:%d", mxs[0].Host, *port)
+	}
+
 	to := msg.ReturnPath.Address
+	// from/to are opposite here, since we're simulating a reply
 	from, err := mail.ParseAddress(msg.Message.Header.Get("From"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	oob := BuildOob(to, from.Address, string(fileBytes))
-
-	mxs, err := net.LookupMX(oobDomain)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if mxs == nil || len(mxs) <= 0 {
-		log.Fatalf("No MXs for [%s]\n", oobDomain)
-	}
-	if verbose == true {
-		log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, oobDomain)
-	}
-	smtpHost := fmt.Sprintf("%s:%d", mxs[0].Host, *port)
 
 	var smtpTLS *smtp.Client
 	if *serverName != "" {
