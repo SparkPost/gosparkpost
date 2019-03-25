@@ -58,10 +58,9 @@ func main() {
 		}
 	}
 
-	var smtpHost, fblFrom, arf string
-	if *_smtpHost == "" {
-		// not set, auto-detect using return path header
-
+	smtpHost := *_smtpHost
+	if smtpHost == "" {
+		// not set, auto-detect using domain from return-path header
 		mxs, err := net.LookupMX(fblDomain)
 		if err != nil {
 			log.Fatal(err)
@@ -73,13 +72,11 @@ func main() {
 			log.Printf("Got MX [%s] for [%s]\n", mxs[0].Host, fblDomain)
 		}
 		smtpHost = fmt.Sprintf("%s:%d", mxs[0].Host, *port)
-	} else {
-		smtpHost = *_smtpHost
 	}
 
 	// from/to are opposite here, since we're simulating a reply
-	fblFrom = string(msg.Recipient)
-	arf = BuildArf(fblFrom, fblTo, msg.MSFBL, msg.CustID)
+	fblFrom := string(msg.Recipient)
+	arf := BuildArf(fblFrom, fblTo, msg.MSFBL, msg.CustID)
 
 	if *dumpArf == true {
 		fmt.Fprintf(os.Stdout, "%s", arf)
