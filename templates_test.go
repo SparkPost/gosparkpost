@@ -253,10 +253,10 @@ func TestTemplateUpdate(t *testing.T) {
 		status int
 		json   string
 	}{
-		{nil, false, errors.New("Update called with nil Template"), 0, ""},
-		{&sp.Template{ID: ""}, false, errors.New("Update called with blank id"), 0, ""},
-		{&sp.Template{ID: "id", Content: sp.Content{}}, false, errors.New("Template requires a non-empty Content.Subject"), 0, ""},
-		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, false, errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
+		{nil, false, errors.New("Update called with nil Template"), 500, ""},
+		{&sp.Template{ID: ""}, false, errors.New("Update called with blank id"), 500, ""},
+		{&sp.Template{ID: "id", Content: sp.Content{}}, false, errors.New("Template requires a non-empty Content.Subject"), 500, ""},
+		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s", HTML: "h", From: "f"}}, false, errors.New("parsing api response: unexpected end of JSON input"), 500, `{ "errors": [ { "message": "truncated json" }`},
 
 		{&sp.Template{ID: "id", Content: sp.Content{Subject: "s{{", HTML: "h", From: "f"}}, false,
 			sp.SPErrors([]sp.SPError{{
@@ -293,8 +293,8 @@ func TestTemplates(t *testing.T) {
 		status int
 		json   string
 	}{
-		{errors.New("parsing api response: unexpected end of JSON input"), 0, `{ "errors": [ { "message": "truncated json" }`},
-		{errors.New("[{\"message\":\"truncated json\",\"code\":\"\",\"description\":\"\"}]"), 0, `{ "errors": [ { "message": "truncated json" } ] }`},
+		{errors.New("parsing api response: unexpected end of JSON input"), 500, `{ "errors": [ { "message": "truncated json" }`},
+		{errors.New("[{\"message\":\"truncated json\",\"code\":\"\",\"description\":\"\"}]"), 500, `{ "errors": [ { "message": "truncated json" } ] }`},
 		{nil, 200, `{ "results": [ { "description": "A test message from SparkPost.com", "id": "my-first-email", "last_update_time": "2006-01-02T15:04:05+00:00", "name": "My First Email", "published": false } ] }`},
 	} {
 		testSetup(t)

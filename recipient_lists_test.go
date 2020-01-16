@@ -167,7 +167,7 @@ func TestRecipientLists(t *testing.T) {
 		} else if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("RecipientLists[%d] => err %q want %q", idx, err, test.err)
 		} else if test.out != nil && !reflect.DeepEqual(lists, test.out) {
-			t.Errorf("RecipientLists[%d] => got/want:\n%q\n%q", idx, lists, test.out)
+			t.Errorf("RecipientLists[%d] => got/want:\n%#v\n%#v", idx, lists, test.out)
 		}
 	}
 }

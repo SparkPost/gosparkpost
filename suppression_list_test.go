@@ -589,7 +589,7 @@ func mockRestRequestResponseBuilder(t *testing.T, method string, status int, pat
 			}
 
 			if !ok {
-				testFailVerbose(t, nil, "Request did not match expected. \nExpected: \n%s\n\nActual:\n%s\n\n", err)
+				testFailVerbose(t, nil, "Request did not match expected. \nExpected: \n%s\n\nActual:\n%s\n\n", expectedBody, string(body[:]))
 			}
 		}
 
