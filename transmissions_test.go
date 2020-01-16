@@ -166,28 +166,39 @@ func TestTransmissions_ByID_Success(t *testing.T) {
 func TestTransmissionOptions(t *testing.T) {
 	var jsonb []byte
 	var err error
-	var opt bool
 
-	tx := &sp.Transmission{}
-	to := &sp.TxOptions{InlineCSS: &opt}
-	tx.Options = to
-
-	jsonb, err = json.Marshal(tx)
-	if err != nil {
-		t.Fatal(err)
+	tableTests := []struct {
+		options  *sp.TxOptions
+		wantJson []byte
+	}{
+		{
+			&sp.TxOptions{InlineCSS: new(bool)},
+			[]byte(`"options":{"inline_css":false}`),
+		},
+		{
+			&sp.TxOptions{},
+			[]byte(`"options":{}`),
+		},
+		{
+			&sp.TxOptions{InlineCSS: new(bool), PerformSubstitutions: new(bool)},
+			[]byte(`"options":{"inline_css":false,"perform_substitutions":false}`),
+		},
 	}
 
-	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":false}`)) {
-		t.Fatalf("expected inline_css option to be false:\n%s", string(jsonb))
-	}
+	for _, tt := range tableTests {
+		tx := &sp.Transmission{}
+		to := tt.options
+		tx.Options = to
 
-	opt = true
-	jsonb, err = json.Marshal(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
+		jsonb, err = json.Marshal(tx)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if !bytes.Contains(jsonb, []byte(`"options":{"inline_css":true}`)) {
-		t.Fatalf("expected inline_css option to be true:\n%s", string(jsonb))
+		if !bytes.Contains(jsonb, tt.wantJson) {
+			t.Error("could not match options")
+			t.Errorf("Got  :\n%s", tt.wantJson)
+			t.Fatalf("Want :\n%s", string(jsonb))
+		}
 	}
 }

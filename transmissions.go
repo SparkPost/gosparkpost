@@ -47,12 +47,13 @@ func (r *RFC3339) MarshalJSON() ([]byte, error) {
 type TxOptions struct {
 	TmplOptions
 
-	StartTime       *RFC3339 `json:"start_time,omitempty"`
-	Transactional   *bool    `json:"transactional,omitempty"`
-	Sandbox         *bool    `json:"sandbox,omitempty"`
-	SkipSuppression *bool    `json:"skip_suppression,omitempty"`
-	IPPool          string   `json:"ip_pool,omitempty"`
-	InlineCSS       *bool    `json:"inline_css,omitempty"`
+	StartTime            *RFC3339 `json:"start_time,omitempty"`
+	Transactional        *bool    `json:"transactional,omitempty"`
+	Sandbox              *bool    `json:"sandbox,omitempty"`
+	SkipSuppression      *bool    `json:"skip_suppression,omitempty"`
+	IPPool               string   `json:"ip_pool,omitempty"`
+	InlineCSS            *bool    `json:"inline_css,omitempty"`
+	PerformSubstitutions *bool    `json:"perform_substitutions,omitempty"`
 }
 
 // ParseRecipients asserts that Transmission.Recipients is valid.
