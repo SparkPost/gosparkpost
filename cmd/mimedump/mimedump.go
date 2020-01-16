@@ -5,11 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/mail"
 	"os"
 	"strings"
 
-	mime "github.com/jhillyerd/go.enmime"
+	mime "github.com/jhillyerd/enmime"
 )
 
 func main() {
@@ -26,23 +25,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	msg, err := mail.ReadMessage(fh)
+	e, err := mime.ReadEnvelope(fh)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	m, err := mime.ParseMIMEBody(msg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Fprintf(os.Stderr, "HTML=%d Text=%d\n", len(m.HTML), len(m.Text))
-	if len(m.HTML) <= 0 {
+	fmt.Fprintf(os.Stderr, "HTML=%d Text=%d\n", len(e.HTML), len(e.Text))
+	if len(e.HTML) <= 0 {
 		log.Fatalf("No HTML part found in %s\n", *filename)
 	}
 
 	w := bufio.NewWriter(os.Stdout)
-	n, err := w.WriteString(m.HTML)
+	n, err := w.WriteString(e.HTML)
 	if err != nil {
 		log.Fatal(err)
 	}
