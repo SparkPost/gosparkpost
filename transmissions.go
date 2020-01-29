@@ -48,7 +48,6 @@ type TxOptions struct {
 	TmplOptions
 
 	StartTime            *RFC3339 `json:"start_time,omitempty"`
-	Transactional        *bool    `json:"transactional,omitempty"`
 	Sandbox              *bool    `json:"sandbox,omitempty"`
 	SkipSuppression      *bool    `json:"skip_suppression,omitempty"`
 	IPPool               string   `json:"ip_pool,omitempty"`
