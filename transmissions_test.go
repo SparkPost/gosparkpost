@@ -197,8 +197,8 @@ func TestTransmissionOptions(t *testing.T) {
 
 		if !bytes.Contains(jsonb, tt.wantJson) {
 			t.Error("could not match options")
-			t.Errorf("Got  :\n%s", tt.wantJson)
-			t.Fatalf("Want :\n%s", string(jsonb))
+			t.Fatalf("Got  :\n%s", string(jsonb))
+			t.Errorf("Want :\n%s", tt.wantJson)
 		}
 	}
 }
