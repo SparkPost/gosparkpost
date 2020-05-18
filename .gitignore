@@ -2,3 +2,10 @@
 .vscode
 
 **/*.test
+
+cmd/fblgen/fblgen
+cmd/mimedump/mimedump
+cmd/oobgen/oobgen
+cmd/qp/qp
+cmd/send-a-gopher/send-a-gopher
+cmd/sparks/sparks
