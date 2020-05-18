@@ -65,7 +65,7 @@ func TestMessageEventsSearch(t *testing.T) {
 			// Trigger url parse failure
 			if idx == 0 {
 				testClient.Config.BaseUrl += "/%xx"
-				test.err = errors.Errorf("parsing url: parse %s: %s",
+				test.err = errors.Errorf("parsing url: parse %q: %s",
 					testClient.Config.BaseUrl+
 						fmt.Sprintf(sp.MessageEventsPathFormat, testClient.Config.ApiVersion),
 					`invalid URL escape "%xx"`)
@@ -122,7 +122,7 @@ func TestEventSamples(t *testing.T) {
 
 		if idx == 0 {
 			testClient.Config.BaseUrl += "/%xx"
-			test.err = errors.Errorf("parsing url: parse %s: %s",
+			test.err = errors.Errorf("parsing url: parse %q: %s",
 				testClient.Config.BaseUrl+
 					fmt.Sprintf(sp.MessageEventsSamplesPathFormat, testClient.Config.ApiVersion),
 				`invalid URL escape "%xx"`)

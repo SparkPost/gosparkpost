@@ -15,17 +15,17 @@ func TestWebhookBadHost(t *testing.T) {
 	testClient.Config.BaseUrl = "%zz"
 
 	_, err := testClient.Webhooks(&sp.WebhookListWrapper{})
-	if err == nil || err.Error() != `building request: parse %zz/api/v1/webhooks: invalid URL escape "%zz"` {
+	if err == nil || err.Error() != `building request: parse "%zz/api/v1/webhooks": invalid URL escape "%zz"` {
 		t.Errorf("error: %#v", err)
 	}
 
 	_, err = testClient.WebhookStatus(&sp.WebhookStatusWrapper{ID: "id"})
-	if err == nil || err.Error() != `building request: parse %zz/api/v1/webhooks/id/batch-status: invalid URL escape "%zz"` {
+	if err == nil || err.Error() != `building request: parse "%zz/api/v1/webhooks/id/batch-status": invalid URL escape "%zz"` {
 		t.Errorf("error: %#v", err)
 	}
 
 	_, err = testClient.WebhookDetail(&sp.WebhookDetailWrapper{ID: "id"})
-	if err == nil || err.Error() != `building request: parse %zz/api/v1/webhooks/id: invalid URL escape "%zz"` {
+	if err == nil || err.Error() != `building request: parse "%zz/api/v1/webhooks/id": invalid URL escape "%zz"` {
 		t.Errorf("error: %#v", err)
 	}
 
