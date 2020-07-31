@@ -30,6 +30,7 @@ type Template struct {
 // Knowledge of SparkPost's substitution/templating capabilities will come in handy here.
 // https://www.sparkpost.com/api#/introduction/substitutions-reference
 type Content struct {
+	AMPHTML      string            `json:"amp_html,omitempty"`
 	HTML         string            `json:"html,omitempty"`
 	Text         string            `json:"text,omitempty"`
 	Subject      string            `json:"subject,omitempty"`
