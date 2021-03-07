@@ -47,6 +47,8 @@ func EventForName(eventType string) Event {
 		return &GenerationFailure{}
 	case "generation_rejection":
 		return &GenerationRejection{}
+	case "initial_open":
+		return &InitialOpen{}
 	case "injection":
 		return &Injection{}
 	case "list_unsubscribe":

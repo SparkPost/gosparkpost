@@ -53,3 +53,28 @@ func (o *Open) String() string {
 	return fmt.Sprintf("%s O %s %s",
 		o.Timestamp, o.TransmissionID, o.Recipient)
 }
+
+type InitialOpen struct {
+	EventCommon
+	CampaignID      string      `json:"campaign_id"`
+	CustomerID      string      `json:"customer_id"`
+	DeliveryMethod  string      `json:"delv_method"`
+	GeoIP           *GeoIP      `json:"geo_ip"`
+	IPAddress       string      `json:"ip_address"`
+	MessageID       string      `json:"message_id"`
+	Metadata        interface{} `json:"rcpt_meta"`
+	Tags            []string    `json:"rcpt_tags"`
+	Recipient       string      `json:"rcpt_to"`
+	RecipientType   string      `json:"rcpt_type"`
+	TemplateID      string      `json:"template_id"`
+	TemplateVersion string      `json:"template_version"`
+	Timestamp       Timestamp   `json:"timestamp"`
+	TransmissionID  string      `json:"transmission_id"`
+	UserAgent       string      `json:"user_agent"`
+}
+
+// String returns a brief summary of an Open event
+func (o *InitialOpen) String() string {
+	return fmt.Sprintf("%s O %s %s",
+		o.Timestamp, o.TransmissionID, o.Recipient)
+}
