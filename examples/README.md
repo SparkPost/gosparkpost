@@ -64,3 +64,10 @@ Here's the output of the example linked above, which generates a message with 2 
       }
     }
 
+### Transmission Options
+
+Transmission options can be used to control various settings on the transmission you're building, and can be used to override
+some account-level settings (such as open tracking).
+
+[Options example](options/options.go)
+
