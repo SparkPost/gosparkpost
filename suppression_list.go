@@ -26,6 +26,7 @@ type SuppressionEntry struct {
 	Description      string `json:"description,omitempty"`
 	Updated          string `json:"updated,omitempty"`
 	Created          string `json:"created,omitempty"`
+	SubAccountID     string `json:"subaccount_id,omitempty"`
 }
 
 // WritableSuppressionEntry stores a recipient’s opt-out preferences. It is a list of recipient email addresses to which you do NOT want to send email.
