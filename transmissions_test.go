@@ -180,6 +180,10 @@ func TestTransmissionOptions(t *testing.T) {
 			[]byte(`"options":{}`),
 		},
 		{
+			&sp.TxOptions{TmplOptions: sp.TmplOptions{InitialOpenTracking: new(bool)}},
+			[]byte(`"options":{"initial_open":false}`),
+		},
+		{
 			&sp.TxOptions{InlineCSS: new(bool), PerformSubstitutions: new(bool)},
 			[]byte(`"options":{"inline_css":false,"perform_substitutions":false}`),
 		},

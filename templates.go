@@ -61,9 +61,10 @@ type From struct {
 // TmplOptions specifies settings to apply to this Template.
 // These settings may be overridden in the Transmission API call.
 type TmplOptions struct {
-	OpenTracking  *bool `json:"open_tracking,omitempty"`
-	ClickTracking *bool `json:"click_tracking,omitempty"`
-	Transactional *bool `json:"transactional,omitempty"`
+	InitialOpenTracking *bool `json:"initial_open,omitempty"`
+	OpenTracking        *bool `json:"open_tracking,omitempty"`
+	ClickTracking       *bool `json:"click_tracking,omitempty"`
+	Transactional       *bool `json:"transactional,omitempty"`
 }
 
 // PreviewOptions contains the required subsitution_data object to
