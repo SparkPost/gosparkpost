@@ -550,6 +550,8 @@ func verifySuppressionEnty(t *testing.T, suppressionEntry *sp.SuppressionEntry) 
 		testFailVerbose(t, nil, "Unexpected Updated: %s", suppressionEntry.Updated)
 	} else if suppressionEntry.NonTransactional != true {
 		testFailVerbose(t, nil, "Unexpected NonTransactional value")
+	} else if suppressionEntry.SubAccountID != "42" {
+		testFailVerbose(t, nil, "Unexpected SubAccountID value")
 	}
 }
 
