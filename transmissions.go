@@ -126,16 +126,28 @@ func ParseRecipients(recips interface{}) (ra *[]Recipient, err error) {
 func ParseContent(content interface{}) (err error) {
 	switch rVal := content.(type) {
 	case map[string]interface{}:
-		_, isOk := rVal["template_id"]
-		if isOk {
+		var found bool
+		for key := range rVal {
+			if strings.ToLower(key) == "template_id" {
+				found = true
+				break
+			}
+		}
+		if found {
 			return nil
 		}
 		return fmt.Errorf("Transmission.Content objects must contain a key `template_id`")
 	case map[string]string:
 		// Have to duplicate logic here, we cannot add it above because it will then conflate rVal as an interface{}
 		// Exact error message: invalid operation: cannot index rVal (variable of type interface{})
-		_, isOk := rVal["template_id"]
-		if isOk {
+		var found bool
+		for key := range rVal {
+			if strings.ToLower(key) == "template_id" {
+				found = true
+				break
+			}
+		}
+		if found {
 			return nil
 		}
 		return fmt.Errorf("Transmission.Content objects must contain a key `template_id`")
