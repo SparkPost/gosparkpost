@@ -163,23 +163,8 @@ func parseRawJSONEventsFromSamples(data []byte) ([]json.RawMessage, error) {
 }
 
 func ECLog(e Event) string {
-	// XXX: this feels like the wrong way; can't figure out the right way
-	switch e.(type) {
-	case *Bounce:
-		b := e.(*Bounce)
-		return b.ECLog()
-	case *Delay:
-		d := e.(*Delay)
-		return d.ECLog()
-	case *Delivery:
-		d := e.(*Delivery)
-		return d.ECLog()
-	case *Injection:
-		i := e.(*Injection)
-		return i.ECLog()
-	case *OutOfBand:
-		o := e.(*OutOfBand)
-		return o.ECLog()
+	if logger, ok := e.(ECLogger); ok {
+		return logger.ECLog()
 	}
 	return ""
 }
